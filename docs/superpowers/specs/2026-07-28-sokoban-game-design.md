@@ -21,6 +21,12 @@ sau khi đóng trình duyệt, và toàn bộ luật chơi được test tự đ
   lên scene/asset.
 - Input dùng **Input Manager cũ** (`UnityEngine.Input`) — không thêm package Input System, tránh
   cấu hình dư thừa cho một game chỉ cần 4 hướng.
+- **Quy ước MCP: chỉ mở một Unity Editor tại một thời điểm.** MCP server dùng chung endpoint
+  `http://127.0.0.1:8080/mcp` cho mọi project, và URL này nằm ở EditorPrefs dùng chung toàn máy
+  (`HKCU\Software\Unity Technologies\Unity Editor 5.x` → `MCPForUnity.HttpUrl`) nên **không tách được
+  cổng riêng cho từng project**. Vì vậy khi làm Sokoban thì đóng Editor của Sputnika. Bản thân server
+  có phân luồng theo phiên (`set_active_instance` với `Name@hash`) và sẽ báo lỗi thay vì đoán bừa khi
+  có nhiều instance, nhưng đóng bớt Editor là cách chắc chắn nhất.
 
 ## 3. Quyết định kiến trúc
 
@@ -194,7 +200,8 @@ Test EditMode bằng Unity Test Framework, nhắm vào `Board`, `MoveResolver`, 
 - **Tải asset ngoài**: Kenney Sokoban Pack và file `.txt` Microban đều phải tải từ mạng. Nếu môi
   trường chặn tải, dừng lại và nhờ người dùng tải thủ công — **không** tự bịa asset thay thế.
 - **MCP for Unity chưa cài**: `Packages/manifest.json` hiện chưa có package này, nên Claude chưa
-  thao tác trực tiếp lên scene/asset được. Phải cài xong trước khi bắt đầu mốc 1.
+  thao tác trực tiếp lên scene/asset được. Phải cài xong trước khi bắt đầu mốc 1 — dùng đúng bản
+  Sputnika đang chạy: `"com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.0.0"`.
 - **Scene thừa**: `Assets/Scenes/` đang có cả `SampleScene.unity` lẫn `New Scene.unity`. Mốc 1 sẽ dọn
   còn đúng một scene `Main.unity`.
 
