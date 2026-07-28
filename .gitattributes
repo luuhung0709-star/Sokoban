@@ -1,0 +1,22 @@
+# Unity writes LF; keep it that way so diffs stay clean on Windows.
+* text=auto eol=lf
+
+# Unity YAML — text, but never merged automatically.
+*.unity   text eol=lf merge=binary
+*.prefab  text eol=lf merge=binary
+*.asset   text eol=lf merge=binary
+*.mat     text eol=lf merge=binary
+*.anim    text eol=lf merge=binary
+*.controller text eol=lf merge=binary
+*.meta    text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.psd binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.ttf binary
+*.otf binary
+*.unitypackage binary
