@@ -128,9 +128,24 @@ test được bằng EditMode.
 
 ## 6. Hiển thị
 
-- **`FloorTilemap`** — nền và ô đích. **`WallTilemap`** — tường. Cả hai vẽ một lần lúc load màn từ
-  các `Tile` asset cắt từ **Kenney Sokoban Pack** (CC0).
-- **`BoardRenderer`** — xoá và vẽ lại hai Tilemap theo `LevelData`, rồi spawn người chơi và các hộp
+- **Ba Tilemap**, vẽ một lần lúc load màn: `GroundTilemap` (nền, phủ cả ô đích), `GoalTilemap` (chỉ
+  ô đích), `WallTilemap` (tường). Tách `GoalTilemap` ra khỏi nền vì bộ Kenney không có sprite ghép
+  sẵn "nền + dấu đích"; dấu đích là sprite nền trong suốt nên phải nằm ở lớp riêng phía trên nền.
+  (Bản spec đầu ghi hai Tilemap — điều chỉnh sau khi khảo sát asset thật.)
+- Art từ **Kenney Sokoban Pack** (CC0, 64×64 px/tile, đã tải và soi ngày 2026-07-28). Sprite chốt:
+
+  | Vai trò | File trong `PNG/Default size/` |
+  |---|---|
+  | Nền | `Ground/ground_01.png` (nâu nhạt) |
+  | Tường | `Blocks/block_06.png` (gạch xám, tương phản với nền) |
+  | Ô đích | `Environment/environment_05.png` (kim cương đỏ, nền trong suốt) |
+  | Hộp | `Crates/crate_02.png` (nâu, có dải sáng) |
+  | Hộp trên đích | `Crates/crate_07.png` (nâu sẫm, không dải sáng) |
+  | Người chơi | `Player/player_01.png` (nhìn chính diện) |
+
+  Người chơi dùng **một** sprite duy nhất, không xoay theo hướng đi — bộ art có sẵn 4 hướng nhưng
+  spec không yêu cầu, để dành khi cần.
+- **`BoardRenderer`** — xoá và vẽ lại ba Tilemap theo `LevelData`, rồi spawn người chơi và các hộp
   từ object pool. Hộp đổi sprite khi nằm trên đích.
 - **`MoveAnimator`** — tween vị trí người chơi/hộp khoảng **0.12 giây** mỗi ô. Trong lúc tween chạy,
   input tiếp theo được **đệm tối đa 1 nước** rồi thực thi ngay khi tween xong, để giữ nhịp khi người
