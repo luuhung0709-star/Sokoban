@@ -15,8 +15,10 @@ sau khi đóng trình duyệt, và toàn bộ luật chơi được test tự đ
 
 - Unity **2021.3.43f1** (đã cài, cùng bản với project Sputnika), template **2D (Built-in Render Pipeline)**.
 - Module WebGL đã có sẵn trong bản cài này.
-- Project do người dùng tạo bằng Unity Hub tại `C:\Users\hung\Sokoban`, sau đó cài package
-  **MCP for Unity** để Claude thao tác trực tiếp lên scene/asset.
+- Project đã được tạo bằng Unity Hub tại **`D:\Hung\Sokoban`** (đã xác nhận: 2021.3.43f1, template 2D
+  với `com.unity.feature.2d`, có `com.unity.test-framework` và module `tilemap`). Repo git và `docs/`
+  nằm ngay tại thư mục gốc đó. Cần cài thêm package **MCP for Unity** để Claude thao tác trực tiếp
+  lên scene/asset.
 - Input dùng **Input Manager cũ** (`UnityEngine.Input`) — không thêm package Input System, tránh
   cấu hình dư thừa cho một game chỉ cần 4 hướng.
 
@@ -191,9 +193,10 @@ Test EditMode bằng Unity Test Framework, nhắm vào `Board`, `MoveResolver`, 
 
 - **Tải asset ngoài**: Kenney Sokoban Pack và file `.txt` Microban đều phải tải từ mạng. Nếu môi
   trường chặn tải, dừng lại và nhờ người dùng tải thủ công — **không** tự bịa asset thay thế.
-- **Hub từ chối tạo project vào thư mục đã tồn tại**: thư mục `C:\Users\hung\Sokoban` đã có sẵn
-  `docs/` và `.git`. Nếu Unity Hub không cho tạo project vào đó, tạm chuyển hai thư mục này ra ngoài,
-  tạo project, rồi chuyển lại.
+- **MCP for Unity chưa cài**: `Packages/manifest.json` hiện chưa có package này, nên Claude chưa
+  thao tác trực tiếp lên scene/asset được. Phải cài xong trước khi bắt đầu mốc 1.
+- **Scene thừa**: `Assets/Scenes/` đang có cả `SampleScene.unity` lẫn `New Scene.unity`. Mốc 1 sẽ dọn
+  còn đúng một scene `Main.unity`.
 
 ## 15. Ngoài phạm vi
 
