@@ -40,3 +40,6 @@ sysinfo.txt
 
 # Crashlytics generated file
 crashlytics-build.properties
+
+# Superpowers SDD scratch (ledger, briefs, review packages)
+/.superpowers/
