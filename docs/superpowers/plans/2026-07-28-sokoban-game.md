@@ -598,6 +598,10 @@ namespace Sokoban.Tests
         public void EveryLevel_IsEnclosedByWalls()
         {
             // Loang từ người chơi qua mọi ô không phải tường; không được thoát ra ngoài lưới.
+            //
+            // Phép loang này CỐ Ý viết lại độc lập, không gọi LevelValidator (Task 13):
+            // đây là test dữ liệu, nó phải kiểm tra 155 màn thật chứ không đo lại chính
+            // đoạn code mà một test khác đã kiểm. Đừng gộp hai chỗ này làm một.
             foreach (var level in LoadCollection().levels)
             {
                 Vector2Int start = default;
@@ -2577,7 +2581,10 @@ namespace Sokoban.Progress
 
         public static void Clear()
         {
-            _cache = new ProgressRoot();
+            // Đặt null chứ không phải object rỗng: lần truy cập sau phải đọc lại PlayerPrefs.
+            // Nếu gán object rỗng, cache luôn khác null nên nhánh đọc-và-bắt-lỗi không bao giờ chạy,
+            // và test JSON hỏng sẽ xanh vì lý do sai.
+            _cache = null;
             PlayerPrefs.DeleteKey(Key);
             PlayerPrefs.Save();
         }
