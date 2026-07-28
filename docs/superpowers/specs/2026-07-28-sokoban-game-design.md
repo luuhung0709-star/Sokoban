@@ -78,7 +78,7 @@ bình thường — một file nguồn hỏng một chỗ không được làm h
   - `CellType[,] statics` (Wall / Floor / Goal) dựng một lần lúc load, không đổi trong màn
   - `Vector2Int playerPos`
   - `HashSet<Vector2Int> boxes`
-  - `bool IsSolved => boxes.All(b => statics[b] == Goal)`
+  - `bool IsSolved` — đúng khi mọi toạ độ trong `boxes` đều ứng với ô `Goal` trong `statics`
 - **`MoveResolver`** — hàm thuần: `(Board, Direction) → MoveResult`. `MoveResult` cho biết nước đi bị
   chặn / chỉ đi / có đẩy, kèm toạ độ cũ và mới của người chơi và của hộp bị đẩy.
 - **`MoveHistory`** — stack các `Move` (hướng + có đẩy hay không). Undo đảo ngược nước đi cuối
@@ -115,7 +115,8 @@ test được bằng EditMode.
 
 `InputRouter` gom mọi nguồn input thành một luồng `Direction` + lệnh:
 
-- Bàn phím: mũi tên hoặc WASD để đi, `U` undo, `Y` redo, `R` restart, `Esc` mở menu.
+- Bàn phím: mũi tên hoặc WASD để đi, `U` undo, `Y` redo, `R` restart, `Esc` thoát về LevelSelect
+  (giống hệt nút Thoát trên HUD — không có màn hình tạm dừng riêng).
 - Cảm ứng: vuốt theo 4 hướng, ngưỡng khoảng cách tối thiểu để không nhầm với chạm nhẹ; trục nào
   vuốt dài hơn thì thắng.
 - Nút trên màn hình: Undo, Redo, Restart, Thoát — bấm được bằng cả chuột lẫn ngón tay.
@@ -130,6 +131,7 @@ scene. `GameFlowController` giữ trạng thái hiện tại và điều phối 
   hiển thị mờ và không bấm được. Mở khoá **tuần tự**: qua màn *n* mới mở màn *n+1*; màn 1 luôn mở.
 - **HUD trong màn** — tên màn, số bước, số lần đẩy, và hàng nút Undo · Redo · Restart · Thoát.
 - **LevelComplete** — số bước lượt này, kỷ lục cũ (nếu có), nút Màn tiếp / Chơi lại / Chọn màn.
+  Ở màn cuối cùng của collection, nút Màn tiếp bị ẩn và panel hiện lời chúc mừng hoàn thành bộ màn.
 
 ## 9. Lưu tiến độ
 
@@ -174,7 +176,9 @@ Test EditMode bằng Unity Test Framework, nhắm vào `Board`, `MoveResolver`, 
   ban đầu; redo lặp lại đúng nước đã undo; đi nước mới thì xoá nhánh redo.
 - Parser: đọc đúng cả 7 ký tự, pad hàng ngắn, báo lỗi có số dòng với đầu vào hỏng.
 - Hồi quy: parse toàn bộ 155 màn Microban và khẳng định mọi màn hợp lệ (đúng một người chơi, số hộp
-  bằng số đích); chạy lời giải đã biết của vài màn đầu và kiểm tra kết thúc ở trạng thái thắng.
+  bằng số đích); chạy lời giải của vài màn đầu và kiểm tra kết thúc ở trạng thái thắng. Lời giải lấy
+  từ file solution công khai của Microban nếu tải được; nếu không, tự giải tay 3–5 màn đầu và ghi
+  chuỗi nước đi thẳng vào test — không bỏ qua nhóm test này.
 
 ## 13. Xử lý lỗi
 
