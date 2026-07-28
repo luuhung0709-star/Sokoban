@@ -74,8 +74,27 @@ Toàn bộ Microban nằm trong **một** asset `Assets/Levels/Microban.asset` (
 
 ### 4.3 Import
 
-`MicrobanImporter` — script editor, đọc file `.txt` định dạng Microban (các màn cách nhau bằng dòng
-trống, dòng bắt đầu bằng `;` là chú thích/tên màn) và sinh hoặc cập nhật một `LevelCollection`.
+`MicrobanImporter` — script editor, đọc file `.txt` định dạng Microban và sinh hoặc cập nhật một
+`LevelCollection`.
+
+**Định dạng thật, đã kiểm chứng trên file tải về ngày 2026-07-28** (16 807 byte, 1 680 dòng):
+
+- Các khối cách nhau bằng **dòng trống**. File có 156 khối: 1 khối header + 155 màn.
+- Khối header ở đầu file gồm các dòng `Title:`, `Description:`, `Author:`, `Email:`, `Website:`.
+  Riêng `Description:` trải nhiều dòng, các dòng nối tiếp thụt lề sâu. Khối này **không phải màn chơi**
+  và phải bị bỏ qua.
+- Mỗi khối màn: **các hàng lưới trước, rồi dòng `Title: <n>` ở cuối khối** — tên màn nằm *sau* lưới,
+  đúng 155/155 màn. (Ghi chú: bản spec đầu tiên mô tả sai là tên màn nằm trước và có dòng chú thích
+  bắt đầu bằng `;`; file thật **không có dòng `;` nào**.)
+- Hàng lưới chỉ dùng đúng 7 ký tự ở bảng 4.1. Các hàng trong cùng một màn **dài ngắn khác nhau** nên
+  parser phải pad bằng dấu cách cho bằng hàng dài nhất.
+- Kích thước quan sát được: rộng 5–30 ô, cao 3–17 hàng.
+
+Cách phân biệt khối màn với khối header: khối màn có ít nhất một hàng chỉ gồm 7 ký tự lưới và chứa
+`@` hoặc `+`.
+
+Nguồn tải (đã xác minh trả 200):
+`http://www.sourcecode.se/sokoban/level_func.php?act=dnl_level&file=microban.slc&as_text=1`
 
 Màn nào sai định dạng thì ghi lỗi kèm số dòng và **bỏ qua riêng màn đó**, phần còn lại vẫn import
 bình thường — một file nguồn hỏng một chỗ không được làm hỏng cả collection.
@@ -197,11 +216,16 @@ Test EditMode bằng Unity Test Framework, nhắm vào `Board`, `MoveResolver`, 
 
 ## 14. Rủi ro
 
-- **Tải asset ngoài**: Kenney Sokoban Pack và file `.txt` Microban đều phải tải từ mạng. Nếu môi
-  trường chặn tải, dừng lại và nhờ người dùng tải thủ công — **không** tự bịa asset thay thế.
-- **MCP for Unity chưa cài**: `Packages/manifest.json` hiện chưa có package này, nên Claude chưa
-  thao tác trực tiếp lên scene/asset được. Phải cài xong trước khi bắt đầu mốc 1 — dùng đúng bản
-  Sputnika đang chạy: `"com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.0.0"`.
+- **Tải asset ngoài — đã giải quyết 2026-07-28.** Cả hai nguồn đã xác minh tải được:
+  - Kenney Sokoban Pack (CC0), 1 606 642 byte:
+    `https://kenney.nl/media/pages/assets/sokoban/470af8da72-1677579120/kenney_sokoban-pack.zip`
+  - Microban 155 màn dạng text, 16 807 byte: xem URL ở mục 4.3.
+
+  Nếu về sau link chết, dừng lại nhờ người dùng tải thủ công — **không** tự bịa asset thay thế.
+- **Lời giải Microban**: chưa tìm được file solution công khai kèm theo bộ màn. Theo mục 12, nhóm test
+  chạy lời giải sẽ dùng chuỗi nước đi tự giải tay cho 3–5 màn đầu, ghi thẳng vào test.
+- **MCP for Unity — đã cài xong 2026-07-28**: `com.coplaydev.unity-mcp` ghim `#v10.1.0`, bridge đăng ký
+  instance `Sokoban@2a7214464161d8be`, console 0 lỗi.
 - **Scene thừa**: `Assets/Scenes/` đang có cả `SampleScene.unity` lẫn `New Scene.unity`. Mốc 1 sẽ dọn
   còn đúng một scene `Main.unity`.
 
