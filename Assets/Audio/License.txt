@@ -76,3 +76,7 @@ Giấy phép gốc của cả ba bộ, chép nguyên văn:
 
 	Follow on Twitter for updates:
 	@KenneyNL
+=== music_loop.mp3 ===
+  "Town Theme RPG" — cynicmusic (https://opengameart.org/content/town-theme-rpg)
+  Giấy phép: CC0 (ghi trên trang tải, mục License(s)).
+  Giữ nguyên file gốc TownTheme.mp3, chỉ đổi tên.
