@@ -51,7 +51,7 @@ namespace Sokoban.View
                 for (int x = 0; x < board.Width; x++)
                 {
                     var cell = new Vector2Int(x, y);
-                    var pos = new Vector3Int(x, -y, 0);
+                    var pos = new Vector3Int(x, -y - 1, 0);
                     var type = board.GetCell(cell);
 
                     if (type == CellType.Wall)
