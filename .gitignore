@@ -43,3 +43,6 @@ crashlytics-build.properties
 
 # Superpowers SDD scratch (ledger, briefs, review packages)
 /.superpowers/
+
+# Kết quả build, không commit
+/Build/
