@@ -807,7 +807,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1976146105}
   - component: {fileID: 1976146107}
-  - component: {fileID: 1976146106}
+  - component: {fileID: 1976146109}
+  - component: {fileID: 1976146108}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -830,22 +831,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1976146106
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1976146104}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bafbd8c63a6f15d47a7507e9655acb67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  collection: {fileID: 11400000, guid: c3dacdaec9c692944ba465e7a80c0b33, type: 2}
-  levelIndex: 0
-  boardRenderer: {fileID: 1976146107}
-  cameraFitter: {fileID: 1476838479}
 --- !u!114 &1976146107
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -869,3 +854,33 @@ MonoBehaviour:
   boardRoot: {fileID: 1976146105}
   boxSprite: {fileID: 21300000, guid: b7950640187576446a43c45a79d16a57, type: 3}
   boxOnGoalSprite: {fileID: 21300000, guid: ec99dad4ccde07b4fb6cc436ab666983, type: 3}
+--- !u!114 &1976146108
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1976146104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4295dcd59cc666f40ba414b640209563, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boardRenderer: {fileID: 1976146107}
+  cameraFitter: {fileID: 1476838479}
+  input: {fileID: 1976146109}
+  debugCollection: {fileID: 11400000, guid: c3dacdaec9c692944ba465e7a80c0b33, type: 2}
+  debugLevelIndex: 0
+--- !u!114 &1976146109
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1976146104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f854f60f36962648883be10e21c25df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  swipeThreshold: 40
