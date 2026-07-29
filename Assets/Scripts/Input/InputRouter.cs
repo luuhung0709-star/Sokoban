@@ -17,6 +17,7 @@ namespace Sokoban.InputSystem
 
         Vector2 _touchStart;
         bool _tracking;
+        bool _trackingIsTouch;   // gesture hiện tại bắt đầu từ chạm hay từ chuột
 
         void Update()
         {
@@ -26,11 +27,13 @@ namespace Sokoban.InputSystem
 
         void ReadKeyboard()
         {
+            // else-if: mỗi khung hình chỉ phát tối đa một hướng, kể cả khi hai phím trùng khung hình.
             if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) Moved?.Invoke(Direction.Up);
-            if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) Moved?.Invoke(Direction.Down);
-            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) Moved?.Invoke(Direction.Left);
-            if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) Moved?.Invoke(Direction.Right);
+            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) Moved?.Invoke(Direction.Down);
+            else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) Moved?.Invoke(Direction.Left);
+            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) Moved?.Invoke(Direction.Right);
 
+            // Lệnh riêng, độc lập với hướng đi và với nhau — được phép trùng khung hình.
             if (Input.GetKeyDown(KeyCode.U)) UndoPressed?.Invoke();
             if (Input.GetKeyDown(KeyCode.Y)) RedoPressed?.Invoke();
             if (Input.GetKeyDown(KeyCode.R)) RestartPressed?.Invoke();
@@ -42,17 +45,39 @@ namespace Sokoban.InputSystem
             if (Input.touchCount > 0)
             {
                 var touch = Input.GetTouch(0);
-                if (touch.phase == TouchPhase.Began) { _touchStart = touch.position; _tracking = true; }
+                if (touch.phase == TouchPhase.Began)
+                {
+                    _touchStart = touch.position;
+                    _tracking = true;
+                    _trackingIsTouch = true;
+                }
                 else if (touch.phase == TouchPhase.Ended && _tracking)
                 {
                     _tracking = false;
                     EmitSwipe(touch.position - _touchStart);
                 }
+                else if (touch.phase == TouchPhase.Canceled && _tracking)
+                {
+                    _tracking = false;   // vuốt bị huỷ giữa chừng (hệ thống thu hồi con trỏ) — không đoán hướng
+                }
+                return;
+            }
+
+            if (_tracking && _trackingIsTouch)
+            {
+                // Chạm biến mất mà không có Ended/Canceled (mất focus, app bị thu hồi con trỏ) —
+                // huỷ luôn, không để _touchStart cũ lọt sang nhánh chuột bên dưới và phát vuốt ma.
+                _tracking = false;
                 return;
             }
 
             // Chuột kéo cũng tính là vuốt, để thử nhanh trên desktop.
-            if (Input.GetMouseButtonDown(0)) { _touchStart = Input.mousePosition; _tracking = true; }
+            if (Input.GetMouseButtonDown(0))
+            {
+                _touchStart = Input.mousePosition;
+                _tracking = true;
+                _trackingIsTouch = false;
+            }
             else if (Input.GetMouseButtonUp(0) && _tracking)
             {
                 _tracking = false;
