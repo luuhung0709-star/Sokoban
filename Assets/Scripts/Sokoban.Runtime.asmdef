@@ -1,7 +1,7 @@
 {
     "name": "Sokoban.Runtime",
     "rootNamespace": "Sokoban",
-    "references": [],
+    "references": [ "Unity.TextMeshPro" ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

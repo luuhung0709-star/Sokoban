@@ -14,19 +14,9 @@ namespace Sokoban.View
         [SerializeField] InputRouter input;
         [SerializeField] MoveAnimator animator;
 
-        // Tạm thời cho Task 7 để scene tự chơi được một mình — Task 10 thay bằng GameFlowController.
-        [Header("Tạm thời (Task 10 sẽ thay bằng GameFlowController)")]
-        [SerializeField] LevelCollection debugCollection;
-        [SerializeField] int debugLevelIndex;
-
         public GameSession Session { get; private set; }
         public event Action Solved;
         public event Action ExitRequested;
-
-        void Start()
-        {
-            if (debugCollection != null) LoadLevel(debugCollection, debugLevelIndex);
-        }
 
         void OnEnable()
         {
@@ -50,6 +40,8 @@ namespace Sokoban.View
         {
             var level = collection.levels[index];
             Session = new GameSession(level);
+
+            _buffered = null;   // nước còn treo từ màn trước không được chạy lên bàn cờ mới
 
             boardRenderer.Render(Session.Board);
             cameraFitter.Fit(level.width, level.height);

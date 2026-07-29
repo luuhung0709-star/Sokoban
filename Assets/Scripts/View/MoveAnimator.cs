@@ -19,6 +19,14 @@ namespace Sokoban.View
             StartCoroutine(PlayRoutine(move, reversed, onComplete));
         }
 
+        void OnDisable()
+        {
+            // Tắt bàn cờ giữa lúc đang tween sẽ giết coroutine mà không chạy tới dòng hạ cờ.
+            // Không dọn ở đây thì lần bật lại IsAnimating vẫn true và mọi input bị nuốt vĩnh viễn.
+            StopAllCoroutines();
+            IsAnimating = false;
+        }
+
         IEnumerator PlayRoutine(MoveResult move, bool reversed, Action onComplete)
         {
             IsAnimating = true;
