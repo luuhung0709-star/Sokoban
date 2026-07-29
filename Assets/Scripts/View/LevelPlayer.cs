@@ -12,6 +12,7 @@ namespace Sokoban.View
         [SerializeField] BoardRenderer boardRenderer;
         [SerializeField] CameraFitter cameraFitter;
         [SerializeField] InputRouter input;
+        [SerializeField] MoveAnimator animator;
 
         // Tạm thời cho Task 7 để scene tự chơi được một mình — Task 10 thay bằng GameFlowController.
         [Header("Tạm thời (Task 10 sẽ thay bằng GameFlowController)")]
@@ -54,13 +55,39 @@ namespace Sokoban.View
             cameraFitter.Fit(level.width, level.height);
         }
 
+        Direction? _buffered;
+
+        void DrainBuffer()
+        {
+            if (_buffered == null) return;
+
+            var next = _buffered.Value;
+            _buffered = null;
+            OnMoved(next);
+        }
+
         void OnMoved(Direction dir)
         {
             if (Session == null) return;
-            if (!Session.TryMove(dir)) return;
 
-            boardRenderer.Render(Session.Board);      // Task 8 thay bằng tween
-            if (Session.IsSolved) Solved?.Invoke();
+            if (animator.IsAnimating)
+            {
+                _buffered = dir;      // chỉ giữ nước mới nhất, đúng "đệm tối đa 1 nước"
+                return;
+            }
+
+            if (!Session.TryMove(dir, out var move)) return;
+            if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxFrom, move.BoxTo);
+
+            animator.Play(move, reversed: false, onComplete: () =>
+            {
+                if (move.IsPush)
+                    boardRenderer.SetBoxSprite(move.BoxTo,
+                        Session.Board.GetCell(move.BoxTo) == CellType.Goal);
+
+                if (Session.IsSolved) Solved?.Invoke();
+                DrainBuffer();
+            });
         }
 
         // Cả phím tắt lẫn nút trên HUD (Task 11) đều đi qua ba method này — không có đường tắt nào khác.
@@ -70,19 +97,44 @@ namespace Sokoban.View
 
         void OnUndo()
         {
-            if (Session != null && Session.TryUndo()) boardRenderer.Render(Session.Board);
+            if (Session == null || animator.IsAnimating) return;
+            if (!Session.TryUndo(out var move)) return;
+
+            // Undo kéo hộp từ ô đích cũ về ô xuất phát.
+            if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxTo, move.BoxFrom);
+
+            animator.Play(move, reversed: true, onComplete: () =>
+            {
+                if (move.IsPush)
+                    boardRenderer.SetBoxSprite(move.BoxFrom,
+                        Session.Board.GetCell(move.BoxFrom) == CellType.Goal);
+            });
         }
 
         void OnRedo()
         {
-            if (Session != null && Session.TryRedo()) boardRenderer.Render(Session.Board);
+            if (Session == null || animator.IsAnimating) return;
+            if (!Session.TryRedo(out var move)) return;
+
+            if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxFrom, move.BoxTo);
+
+            animator.Play(move, reversed: false, onComplete: () =>
+            {
+                if (move.IsPush)
+                    boardRenderer.SetBoxSprite(move.BoxTo,
+                        Session.Board.GetCell(move.BoxTo) == CellType.Goal);
+
+                if (Session.IsSolved) Solved?.Invoke();
+            });
         }
 
         void OnRestart()
         {
             if (Session == null) return;
+
+            _buffered = null;                    // bỏ nước đang chờ, nếu không nó sẽ chạy lên bàn cờ mới
             Session.Restart();
-            boardRenderer.Render(Session.Board);
+            boardRenderer.Render(Session.Board); // vẽ lại toàn bộ, không tween
         }
 
         void OnExit() => ExitRequested?.Invoke();
