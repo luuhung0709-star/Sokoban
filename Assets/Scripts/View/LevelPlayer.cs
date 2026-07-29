@@ -72,6 +72,8 @@ namespace Sokoban.View
             if (!Session.TryMove(dir, out var move)) return;
             if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxFrom, move.BoxTo);
 
+            boardRenderer.SetPlayerFacing(dir);   // quay mặt ngay, không đợi trượt xong
+
             var audio = AudioService.Instance;
             if (audio != null)
             {
@@ -109,6 +111,9 @@ namespace Sokoban.View
 
             AudioService.Instance?.PlayUndo();
 
+            // Người lùi về ô cũ, tức là đi theo hướng ngược với nước vừa huỷ.
+            boardRenderer.SetPlayerFacing(move.Dir.Opposite());
+
             // Undo kéo hộp từ ô đích cũ về ô xuất phát.
             if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxTo, move.BoxFrom);
 
@@ -126,6 +131,8 @@ namespace Sokoban.View
             if (!Session.TryRedo(out var move)) return;
 
             AudioService.Instance?.PlayUndo();
+
+            boardRenderer.SetPlayerFacing(move.Dir);
 
             if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxFrom, move.BoxTo);
 

@@ -27,6 +27,12 @@ namespace Sokoban.View
         [SerializeField] Sprite boxSprite;
         [SerializeField] Sprite boxOnGoalSprite;
 
+        [Header("Player sprites (theo hướng nhìn)")]
+        [SerializeField] Sprite playerDownSprite;
+        [SerializeField] Sprite playerUpSprite;
+        [SerializeField] Sprite playerLeftSprite;
+        [SerializeField] Sprite playerRightSprite;
+
         readonly List<GameObject> _boxPool = new List<GameObject>();
         readonly Dictionary<Vector2Int, GameObject> _boxByCell = new Dictionary<Vector2Int, GameObject>();
         GameObject _player;
@@ -73,6 +79,7 @@ namespace Sokoban.View
             if (_player == null)
                 _player = Instantiate(playerPrefab, boardRoot);
             _player.transform.position = CellToWorld(board.PlayerPos);
+            SetPlayerFacing(Direction.Down);   // vào màn mới thì nhìn thẳng ra người chơi
 
             foreach (var go in _boxPool) go.SetActive(false);
             _boxByCell.Clear();
@@ -98,6 +105,24 @@ namespace Sokoban.View
             if (!_boxByCell.TryGetValue(from, out var go)) return;
             _boxByCell.Remove(from);
             _boxByCell[to] = go;
+        }
+
+        /// <summary>Quay mặt người chơi. Thiếu sprite hướng nào thì giữ nguyên ảnh đang có.</summary>
+        public void SetPlayerFacing(Direction dir)
+        {
+            if (_player == null) return;
+
+            var sprite = dir switch
+            {
+                Direction.Up => playerUpSprite,
+                Direction.Down => playerDownSprite,
+                Direction.Left => playerLeftSprite,
+                _ => playerRightSprite
+            };
+            if (sprite == null) return;
+
+            var sr = _player.GetComponent<SpriteRenderer>();
+            if (sr != null) sr.sprite = sprite;
         }
 
         public void SetBoxSprite(Vector2Int cell, bool onGoal)
