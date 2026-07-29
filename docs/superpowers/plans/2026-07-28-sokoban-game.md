@@ -17,7 +17,10 @@ Mọi task đều ngầm chịu các ràng buộc sau.
 - **Unity 2021.3.43f1**, project tại `D:\Hung\Sokoban`. Không nâng version, không đổi render pipeline.
 - **Chỉ mở một Unity Editor tại một thời điểm.** MCP server dùng chung endpoint `http://127.0.0.1:8080/mcp` cho mọi project và URL nằm ở EditorPrefs toàn máy, nên khi làm Sokoban phải đóng Editor của Sputnika. Trước khi dùng tool MCP, đọc `mcpforunity://instances` và xác nhận chỉ có `Sokoban@...`.
 - **Input dùng `UnityEngine.Input` (Input Manager cũ).** Không thêm package Input System.
-- **Hệ toạ độ bàn cờ**: `x` tăng sang phải, **`y` tăng xuống dưới** (y chính là chỉ số hàng trong file text). Quy đổi sang world khi vẽ: ô `(x, y)` → `new Vector3Int(x, -y, 0)`. `Direction.Up` = `(0, -1)`, `Down` = `(0, +1)`, `Left` = `(-1, 0)`, `Right` = `(+1, 0)`. Sai chỗ này là nguồn bug phổ biến nhất của plan này — bám đúng quy ước, đừng tự đảo dấu giữa chừng.
+- **Hệ toạ độ bàn cờ**: `x` tăng sang phải, **`y` tăng xuống dưới** (y chính là chỉ số hàng trong file text). `Direction.Up` = `(0, -1)`, `Down` = `(0, +1)`, `Left` = `(-1, 0)`, `Right` = `(+1, 0)`. Sai chỗ này là nguồn bug phổ biến nhất của plan này — bám đúng quy ước, đừng tự đảo dấu giữa chừng.
+- **Quy đổi bàn cờ → world.** Toạ độ ô của Tilemap là **góc dưới-trái**, không phải tâm: ô tile `(cx, cy)` chiếm world `[cx, cx+1] × [cy, cy+1]`, tâm ở `(cx+0.5, cy+0.5)`. Vì vậy ô bàn cờ `(x, y)` đặt tile tại **`new Vector3Int(x, -y - 1, 0)`**, và tâm của nó — nơi đặt sprite người chơi/hộp — là `new Vector3(x + 0.5f, -y - 0.5f, 0)`. Hai công thức này phải khớp nhau; lệch `-1` là cả bàn cờ trôi đúng một ô so với người chơi và hộp.
+  Hệ quả: bàn cờ trải world `x ∈ [0, width]`, `y ∈ [-height, 0]`, nên tâm bàn cờ là `(width/2, -height/2)` — đúng cái `CameraFitter` dùng.
+  *(Bản plan đầu ghi tile tại `(x, -y)` mà tâm lại là `-y-0.5`, lệch nhau một ô; phát hiện ở Task 6 khi soi ảnh chụp thật.)*
 - **Ngoài lưới coi như tường.** `Board.GetCell` trả `CellType.Wall` cho toạ độ ngoài biên, nên không cần kiểm tra biên rải rác khắp nơi.
 - **Ký tự Sokoban**: `#` tường, ` ` nền, `@` người, `+` người trên đích, `$` hộp, `*` hộp trên đích, `.` đích.
 - **Assembly definition**: code chia làm ba assembly `Sokoban.Runtime`, `Sokoban.Editor`, `Sokoban.Tests.EditMode`. Lưu ý: khi đã có asmdef thì `Type.GetType("SomeType")` **không** tìm thấy type nếu không kèm tên assembly — dùng tham chiếu trực tiếp thay vì tra cứu bằng chuỗi.
@@ -1774,7 +1777,9 @@ namespace Sokoban.View
                 for (int x = 0; x < board.Width; x++)
                 {
                     var cell = new Vector2Int(x, y);
-                    var pos = new Vector3Int(x, -y, 0);
+                    // Toạ độ Tilemap là góc dưới-trái của ô, nên hàng y nằm ở [-y-1, -y]
+                    // và tâm ô rơi đúng vào CellToWorld. Bỏ "-1" là lệch cả bàn cờ một ô.
+                    var pos = new Vector3Int(x, -y - 1, 0);
                     var type = board.GetCell(cell);
 
                     if (type == CellType.Wall)
