@@ -608,6 +608,7 @@ GameObject:
   - component: {fileID: 1476838477}
   - component: {fileID: 1476838476}
   - component: {fileID: 1476838478}
+  - component: {fileID: 1476838479}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -681,6 +682,20 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1476838475}
   m_Enabled: 1
+--- !u!114 &1476838479
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476838475}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b53b2beaec1c22d4294cd671c0bbb9b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  margin: 1.5
+  minSize: 4
 --- !u!1 &1588091510
 GameObject:
   m_ObjectHideFlags: 0
@@ -791,6 +806,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1976146105}
+  - component: {fileID: 1976146107}
+  - component: {fileID: 1976146106}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -813,3 +830,42 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1976146106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1976146104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bafbd8c63a6f15d47a7507e9655acb67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  collection: {fileID: 11400000, guid: c3dacdaec9c692944ba465e7a80c0b33, type: 2}
+  levelIndex: 0
+  boardRenderer: {fileID: 1976146107}
+  cameraFitter: {fileID: 1476838479}
+--- !u!114 &1976146107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1976146104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fbdca8fcd39f414196140ea4dc8fd4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  groundTilemap: {fileID: 1096727304}
+  goalTilemap: {fileID: 819335200}
+  wallTilemap: {fileID: 1257847320}
+  groundTile: {fileID: 11400000, guid: 6eaaa0bc0ee438840b106b13939c623f, type: 2}
+  goalTile: {fileID: 11400000, guid: ff08d760118eb9949b3e14b5ba147a92, type: 2}
+  wallTile: {fileID: 11400000, guid: 865d28e91057e414191d7f49d188d33c, type: 2}
+  playerPrefab: {fileID: 4916155480146569704, guid: 950b1e26bf18316489d446212eb1d5d2, type: 3}
+  boxPrefab: {fileID: 8619688453510891453, guid: fc4e239bdc949a542aa71e8b01f0079e, type: 3}
+  boardRoot: {fileID: 1976146105}
+  boxSprite: {fileID: 21300000, guid: b7950640187576446a43c45a79d16a57, type: 3}
+  boxOnGoalSprite: {fileID: 21300000, guid: ec99dad4ccde07b4fb6cc436ab666983, type: 3}
