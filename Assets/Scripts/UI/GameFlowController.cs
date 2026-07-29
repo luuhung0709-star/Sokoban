@@ -12,6 +12,8 @@ namespace Sokoban.UI
         [SerializeField] LevelPlayer levelPlayer;
         [SerializeField] MainMenuPanel mainMenu;
         [SerializeField] LevelSelectPanel levelSelect;
+        [SerializeField] HudPanel hud;
+        [SerializeField] LevelCompletePanel levelComplete;
         [SerializeField] GameObject boardRoot;
 
         int _currentIndex;
@@ -27,6 +29,8 @@ namespace Sokoban.UI
         {
             mainMenu.Show();
             levelSelect.Hide();
+            hud.Hide();
+            levelComplete.Hide();
             boardRoot.SetActive(false);
         }
 
@@ -34,6 +38,8 @@ namespace Sokoban.UI
         {
             mainMenu.Hide();
             levelSelect.Show();
+            hud.Hide();
+            levelComplete.Hide();
             boardRoot.SetActive(false);
         }
 
@@ -51,18 +57,25 @@ namespace Sokoban.UI
             boardRoot.SetActive(true);
 
             levelPlayer.LoadLevel(collection, _currentIndex);
+
+            levelComplete.Hide();
+            hud.Show();
+            hud.Bind(levelPlayer.Session);
         }
 
         void OnSolved()
         {
             var session = levelPlayer.Session;
 
+            // Đọc kỷ lục cũ TRƯỚC khi ghi kết quả lượt này, nếu không sẽ luôn hiện kỷ lục vừa lập.
+            var previous = ProgressStore.GetRecord(collection.collectionName, _currentIndex);
+            int oldBest = previous.completed ? previous.bestMoves : 0;
+
             ProgressStore.RecordCompletion(collection.collectionName, _currentIndex,
                                            session.Moves, session.Pushes);
 
-            // Task 11 thay dòng này bằng panel thắng màn.
-            Debug.Log($"Xong màn {_currentIndex + 1} trong {session.Moves} bước");
-            ShowLevelSelect();
+            bool isLast = _currentIndex >= collection.levels.Count - 1;
+            levelComplete.Show(session.Moves, oldBest, isLast);
         }
 
         public void NextLevel() => StartLevel(_currentIndex + 1);

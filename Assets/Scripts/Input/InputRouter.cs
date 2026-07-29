@@ -1,6 +1,7 @@
 using System;
 using Sokoban.Core;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Sokoban.InputSystem
 {
@@ -47,6 +48,8 @@ namespace Sokoban.InputSystem
                 var touch = Input.GetTouch(0);
                 if (touch.phase == TouchPhase.Began)
                 {
+                    if (IsOverUI(touch.fingerId)) return;   // vuốt bắt đầu trên nút HUD là để bấm nút, không phải để đi
+
                     _touchStart = touch.position;
                     _tracking = true;
                     _trackingIsTouch = true;
@@ -74,6 +77,8 @@ namespace Sokoban.InputSystem
             // Chuột kéo cũng tính là vuốt, để thử nhanh trên desktop.
             if (Input.GetMouseButtonDown(0))
             {
+                if (IsOverUI(-1)) return;
+
                 _touchStart = Input.mousePosition;
                 _tracking = true;
                 _trackingIsTouch = false;
@@ -83,6 +88,14 @@ namespace Sokoban.InputSystem
                 _tracking = false;
                 EmitSwipe((Vector2)Input.mousePosition - _touchStart);
             }
+        }
+
+        /// <summary>Con trỏ đang nằm trên UI hay không. fingerId &lt; 0 nghĩa là chuột.</summary>
+        static bool IsOverUI(int fingerId)
+        {
+            var events = EventSystem.current;
+            if (events == null) return false;
+            return fingerId >= 0 ? events.IsPointerOverGameObject(fingerId) : events.IsPointerOverGameObject();
         }
 
         void EmitSwipe(Vector2 delta)
