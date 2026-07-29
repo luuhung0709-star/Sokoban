@@ -6256,8 +6256,8 @@ MonoBehaviour:
   boxOnGoalSprite: {fileID: 21300000, guid: ec99dad4ccde07b4fb6cc436ab666983, type: 3}
   playerDownSprite: {fileID: 21300000, guid: 04950df228eaed14ca895f49cee9552e, type: 3}
   playerUpSprite: {fileID: 21300000, guid: 4321b2ac5160e70469abae2b1383a741, type: 3}
-  playerLeftSprite: {fileID: 21300000, guid: 3fa9be2142970e445bbfc0fa4d23bb4a, type: 3}
-  playerRightSprite: {fileID: 21300000, guid: 1404144b5a17b3546b3f30ebed0fbeb4, type: 3}
+  playerLeftSprite: {fileID: 21300000, guid: 1404144b5a17b3546b3f30ebed0fbeb4, type: 3}
+  playerRightSprite: {fileID: 21300000, guid: 3fa9be2142970e445bbfc0fa4d23bb4a, type: 3}
 --- !u!114 &1976146108
 MonoBehaviour:
   m_ObjectHideFlags: 0
