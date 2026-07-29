@@ -1,4 +1,5 @@
 using System;
+using Sokoban.Audio;
 using Sokoban.Core;
 using Sokoban.InputSystem;
 using Sokoban.Levels;
@@ -71,13 +72,27 @@ namespace Sokoban.View
             if (!Session.TryMove(dir, out var move)) return;
             if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxFrom, move.BoxTo);
 
+            var audio = AudioService.Instance;
+            if (audio != null)
+            {
+                if (move.IsPush) audio.PlayPush();
+                else audio.PlayStep();
+            }
+
             animator.Play(move, reversed: false, onComplete: () =>
             {
                 if (move.IsPush)
                     boardRenderer.SetBoxSprite(move.BoxTo,
                         Session.Board.GetCell(move.BoxTo) == CellType.Goal);
 
-                if (Session.IsSolved) Solved?.Invoke();
+                if (move.IsPush && Session.Board.GetCell(move.BoxTo) == CellType.Goal)
+                    AudioService.Instance?.PlayBoxOnGoal();
+
+                if (Session.IsSolved)
+                {
+                    AudioService.Instance?.PlayWin();
+                    Solved?.Invoke();
+                }
                 DrainBuffer();
             });
         }
@@ -91,6 +106,8 @@ namespace Sokoban.View
         {
             if (Session == null || animator.IsAnimating) return;
             if (!Session.TryUndo(out var move)) return;
+
+            AudioService.Instance?.PlayUndo();
 
             // Undo kéo hộp từ ô đích cũ về ô xuất phát.
             if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxTo, move.BoxFrom);
@@ -108,6 +125,8 @@ namespace Sokoban.View
             if (Session == null || animator.IsAnimating) return;
             if (!Session.TryRedo(out var move)) return;
 
+            AudioService.Instance?.PlayUndo();
+
             if (move.IsPush) boardRenderer.MoveBoxRecord(move.BoxFrom, move.BoxTo);
 
             animator.Play(move, reversed: false, onComplete: () =>
@@ -116,7 +135,11 @@ namespace Sokoban.View
                     boardRenderer.SetBoxSprite(move.BoxTo,
                         Session.Board.GetCell(move.BoxTo) == CellType.Goal);
 
-                if (Session.IsSolved) Solved?.Invoke();
+                if (Session.IsSolved)
+                {
+                    AudioService.Instance?.PlayWin();
+                    Solved?.Invoke();
+                }
             });
         }
 

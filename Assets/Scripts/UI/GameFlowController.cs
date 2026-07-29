@@ -1,3 +1,4 @@
+using Sokoban.Audio;
 using Sokoban.Levels;
 using Sokoban.Progress;
 using Sokoban.View;
@@ -22,6 +23,7 @@ namespace Sokoban.UI
         {
             levelPlayer.Solved += OnSolved;
             levelPlayer.ExitRequested += ShowLevelSelect;
+            AudioService.Instance?.SetMuted(ProgressStore.Muted);
             ShowMainMenu();
         }
 
@@ -48,6 +50,8 @@ namespace Sokoban.UI
         public void StartLevel(int index)
         {
             if (collection.levels.Count == 0) { ShowLevelSelect(); return; }
+
+            AudioService.Instance?.StartMusicOnFirstInteraction();
 
             _currentIndex = Mathf.Clamp(index, 0, collection.levels.Count - 1);
             ProgressStore.SetLastPlayedIndex(collection.collectionName, _currentIndex);

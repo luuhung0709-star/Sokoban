@@ -1,3 +1,4 @@
+using Sokoban.Audio;
 using Sokoban.Progress;
 using TMPro;
 using UnityEngine;
@@ -15,14 +16,18 @@ namespace Sokoban.UI
 
         void Awake()
         {
-            continueButton.onClick.AddListener(() => flow.ContinueGame());
-            levelSelectButton.onClick.AddListener(() => flow.ShowLevelSelect());
-            muteButton.onClick.AddListener(ToggleMute);
+            // Mỗi nút đều là "thao tác đầu tiên" hợp lệ để trình duyệt cho phép phát nhạc.
+            continueButton.onClick.AddListener(() => { StartMusic(); flow.ContinueGame(); });
+            levelSelectButton.onClick.AddListener(() => { StartMusic(); flow.ShowLevelSelect(); });
+            muteButton.onClick.AddListener(() => { StartMusic(); ToggleMute(); });
         }
+
+        static void StartMusic() => AudioService.Instance?.StartMusicOnFirstInteraction();
 
         void ToggleMute()
         {
             ProgressStore.Muted = !ProgressStore.Muted;
+            AudioService.Instance?.SetMuted(ProgressStore.Muted);
             RefreshMuteLabel();
         }
 
