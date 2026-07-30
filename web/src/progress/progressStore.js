@@ -18,23 +18,25 @@ export class ProgressStore {
   get #data() {
     if (this.#root) return this.#root;
 
-    const raw = this.#storage.getItem(KEY);
-    if (!raw) {
-      this.#root = { muted: false, collections: [] };
-      return this.#root;
-    }
+    this.#root = { muted: false, collections: [] };
 
+    // getItem nằm TRONG try: chế độ riêng tư của một số trình duyệt ném lỗi ngay
+    // ở bước đọc, và lỗi đó thoát ra ngoài là chết game ngay lúc load.
     try {
+      const raw = this.#storage.getItem(KEY);
+      if (!raw) return this.#root;
+
       const parsed = JSON.parse(raw);
       this.#root = {
         muted: Boolean(parsed?.muted),
         collections: Array.isArray(parsed?.collections) ? parsed.collections : [],
       };
     } catch (error) {
-      // Hỏng thì bắt đầu lại — không được ném lỗi làm chết game.
-      console.warn(`ProgressStore: tiến độ hỏng, đặt lại từ đầu (${error.message})`);
+      // Hỏng hoặc bị chặn thì bắt đầu lại — không được ném lỗi làm chết game.
+      console.warn(`ProgressStore: không đọc được tiến độ, đặt lại từ đầu (${error.message})`);
       this.#root = { muted: false, collections: [] };
     }
+
     return this.#root;
   }
 
@@ -108,6 +110,10 @@ export class ProgressStore {
     // Đặt null chứ không phải object rỗng: lần đọc sau phải đi qua nhánh
     // đọc-và-bắt-lỗi, nếu không test JSON hỏng sẽ xanh vì lý do sai.
     this.#root = null;
-    this.#storage.removeItem(KEY);
+    try {
+      this.#storage.removeItem(KEY);
+    } catch (error) {
+      console.warn(`ProgressStore: không xoá được tiến độ (${error.message})`);
+    }
   }
 }

@@ -105,6 +105,19 @@ test('storage ném lỗi lúc ghi thì game không chết', () => {
   assert.doesNotThrow(() => store.recordCompletion('Microban', 0, 33, 9));
 });
 
+test('storage ném lỗi lúc đọc thì reset về rỗng, không ném ra ngoài', () => {
+  // Chế độ riêng tư của một số trình duyệt ném lỗi ngay ở getItem, không phải setItem.
+  const store = new ProgressStore({
+    getItem: () => { throw new Error('bị chặn'); },
+    setItem: () => {},
+    removeItem: () => {},
+  });
+
+  assert.doesNotThrow(() => store.getRecord('Microban', 0));
+  assert.equal(store.getRecord('Microban', 0).completed, false);
+  assert.equal(store.muted, false);
+});
+
 test('clear xoá sạch tiến độ', () => {
   const storage = fakeStorage();
   const store = new ProgressStore(storage);
