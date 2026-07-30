@@ -2850,7 +2850,7 @@ hỏng buộc phải chạy trong trình duyệt."
 **Interfaces:**
 - Consumes: `gameSession.js`, `progressStore.js`, `boardRenderer.js`, `moveAnimator.js`, `levelPlayer.js`, `inputRouter.js`, `hud.js`
 - Produces:
-  - `class MainMenu`: `constructor(rootEl, { onContinue, onSelect, onToggleMute })`, `refresh(progress, collectionName): void`
+  - `class MainMenu`: `constructor(rootEl, { onContinue, onSelect, onToggleMute })`, `refresh(progress, collectionName, levels): void` — cần `levels` để lấy tên màn hiển thị, không được suy từ chỉ số
   - `class LevelSelect`: `constructor(rootEl, { onPick, onBack })`, `render(levels, progress, collectionName): void`
   - `class LevelComplete`: `constructor(rootEl, { onNext, onRetry, onSelect })`, `show({ moves, pushes, bestMoves, hasNext }): void`, `hide(): void`
   - `class GameFlow`: `constructor({ collection, progress, router, renderer, animator, hud, panels })`, `start(): void`
@@ -3023,9 +3023,12 @@ export class MainMenu {
     this.#muteBtn.addEventListener('click', onToggleMute);
   }
 
-  refresh(progress, collectionName) {
+  refresh(progress, collectionName, levels) {
     const last = progress.getLastPlayedIndex(collectionName);
-    this.#continueBtn.textContent = last > 0 ? `Chơi tiếp (màn ${last + 1})` : 'Chơi';
+    // Số hiển thị lấy từ tên màn chứ không phải chỉ số cộng một — bộ màn khác
+    // có thể đặt tên không phải số.
+    const name = levels[last]?.name;
+    this.#continueBtn.textContent = last > 0 && name ? `Chơi tiếp (màn ${name})` : 'Chơi';
 
     const muted = progress.muted;
     this.#muteBtn.textContent = muted ? 'Tiếng: tắt' : 'Tiếng: bật';
@@ -3167,7 +3170,7 @@ export class GameFlow {
 
   showMenu() {
     this.#leaveLevel();
-    this.#panels.menu.refresh(this.#progress, this.#collectionName);
+    this.#panels.menu.refresh(this.#progress, this.#collectionName, this.#collection.levels);
     document.body.dataset.screen = 'menu';
   }
 
@@ -3214,6 +3217,12 @@ export class GameFlow {
   }
 
   #onSolved() {
+    // Thắng rồi thì ngắt luồng input chơi. Overlay đang che bàn cờ, mà undo vẫn
+    // chạy được thì người chơi bấm U theo phản xạ sẽ đổi bàn cờ sau lưng overlay.
+    // Nút trên overlay gắn trực tiếp nên không bị ảnh hưởng.
+    this.#unroute?.();
+    this.#unroute = null;
+
     const record = this.#progress.getRecord(this.#collectionName, this.#index);
     const bestMoves = record.completed ? record.bestMoves : 0;
 
@@ -3263,8 +3272,6 @@ import { LevelSelect } from './ui/levelSelect.js';
 import { LevelComplete } from './ui/levelComplete.js';
 import { GameFlow } from './ui/gameFlow.js';
 
-const stage = document.getElementById('stage');
-
 let collection;
 try {
   const response = await fetch('src/levels/microban.json');
@@ -3295,7 +3302,7 @@ const panels = {
     onSelect: () => flow.showLevelSelect(),
     onToggleMute: () => {
       audio.muted = !audio.muted;
-      panels.menu.refresh(progress, collection.collectionName);
+      panels.menu.refresh(progress, collection.collectionName, collection.levels);
     },
   }),
   levelSelect: new LevelSelect(document.body, {
