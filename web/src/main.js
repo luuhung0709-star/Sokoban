@@ -8,8 +8,6 @@ import { LevelSelect } from './ui/levelSelect.js';
 import { LevelComplete } from './ui/levelComplete.js';
 import { GameFlow } from './ui/gameFlow.js';
 
-const stage = document.getElementById('stage');
-
 let collection;
 try {
   const response = await fetch('src/levels/microban.json');
@@ -40,7 +38,7 @@ const panels = {
     onSelect: () => flow.showLevelSelect(),
     onToggleMute: () => {
       audio.muted = !audio.muted;
-      panels.menu.refresh(progress, collection.collectionName);
+      panels.menu.refresh(progress, collection.collectionName, collection.levels);
     },
   }),
   levelSelect: new LevelSelect(document.body, {

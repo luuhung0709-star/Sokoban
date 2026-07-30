@@ -12,9 +12,12 @@ export class MainMenu {
     this.#muteBtn.addEventListener('click', onToggleMute);
   }
 
-  refresh(progress, collectionName) {
+  refresh(progress, collectionName, levels) {
     const last = progress.getLastPlayedIndex(collectionName);
-    this.#continueBtn.textContent = last > 0 ? `Chơi tiếp (màn ${last + 1})` : 'Chơi';
+    // Số hiển thị lấy từ tên màn chứ không phải chỉ số cộng một — bộ màn khác
+    // có thể đặt tên không phải số.
+    const name = levels[last]?.name;
+    this.#continueBtn.textContent = last > 0 && name ? `Chơi tiếp (màn ${name})` : 'Chơi';
 
     const muted = progress.muted;
     this.#muteBtn.textContent = muted ? 'Tiếng: tắt' : 'Tiếng: bật';

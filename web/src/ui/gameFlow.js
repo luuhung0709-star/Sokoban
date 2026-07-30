@@ -38,7 +38,7 @@ export class GameFlow {
 
   showMenu() {
     this.#leaveLevel();
-    this.#panels.menu.refresh(this.#progress, this.#collectionName);
+    this.#panels.menu.refresh(this.#progress, this.#collectionName, this.#collection.levels);
     document.body.dataset.screen = 'menu';
   }
 
@@ -85,6 +85,12 @@ export class GameFlow {
   }
 
   #onSolved() {
+    // Thắng rồi thì ngắt luồng input chơi. Overlay đang che bàn cờ, mà undo vẫn
+    // chạy được thì người chơi bấm U theo phản xạ sẽ đổi bàn cờ sau lưng overlay.
+    // Nút trên overlay gắn trực tiếp nên không bị ảnh hưởng.
+    this.#unroute?.();
+    this.#unroute = null;
+
     const record = this.#progress.getRecord(this.#collectionName, this.#index);
     const bestMoves = record.completed ? record.bestMoves : 0;
 
