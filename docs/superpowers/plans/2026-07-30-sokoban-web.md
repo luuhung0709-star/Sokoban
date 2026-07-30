@@ -1662,6 +1662,20 @@ img { display: block; }
   height: 100%;
 }
 
+/*
+ * Khung chứa bàn cờ. Phải có chiều cao THẬT, không phụ thuộc vào bàn cờ: nếu để
+ * nó co theo `.board` (cao `rows × --cell`) thì phép đo trong `fitCellSize` thành
+ * vòng tự tham chiếu — `chiều cao khung / số hàng` rút gọn về đúng cỡ ô đang có,
+ * nên ô không bao giờ lớn ra được.
+ */
+.stage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
 .board__actors {
   position: absolute;
   inset: 0;
@@ -1709,7 +1723,7 @@ img { display: block; }
   <link rel="stylesheet" href="styles/board.css">
 </head>
 <body>
-  <main id="stage">
+  <main class="stage" id="stage">
     <div class="board" id="board"></div>
   </main>
   <script type="module" src="src/main.js"></script>
@@ -1789,9 +1803,18 @@ export class BoardRenderer {
   /** Kích thước ô theo chỗ trống còn lại, kẹp trong 20–64px. */
   fitCellSize(board) {
     const stage = this.#root.parentElement ?? document.body;
-    const available = stage.getBoundingClientRect();
-    const byWidth = available.width / board.width;
-    const byHeight = available.height / board.height;
+
+    // Đo content box, không dùng getBoundingClientRect: rect gồm cả padding nên
+    // cỡ ô bị tính vượt và bàn cờ tràn qua lề. clientWidth/Height là padding box,
+    // trừ padding ra thì còn đúng chỗ vẽ được.
+    const style = getComputedStyle(stage);
+    const availableWidth = stage.clientWidth
+      - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const availableHeight = stage.clientHeight
+      - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+
+    const byWidth = availableWidth / board.width;
+    const byHeight = availableHeight / board.height;
 
     this.#cell = Math.max(CELL_MIN, Math.min(CELL_MAX, Math.floor(Math.min(byWidth, byHeight))));
     this.#root.style.setProperty('--cell', `${this.#cell}px`);
@@ -2384,12 +2407,14 @@ Và thêm vào `<head>`, sau `board.css`:
 .hud__stat b { color: var(--text); font-variant-numeric: tabular-nums; }
 .hud__spacer { flex: 1; }
 
+/*
+ * `.stage` đã có rule trong board.css (display:flex, canh giữa, padding, min-height
+ * 100vh). Trong màn chơi nó là ô flex nằm giữa HUD và hàng nút, nên chiều cao do
+ * flex quyết định chứ không phải 100vh. Chỉ ghi đè đúng hai thuộc tính đó — ui.css
+ * nạp sau board.css nên thắng.
+ */
 .stage {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
   min-height: 0;
 }
 
