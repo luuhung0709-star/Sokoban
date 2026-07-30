@@ -28,6 +28,7 @@
 .stage {
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 
 .toolbar {
@@ -61,4 +62,80 @@
 .btn--ghost {
   background: transparent;
   box-shadow: none;
+}
+
+/* Chỉ panel khớp với data-screen trên body mới hiện. */
+.screen { display: none; }
+body[data-screen="menu"] .screen[data-name="menu"],
+body[data-screen="levels"] .screen[data-name="levels"],
+body[data-screen="play"] .screen[data-name="play"] { display: flex; }
+
+.screen--menu { align-items: center; justify-content: center; }
+
+.panel {
+  max-width: 460px;
+  padding: 28px 32px;
+  background: var(--panel);
+  border: 1px solid var(--panel-line);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.panel__title { margin: 0 0 10px; font-size: 30px; }
+.panel__stats { margin: 0 0 4px; font-size: 17px; }
+.panel__hint { margin: 0 0 20px; color: var(--text-dim); font-size: 13px; }
+
+.panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn--big { padding: 11px 18px; font-size: 15px; }
+
+.levels {
+  flex: 1;
+  align-content: start;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.level-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: #2b3542;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+}
+
+.level-btn:hover:not(:disabled) { background: #35414f; }
+.level-btn:disabled { opacity: 0.35; cursor: default; }
+.level-btn--done { box-shadow: inset 0 0 0 1px var(--accent); }
+.level-btn__num { font-size: 16px; font-weight: 600; }
+.level-btn__best { font-size: 11px; color: var(--text-dim); min-height: 1em; }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(9, 12, 16, 0.82);
+}
+
+.overlay[hidden] { display: none; }
+
+.empty {
+  margin: auto;
+  color: var(--text-dim);
+  text-align: center;
 }

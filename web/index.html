@@ -8,7 +8,28 @@
   <link rel="stylesheet" href="styles/board.css">
   <link rel="stylesheet" href="styles/ui.css">
 </head>
-<body>
+<body data-screen="menu">
+  <section class="screen screen--menu" data-name="menu">
+    <div class="panel">
+      <h1 class="panel__title">Sokoban</h1>
+      <p class="panel__hint">Mũi tên hoặc WASD để đi · U hoàn tác · Y làm lại · R chơi lại màn · Esc thoát</p>
+      <div class="panel__actions">
+        <button class="btn btn--big" id="btn-continue" type="button">Chơi tiếp</button>
+        <button class="btn btn--big" id="btn-levels" type="button">Chọn màn</button>
+        <button class="btn btn--big" id="btn-menu-mute" type="button" aria-pressed="false">Tiếng: bật</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen screen--levels" data-name="levels">
+    <header class="hud">
+      <span class="hud__name">Chọn màn</span>
+      <span class="hud__spacer"></span>
+      <button class="btn" id="btn-levels-back" type="button">← Menu</button>
+    </header>
+    <div class="levels" id="levels"></div>
+  </section>
+
   <main class="screen screen--play" data-name="play">
     <header class="hud" id="hud">
       <span class="hud__name" id="hud-name">Màn 1</span>
@@ -20,6 +41,19 @@
 
     <div class="stage" id="stage">
       <div class="board" id="board"></div>
+
+      <div class="overlay" id="complete" hidden>
+        <div class="panel">
+          <h2 class="panel__title">Xong màn!</h2>
+          <p class="panel__stats" id="complete-stats"></p>
+          <p class="panel__hint" id="complete-best"></p>
+          <div class="panel__actions">
+            <button class="btn btn--big" id="btn-next" type="button">Màn tiếp →</button>
+            <button class="btn btn--big" id="btn-retry" type="button">Chơi lại</button>
+            <button class="btn btn--big" id="btn-to-levels" type="button">Chọn màn</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <footer class="toolbar">
