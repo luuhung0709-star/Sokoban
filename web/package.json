@@ -1,0 +1,10 @@
+{
+  "name": "sokoban-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sokoban chạy trên trình duyệt, HTML + CSS + JavaScript thuần",
+  "scripts": {
+    "test": "node --test"
+  }
+}
