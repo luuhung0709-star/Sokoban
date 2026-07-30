@@ -187,6 +187,65 @@ namespace Sokoban.Tests
         }
 
         [Test]
+        public void Despill_WholeSprite_ReachesPixelsFarFromTheEdge()
+        {
+            // Cùng thiết lập với Despill_DoesNotTouchPixelsAwayFromTheEdge, nhưng bật
+            // wholeSprite: pixel giữa ảnh giờ phải bị chạm dù cách mép trong suốt xa hơn band.
+            var buf = new PixelBuffer(12, 12);
+            Fill(buf, new RectInt(0, 0, 12, 12), new Color32(200, 80, 200, 255));
+            Fill(buf, new RectInt(0, 0, 1, 12), new Color32(0, 0, 0, 0));
+
+            SpriteSheetSlicer.Despill(buf, band: 2, tolerance: 8, wholeSprite: true);
+
+            Assert.LessOrEqual(buf.Get(6, 6).r, 88,
+                "wholeSprite bỏ giới hạn band, chạm cả pixel nằm sâu giữa ảnh");
+        }
+
+        [Test]
+        public void Despill_WholeSprite_StillLeavesRedAndWhiteAndGreyAlone()
+        {
+            var buf = new PixelBuffer(12, 12);
+            Fill(buf, new RectInt(0, 0, 4, 12), new Color32(200, 40, 40, 255));   // vòng đích đỏ
+            Fill(buf, new RectInt(4, 0, 4, 12), new Color32(250, 250, 250, 255)); // sơ mi trắng
+            Fill(buf, new RectInt(8, 0, 4, 12), new Color32(140, 140, 140, 255)); // đá/mũ xám
+            Fill(buf, new RectInt(0, 0, 1, 12), new Color32(0, 0, 0, 0));         // một mép trong suốt
+
+            SpriteSheetSlicer.Despill(buf, band: 2, tolerance: 8, wholeSprite: true);
+
+            Assert.AreEqual(200, buf.Get(2, 6).r, "đỏ có lam thấp, không bị đụng dù quét cả sprite");
+            Assert.AreEqual(250, buf.Get(6, 6).r, "trắng có r=g=b, không bị đụng");
+            Assert.AreEqual(140, buf.Get(10, 6).r, "xám có r=g=b, không bị đụng");
+        }
+
+        [Test]
+        public void Despill_DefaultsToBandedBehaviour_WhenWholeSpriteOmitted()
+        {
+            // Gọi đúng 3 tham số như trước khi có wholeSprite — các lời gọi cũ không được đổi hành vi.
+            var buf = new PixelBuffer(12, 12);
+            Fill(buf, new RectInt(0, 0, 12, 12), new Color32(200, 80, 200, 255));
+            Fill(buf, new RectInt(0, 0, 1, 12), new Color32(0, 0, 0, 0));
+
+            SpriteSheetSlicer.Despill(buf, band: 2, tolerance: 8);
+
+            Assert.AreEqual(200, buf.Get(6, 6).r, "không truyền wholeSprite thì mặc định false, hành vi banded cũ");
+        }
+
+        [Test]
+        public void Opaque_ForcesAlphaTo255_KeepsColour()
+        {
+            var buf = new PixelBuffer(2, 1);
+            buf.Set(0, 0, new Color32(200, 100, 50, 130)); // mép tile lỡ nửa đục nửa trong sau Resample
+            buf.Set(1, 0, new Color32(10, 20, 30, 0));     // thậm chí trong suốt hoàn toàn
+
+            var opaque = SpriteSheetSlicer.Opaque(buf);
+
+            Assert.AreEqual(255, opaque.Get(0, 0).a);
+            Assert.AreEqual(255, opaque.Get(1, 0).a, "kể cả pixel vốn trong suốt cũng bị ép đục");
+            Assert.AreEqual(200, opaque.Get(0, 0).r, "màu giữ nguyên");
+            Assert.AreEqual(20, opaque.Get(1, 0).g, "màu giữ nguyên");
+        }
+
+        [Test]
         public void Resample_AveragesEachBlock()
         {
             var buf = new PixelBuffer(4, 4);

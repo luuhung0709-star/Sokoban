@@ -135,8 +135,14 @@ namespace Sokoban.EditorTools
         /// hẳn lục thì hạ hai kênh đó xuống ngang lục. Chỉ chạm dải mép nên phần trong ruột
         /// của vật thể không bị đụng, và điều kiện "cả đỏ lẫn lam" chừa lại màu đỏ thuần
         /// của vòng đích cùng màu trắng của sơ mi.
+        ///
+        /// wholeSprite bỏ hẳn giới hạn dải mép, áp bộ lọc màu cho MỌI pixel đục — dùng khi
+        /// mảng ám nằm sâu trong ruột vật thể (như bóng tím dưới chân nhân vật), quá xa mép
+        /// trong suốt để band nào vét tới. An toàn cho cả bảng màu vì bộ lọc "cả đỏ lẫn lam
+        /// đều vượt hẳn lục" đã tự loại đá xám (r=g=b), sơ mi trắng (r=g=b), gỗ/da/đỏ (lam
+        /// thấp) — chỉ những pixel thật sự ám hồng/tím mới bị hạ.
         /// </summary>
-        public static void Despill(PixelBuffer buf, int band, int tolerance)
+        public static void Despill(PixelBuffer buf, int band, int tolerance, bool wholeSprite = false)
         {
             var original = (Color32[])buf.Pixels.Clone();
 
@@ -145,7 +151,7 @@ namespace Sokoban.EditorTools
                 {
                     var c = original[y * buf.Width + x];
                     if (c.a == 0) continue;
-                    if (!NearTransparent(original, buf.Width, buf.Height, x, y, band)) continue;
+                    if (!wholeSprite && !NearTransparent(original, buf.Width, buf.Height, x, y, band)) continue;
 
                     if (Mathf.Min(c.r, c.b) <= c.g + tolerance) continue;
 
@@ -238,6 +244,22 @@ namespace Sokoban.EditorTools
 
         static byte Scale(byte v, float factor) =>
             (byte)Mathf.Clamp(Mathf.RoundToInt(v * factor), 0, 255);
+
+        /// <summary>
+        /// Ép alpha về 255 trên toàn bộ buffer, giữ nguyên màu. Resample lấy trung bình alpha
+        /// thẳng nên rìa một ô tile (vốn phải phủ kín, không có lỗ) có thể hụt xuống dưới 255
+        /// dù màu đã đúng — dùng hàm này sau Resample để ép tile về phủ kín thật sự.
+        /// </summary>
+        public static PixelBuffer Opaque(PixelBuffer src)
+        {
+            var dst = new PixelBuffer(src.Width, src.Height);
+            for (int i = 0; i < src.Pixels.Length; i++)
+            {
+                var c = src.Pixels[i];
+                dst.Pixels[i] = new Color32(c.r, c.g, c.b, 255);
+            }
+            return dst;
+        }
 
         /// <summary>Pha màu về phía tint, giữ nguyên alpha. Dùng để đánh dấu hộp đã vào đích.</summary>
         public static PixelBuffer Tint(PixelBuffer src, Color32 tint, float amount)

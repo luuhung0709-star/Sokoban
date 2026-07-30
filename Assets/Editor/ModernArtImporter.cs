@@ -24,6 +24,13 @@ namespace Sokoban.EditorTools
         public int despillBand = 3;
         public int despillTolerance = 8;
 
+        // Nhân vật còn một mảng bóng tím đặc (rgba quanh (172,87,161,255)) dưới chân, nằm sâu
+        // trong ruột sprite — đo trực tiếp trên sheet gốc thì mảng này rộng hàng chục pixel,
+        // ngoài tầm mọi band hợp lý. Bật tràn toàn sprite: bộ lọc màu của Despill tự loại đá
+        // xám, mũ xám, sơ mi trắng (r=g=b) và gỗ/da/đỏ/tông vàng box_on_goal (lam thấp), nên
+        // chỉ có mảng ám hồng/tím mới bị hạ về xám trung tính.
+        public bool despillWholeSprite = true;
+
         // Sàn Gemini vẽ ra còn sáng hơn tường (đo được 134.5 so với 124.2) nên gần như
         // không có tương phản. Hạ sáng để tách tường khỏi đường đi, và tiện lấy luôn
         // tông thứ hai cho ô caro.
@@ -160,13 +167,17 @@ namespace Sokoban.EditorTools
         {
             var cell = SpriteSheetSlicer.KeyOut(SpriteSheetSlicer.Crop(sheet, region),
                                                 s.backgroundTolerance);
-            SpriteSheetSlicer.Despill(cell, s.despillBand, s.despillTolerance);
+            SpriteSheetSlicer.Despill(cell, s.despillBand, s.despillTolerance, s.despillWholeSprite);
             return cell;
         }
 
-        /// <summary>Tile phải phủ kín ô, nên ép thẳng về 64x64 kể cả khi nguồn lệch vuông.</summary>
+        /// <summary>
+        /// Tile phải phủ kín ô, nên ép thẳng về 64x64 kể cả khi nguồn lệch vuông, rồi ép alpha
+        /// về 255 — Resample lấy trung bình alpha thẳng nên rìa ô có thể hụt xuống dưới 255 dù
+        /// màu đã đúng, để lộ nền camera qua khe ô trên bàn cờ.
+        /// </summary>
         static void WriteTile(string name, PixelBuffer content) =>
-            Write(name, SpriteSheetSlicer.Resample(content, OutSize, OutSize));
+            Write(name, SpriteSheetSlicer.Opaque(SpriteSheetSlicer.Resample(content, OutSize, OutSize)));
 
         /// <summary>
         /// Vật thể giữ tỉ lệ khung hình gốc và giữ đúng tương quan kích thước với ô tường,
