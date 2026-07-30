@@ -207,5 +207,65 @@ namespace Sokoban.EditorTools
 
             return dst;
         }
+
+        /// <summary>Đặt nội dung đã thu nhỏ vào giữa canvas vuông trong suốt.</summary>
+        public static PixelBuffer PlaceCentered(PixelBuffer content, int canvas)
+        {
+            var dst = new PixelBuffer(canvas, canvas);
+            int ox = (canvas - content.Width) / 2;
+            int oy = (canvas - content.Height) / 2;
+
+            for (int y = 0; y < content.Height; y++)
+                for (int x = 0; x < content.Width; x++)
+                    if (dst.Inside(ox + x, oy + y))
+                        dst.Set(ox + x, oy + y, content.Get(x, y));
+
+            return dst;
+        }
+
+        /// <summary>Nhân độ sáng, giữ nguyên alpha. Dùng để tách hai tông sàn ô caro.</summary>
+        public static PixelBuffer Brightness(PixelBuffer src, float factor)
+        {
+            var dst = new PixelBuffer(src.Width, src.Height);
+            for (int i = 0; i < src.Pixels.Length; i++)
+            {
+                var c = src.Pixels[i];
+                dst.Pixels[i] = new Color32(Scale(c.r, factor), Scale(c.g, factor),
+                                            Scale(c.b, factor), c.a);
+            }
+            return dst;
+        }
+
+        static byte Scale(byte v, float factor) =>
+            (byte)Mathf.Clamp(Mathf.RoundToInt(v * factor), 0, 255);
+
+        /// <summary>Pha màu về phía tint, giữ nguyên alpha. Dùng để đánh dấu hộp đã vào đích.</summary>
+        public static PixelBuffer Tint(PixelBuffer src, Color32 tint, float amount)
+        {
+            var dst = new PixelBuffer(src.Width, src.Height);
+            for (int i = 0; i < src.Pixels.Length; i++)
+            {
+                var c = src.Pixels[i];
+                dst.Pixels[i] = new Color32(Mix(c.r, tint.r, amount), Mix(c.g, tint.g, amount),
+                                            Mix(c.b, tint.b, amount), c.a);
+            }
+            return dst;
+        }
+
+        static byte Mix(byte from, byte to, float amount) =>
+            (byte)Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(from, to, amount)), 0, 255);
+
+        /// <summary>
+        /// Cỡ của một vật thể trên canvas, đo theo ô tường chứ không theo bounding box của
+        /// chính nó. Chuẩn hoá riêng từng cái sẽ phá tương quan kích thước người vẽ đã đặt:
+        /// hộp và nhân vật đều bị phóng thành cùng một cỡ dù trên sheet chúng khác nhau.
+        /// </summary>
+        public static Vector2Int ObjectSize(int width, int height, float cell, int canvas, float scale)
+        {
+            float k = canvas / cell * scale;
+            return new Vector2Int(
+                Mathf.Clamp(Mathf.RoundToInt(width * k), 1, canvas),
+                Mathf.Clamp(Mathf.RoundToInt(height * k), 1, canvas));
+        }
     }
 }

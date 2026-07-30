@@ -215,5 +215,98 @@ namespace Sokoban.Tests
             Assert.AreEqual(255, small.Get(0, 0).r, "màu lấy từ pixel đục, không bị pixel trong suốt kéo về 0");
             Assert.AreEqual(64, small.Get(0, 0).a, "alpha là trung bình thẳng của 4 pixel");
         }
+
+        [Test]
+        public void PlaceCentered_CentresContentOnATransparentCanvas()
+        {
+            var content = new PixelBuffer(2, 4);
+            for (int i = 0; i < content.Pixels.Length; i++) content.Pixels[i] = Art;
+
+            var canvas = SpriteSheetSlicer.PlaceCentered(content, 8);
+
+            Assert.AreEqual(8, canvas.Width);
+            Assert.AreEqual(8, canvas.Height);
+            Assert.AreEqual(0, canvas.Get(0, 0).a, "góc canvas phải trong suốt");
+            Assert.AreEqual(255, canvas.Get(3, 2).a, "nội dung nằm ở giữa");
+            Assert.AreEqual(255, canvas.Get(4, 5).a);
+            Assert.AreEqual(0, canvas.Get(3, 1).a, "trên nội dung là lề trong suốt");
+        }
+
+        [Test]
+        public void Brightness_ScalesColourButNotAlpha()
+        {
+            var buf = new PixelBuffer(2, 1);
+            buf.Set(0, 0, new Color32(200, 100, 50, 255));
+            buf.Set(1, 0, new Color32(200, 100, 50, 0));
+
+            var dim = SpriteSheetSlicer.Brightness(buf, 0.5f);
+
+            Assert.AreEqual(100, dim.Get(0, 0).r);
+            Assert.AreEqual(50, dim.Get(0, 0).g);
+            Assert.AreEqual(25, dim.Get(0, 0).b);
+            Assert.AreEqual(255, dim.Get(0, 0).a, "alpha không đổi");
+            Assert.AreEqual(0, dim.Get(1, 0).a);
+        }
+
+        [Test]
+        public void Brightness_ClampsInsteadOfWrapping()
+        {
+            var buf = new PixelBuffer(1, 1);
+            buf.Set(0, 0, new Color32(200, 200, 200, 255));
+
+            var bright = SpriteSheetSlicer.Brightness(buf, 2f);
+
+            Assert.AreEqual(255, bright.Get(0, 0).r, "phải kẹp ở 255, không tràn về số nhỏ");
+        }
+
+        [Test]
+        public void ObjectSize_KeepsScaleRelativeToTheWallCell()
+        {
+            // Vật cao đúng nửa ô tường phải ra đúng nửa canvas, không phải lấp đầy canvas.
+            var size = SpriteSheetSlicer.ObjectSize(width: 100, height: 200, cell: 400f,
+                                                    canvas: 64, scale: 1f);
+
+            Assert.AreEqual(16, size.x);
+            Assert.AreEqual(32, size.y);
+        }
+
+        [Test]
+        public void ObjectSize_KeepsAspectAndNeverExceedsTheCanvas()
+        {
+            var tall = SpriteSheetSlicer.ObjectSize(205, 377, 467f, 64, 1f);
+            Assert.AreEqual(28, tall.x, "nhân vật thật trên sheet: 205x377 trong ô 467");
+            Assert.AreEqual(52, tall.y);
+
+            var huge = SpriteSheetSlicer.ObjectSize(1000, 1000, 100f, 64, 1f);
+            Assert.AreEqual(64, huge.x, "phải kẹp trong canvas, không tràn ra ngoài");
+            Assert.AreEqual(64, huge.y);
+        }
+
+        [Test]
+        public void ResampleToCanvas_LeavesTilesFullyOpaque()
+        {
+            var tile = new PixelBuffer(120, 130);
+            for (int i = 0; i < tile.Pixels.Length; i++) tile.Pixels[i] = Art;
+
+            var square = SpriteSheetSlicer.Resample(tile, 64, 64);
+
+            for (int i = 0; i < square.Pixels.Length; i++)
+                Assert.AreEqual(255, square.Pixels[i].a, "tile phải phủ kín ô, không chừa pixel trong suốt");
+        }
+
+        [Test]
+        public void Tint_BlendsTowardsTheTintAndKeepsAlpha()
+        {
+            var buf = new PixelBuffer(2, 1);
+            buf.Set(0, 0, new Color32(100, 100, 100, 255));
+            buf.Set(1, 0, new Color32(100, 100, 100, 0));
+
+            var tinted = SpriteSheetSlicer.Tint(buf, new Color32(200, 0, 0, 255), 0.5f);
+
+            Assert.AreEqual(150, tinted.Get(0, 0).r);
+            Assert.AreEqual(50, tinted.Get(0, 0).g);
+            Assert.AreEqual(255, tinted.Get(0, 0).a);
+            Assert.AreEqual(0, tinted.Get(1, 0).a, "pixel trong suốt vẫn trong suốt");
+        }
     }
 }
