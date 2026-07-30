@@ -2660,6 +2660,19 @@ test('storage ném lỗi lúc ghi thì game không chết', () => {
   assert.doesNotThrow(() => store.recordCompletion('Microban', 0, 33, 9));
 });
 
+test('storage ném lỗi lúc đọc thì reset về rỗng, không ném ra ngoài', () => {
+  // Chế độ riêng tư của một số trình duyệt ném lỗi ngay ở getItem, không phải setItem.
+  const store = new ProgressStore({
+    getItem: () => { throw new Error('bị chặn'); },
+    setItem: () => {},
+    removeItem: () => {},
+  });
+
+  assert.doesNotThrow(() => store.getRecord('Microban', 0));
+  assert.equal(store.getRecord('Microban', 0).completed, false);
+  assert.equal(store.muted, false);
+});
+
 test('clear xoá sạch tiến độ', () => {
   const storage = fakeStorage();
   const store = new ProgressStore(storage);
@@ -2702,23 +2715,25 @@ export class ProgressStore {
   get #data() {
     if (this.#root) return this.#root;
 
-    const raw = this.#storage.getItem(KEY);
-    if (!raw) {
-      this.#root = { muted: false, collections: [] };
-      return this.#root;
-    }
+    this.#root = { muted: false, collections: [] };
 
+    // getItem nằm TRONG try: chế độ riêng tư của một số trình duyệt ném lỗi ngay
+    // ở bước đọc, và lỗi đó thoát ra ngoài là chết game ngay lúc load.
     try {
+      const raw = this.#storage.getItem(KEY);
+      if (!raw) return this.#root;
+
       const parsed = JSON.parse(raw);
       this.#root = {
         muted: Boolean(parsed?.muted),
         collections: Array.isArray(parsed?.collections) ? parsed.collections : [],
       };
     } catch (error) {
-      // Hỏng thì bắt đầu lại — không được ném lỗi làm chết game.
-      console.warn(`ProgressStore: tiến độ hỏng, đặt lại từ đầu (${error.message})`);
+      // Hỏng hoặc bị chặn thì bắt đầu lại — không được ném lỗi làm chết game.
+      console.warn(`ProgressStore: không đọc được tiến độ, đặt lại từ đầu (${error.message})`);
       this.#root = { muted: false, collections: [] };
     }
+
     return this.#root;
   }
 
@@ -2792,7 +2807,11 @@ export class ProgressStore {
     // Đặt null chứ không phải object rỗng: lần đọc sau phải đi qua nhánh
     // đọc-và-bắt-lỗi, nếu không test JSON hỏng sẽ xanh vì lý do sai.
     this.#root = null;
-    this.#storage.removeItem(KEY);
+    try {
+      this.#storage.removeItem(KEY);
+    } catch (error) {
+      console.warn(`ProgressStore: không xoá được tiến độ (${error.message})`);
+    }
   }
 }
 ```
@@ -2803,7 +2822,7 @@ export class ProgressStore {
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 77 test.
+Kỳ vọng: PASS, 78 test.
 
 - [ ] **Step 5: Commit**
 
@@ -3780,7 +3799,7 @@ Mở `/editor/` qua local server. Trang này không nằm trong bản deploy.
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 77 test, 0 fail.
+Kỳ vọng: PASS, 78 test, 0 fail.
 
 - [ ] **Step 4: Commit**
 
