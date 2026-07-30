@@ -67,9 +67,18 @@ export class BoardRenderer {
   /** Kích thước ô theo chỗ trống còn lại, kẹp trong 20–64px. */
   fitCellSize(board) {
     const stage = this.#root.parentElement ?? document.body;
-    const available = stage.getBoundingClientRect();
-    const byWidth = available.width / board.width;
-    const byHeight = available.height / board.height;
+
+    // Đo content box, không dùng getBoundingClientRect: rect gồm cả padding nên
+    // cỡ ô bị tính vượt và bàn cờ tràn qua lề. clientWidth/Height là padding box,
+    // trừ padding ra thì còn đúng chỗ vẽ được.
+    const style = getComputedStyle(stage);
+    const availableWidth = stage.clientWidth
+      - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const availableHeight = stage.clientHeight
+      - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+
+    const byWidth = availableWidth / board.width;
+    const byHeight = availableHeight / board.height;
 
     this.#cell = Math.max(CELL_MIN, Math.min(CELL_MAX, Math.floor(Math.min(byWidth, byHeight))));
     this.#root.style.setProperty('--cell', `${this.#cell}px`);

@@ -39,6 +39,20 @@
   height: 100%;
 }
 
+/*
+ * Khung chứa bàn cờ. Phải có chiều cao THẬT, không phụ thuộc vào bàn cờ: nếu để
+ * nó co theo `.board` (cao `rows × --cell`) thì phép đo trong `fitCellSize` thành
+ * vòng tự tham chiếu — `chiều cao khung / số hàng` rút gọn về đúng cỡ ô đang có,
+ * nên ô không bao giờ lớn ra được.
+ */
+.stage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
 .board__actors {
   position: absolute;
   inset: 0;
