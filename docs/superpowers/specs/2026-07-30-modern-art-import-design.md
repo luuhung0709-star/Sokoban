@@ -37,8 +37,12 @@ art mới dùng chung thư mục đó thì một cú bấm nhầm menu là mất
 
 ### 3.2 Ảnh gốc để ngoài `Assets/`
 
-Sheet gốc để ở **`ArtSource/sheet.png`** tại thư mục gốc repo, ngoài `Assets/`. Unity không import,
-không sinh `.meta`, không tính vào build. Vẫn được commit để lần sau xử lý lại từ bản gốc.
+Sheet gốc để trong **`ArtSource/`** tại thư mục gốc repo, ngoài `Assets/`. Unity không import, không
+sinh `.meta`, không tính vào build. Vẫn được commit để lần sau xử lý lại từ bản gốc.
+
+Importer **không đòi tên file cố định** — nó lấy file ảnh mới nhất trong thư mục. Gemini đặt tên kiểu
+`Gemini_Generated_Image_pq5cgypq5cgypq5c.png`, bắt người dùng đổi tên mỗi lần chỉ tạo thêm một bước dễ
+quên. Có nhiều hơn một file thì window cho chọn.
 
 ### 3.3 Bố cục sheet 3×3, ánh xạ ô → asset chỉnh được trong editor window
 
@@ -69,23 +73,33 @@ có `R≈G≈B`; gỗ nâu và vòng đích đỏ đều có `B` thấp; áo sơ
 
 Ngưỡng để nới rộng cho nhiễu JPEG là hằng số chỉnh được trong window.
 
-### 3.5 Pixel art: snap về lưới pixel gốc, filter Point
+### 3.5 Xuất 64×64, PPU 64, filter Point, downsample trung bình vùng
 
-Art trả về là **pixel art**, không phải nét vẽ mượt như dự kiến ban đầu. Điều này lật ngược quyết định
-độ phân giải ở bản spec trước.
+Art trả về là **pixel art**, không phải nét vẽ mượt như dự kiến ban đầu. Dùng **`FilterMode.Point`**;
+Bilinear sẽ làm nhoè hết chất pixel.
 
-- Dùng **`FilterMode.Point`**, không dùng Bilinear. Bilinear sẽ làm nhoè hết chất pixel.
-- Downsample về **đúng lưới pixel gốc** thay vì resize tuỳ ý. Với mỗi ô pixel gốc, lấy **màu trung vị**
-  của các pixel thật nằm trong ô đó. Trung vị (không phải trung bình) vì nó loại được nhiễu nén JPEG mà
-  không kéo màu về phía màu trung gian.
-- Cỡ hạt pixel gốc **dò tự động**: tìm các biên màu dọc và ngang, lấy khoảng cách giữa các biên, chọn
-  cỡ hạt giải thích được nhiều biên nhất. Kết quả hiển thị trong window và chỉnh tay được.
-- PPU đặt bằng đúng cạnh sprite đầu ra, nên **1 ô = 1 unit** không đổi. Không phải sửa camera, level
-  data, hay logic di chuyển.
+**Cỡ đầu ra 64×64, PPU 64.** Đã thử mắt trên ảnh thật ở 32/40/48/56/64/96: từ 48 trở lên là sạch, 32 và
+40 bị nhoè mất mạch vữa của tường. Chọn 64 vì nó dư an toàn trên cỡ grain đo được (~8.25px trên ô 439px,
+tức native khoảng 48–53), và vì **trùng đúng PPU 64 của bộ art hiện tại** — Tile asset, prefab và camera
+không phải chỉnh gì.
 
-Trên ảnh mẫu đầu tiên (JPEG 472×1024, chụp màn hình) cỡ hạt đo được chỉ ~2.75px — nhỏ hơn cả block DCT
-8×8 của JPEG, nghĩa là nhiễu nén thô hơn chính hạt pixel art và không gỡ sạch được. Vì vậy yêu cầu người
-dùng cung cấp **bản tải gốc từ Gemini, định dạng PNG**, chứ không phải ảnh chụp màn hình.
+**Không snap về lưới pixel gốc.** Ý này bị loại sau khi đo ảnh full-res: đây là pixel art do AI vẽ giả,
+grain trôi giữa 8, 9 và 10 px chứ không có lưới cố định toàn ảnh. Snap vào một lưới không tồn tại sẽ làm
+lệch và nhoè. Thay vào đó **downsample trung bình vùng** (box filter) từ ảnh gốc — nguồn là PNG lossless
+1408×3054 nên đủ sạch, không cần khử nhiễu nén.
+
+Bản đầu tiên người dùng gửi là **ảnh chụp màn hình JPEG 472×1024**, grain chỉ còn ~2.75px, nhỏ hơn cả
+block DCT 8×8 của JPEG — nhiễu nén thô hơn chính hạt pixel art, không gỡ sạch được bằng code. Ghi lại
+đây để lần sau luôn yêu cầu **bản tải gốc PNG**, không phải ảnh chụp màn hình.
+
+### 3.5b Khử ám hồng ở mép
+
+Bounding box của mỗi vùng ôm luôn các pixel khử răng cưa nằm giữa art và nền hồng. Không xử lý thì
+sprite còn viền hồng — nhìn rõ nhất ở khung ngoài của ô tường.
+
+Sau khi khoá nền, quét các pixel còn lại nằm sát pixel trong suốt: nếu màu của chúng lệch về phía
+magenta so với hàng xóm không trong suốt, kéo kênh R và B xuống cho khớp hàng xóm. Ngưỡng chỉnh được
+trong window.
 
 ### 3.6 Ba asset sinh bằng code, không lấy từ sheet
 
@@ -123,10 +137,10 @@ Nhận vào mảng `Color32[]` + kích thước, trả ra kết quả. Không g�
 |---|---|
 | `IsBackground` | Phép thử độ magenta ở 3.4, ngưỡng truyền vào |
 | `FindRegions` | Dò hàng/cột toàn nền → vùng nội dung; rồi thu từng vùng về bounding box riêng của nó. Lọc bỏ vùng có diện tích nhỏ hơn 25% diện tích trung vị (loại watermark Gemini ở góc dưới phải) |
-| `KeyOut` | Đặt alpha 0 cho pixel nền; khử ám hồng còn dính ở mép |
-| `DetectPixelScale` | Dò cỡ hạt pixel gốc theo 3.5 |
-| `SnapDownsample` | Gộp về lưới pixel gốc bằng màu trung vị từng ô |
-| `FitSquare` | Đặt vùng đã cắt vào canvas vuông, có tham số lề |
+| `KeyOut` | Đặt alpha 0 cho pixel nền |
+| `Despill` | Khử ám hồng ở mép theo 3.5b |
+| `BoxDownsample` | Thu nhỏ bằng trung bình vùng, có tính trọng số alpha |
+| `FitCanvas` | Đặt vùng đã cắt vào canvas vuông theo quy tắc tỉ lệ ở mục 5 |
 | `Scale` | Nhân độ sáng RGB, giữ alpha — dùng cho `floor_a` / `floor_b` |
 | `Tint` | Phủ màu theo tỉ lệ, giữ alpha — dùng cho `box_on_goal` |
 
@@ -144,17 +158,27 @@ tint hộp. Nút Import ghi asset.
 
 Theo tiền lệ `Assets/Editor/LevelCollectionWindow.cs` sẵn có trong project.
 
-## 5. Chuẩn hoá khung theo loại asset
+## 5. Chuẩn hoá khung và tỉ lệ
 
-Tile và vật thể xử lý khác nhau ở bước đặt vào canvas vuông:
+Mọi sprite đều ra canvas vuông 64×64 nên đều là 1×1 unit. Khác nhau ở chỗ vật thể chiếm bao nhiêu phần
+của canvas đó.
 
-- **Tile** (`wall`, `floor`): cắt sát nội dung rồi ép vào canvas vuông phủ kín ô. Vùng đo được là
-  148×157 và 146×157 — lệch vuông 6%, ép vuông không nhìn ra.
-- **`goal`**: nền trong suốt quanh vòng đích. Tilemap đích vẽ đè lên tilemap sàn, nên `goal` chỉ chứa
-  vòng tròn, phần còn lại phải trong suốt để lộ sàn bên dưới. Nhờ vậy một sprite `goal` dùng chung được
-  cho cả hai tông sàn ô caro.
-- **Vật thể** (`box`, `player_*`): cắt sát rồi căn giữa vào canvas vuông, **giữ nguyên tỉ lệ khung hình
-  gốc**. Nhân vật đo được 70×130 và hộp 97×130 — ép vuông sẽ làm họ béo ra rất rõ.
+**Mốc quy chiếu là ô tường.** Tường là asset duy nhất chắc chắn lấp đầy một ô theo thiết kế, nên lấy
+cạnh dài bounding box của nó (đo được 467px) làm "một ô". Không dùng bước lưới tính từ khoảng cách các
+vùng: đo được cột cách nhau ~491px còn hàng ~524px, lưới Gemini không vuông.
+
+- **`wall`, `floor`**: ép kín canvas. Đo được 439×467 và 436×467 — lệch vuông 6%, ép vuông không nhìn ra.
+  Tile bắt buộc phải phủ hết ô, không được chừa khe trong suốt.
+- **`goal`**: căn giữa, **giữ tỉ lệ so với ô tường** (341/467 ≈ 0.73 ô). Nền quanh vòng đích phải trong
+  suốt: tilemap đích vẽ đè lên tilemap sàn, nên phần ngoài vòng phải để lộ sàn bên dưới. Nhờ vậy một
+  sprite `goal` dùng chung được cho cả hai tông sàn ô caro.
+- **`box`, `player_*`**: căn giữa, giữ tỉ lệ so với ô tường và **giữ nguyên tỉ lệ khung hình gốc**. Đo
+  được nhân vật 205×377 và hộp 289×387 — ép vuông sẽ làm họ béo ra rất rõ, còn chuẩn hoá theo bounding
+  box riêng của từng cái sẽ phá tương quan kích thước mà người vẽ đã đặt.
+
+Mỗi asset có thêm một **hệ số tỉ lệ chỉnh tay** trong window, mặc định 1.0. Cần nó vì tương quan kích
+thước Gemini vẽ ra không phải lúc nào cũng hợp lý — hộp đo được chỉ rộng 0.62 ô, có thể trông hơi nhỏ
+khi ghép vào bàn cờ thật.
 
 ## 6. Nối dây và sàn ô caro
 
@@ -194,9 +218,10 @@ Test dựng ảnh giả bằng code (không cần file ảnh thật) và kiểm:
 | Dò vùng | Ảnh giả 3×3 có khe rõ → đúng 9 vùng, đúng thứ tự đọc |
 | Thu vùng | Mỗi vùng thu về bounding box riêng, không dính lề của hàng/cột |
 | Lọc watermark | Một đốm nhỏ ngoài lưới bị loại theo ngưỡng diện tích |
-| Dò cỡ hạt | Ảnh giả vẽ ở cỡ hạt 4px → dò ra đúng 4 |
-| Trung vị | Ô pixel gốc bị nhiễu vài pixel lạ → vẫn ra màu đa số |
-| Canvas vuông | Tile phủ kín ô; vật thể căn giữa và **giữ đúng tỉ lệ khung hình** |
+| Khử ám | Pixel mép nửa hồng bị kéo về màu hàng xóm; pixel giữa vật thể không bị đụng |
+| Downsample | Vùng 8×8 một màu → ra đúng màu đó; pixel trong suốt không kéo màu lem sang pixel đục |
+| Canvas: tile | `wall` và `floor` phủ kín 64×64, không còn pixel trong suốt nào |
+| Canvas: vật thể | Căn giữa, **giữ đúng tỉ lệ khung hình**, và **đúng tỉ lệ so với ô tường** (vật cao 0.5 ô ra đúng 32/64 px) |
 | Làm tối | `Scale(0.5)` cho đúng nửa độ sáng và **không đụng alpha** |
 | Tint | Phủ tint giữ nguyên alpha, pixel trong suốt vẫn trong suốt |
 
@@ -220,10 +245,15 @@ phải thật sự khác nhau** (down thấy mặt, up chỉ thấy đỉnh mũ 
 **Chất lượng cuối phụ thuộc gần như hoàn toàn vào ảnh Gemini trả về.** Đường ống nhập chỉ cắt và chuẩn
 hoá, không sửa được nét vẽ.
 
-Sheet đầu tiên đã lộ ba lỗi mà đường ống không tự chữa được, phải quay lại Gemini: thiếu hướng nhìn từ
-sau lưng, hộp-trên-đích vẽ khác hộp thường, và ảnh giao dưới dạng chụp màn hình JPEG thay vì file tải
-gốc. Hai lỗi đầu đã có đường lui bằng code (tint cho hộp) hoặc bằng một lần sinh lại; lỗi thứ ba thì
-không.
+Sheet đầu tiên lộ ba lỗi mà đường ống không tự chữa được. Trạng thái hiện tại:
+
+| Lỗi | Trạng thái |
+|---|---|
+| Ảnh là chụp màn hình JPEG 472×1024 | **Đã xong** — người dùng cấp bản tải gốc `ArtSource/Gemini_Generated_Image_pq5cgypq5cgypq5c.png`, PNG 1408×3054 RGBA |
+| Hộp-trên-đích vẽ khác hộp thường | **Đã xử lý bằng code** — sinh từ hộp thường + tint (3.6) |
+| Thiếu hướng nhân vật nhìn từ sau lưng | **Còn treo** — ô hàng 3 cột 1 vẫn là bản lặp của hướng down, cần Gemini vẽ lại đúng ô đó |
+
+Importer phải chạy được và báo lỗi rõ ràng khi thiếu `player_up`, chứ không nhận bừa ô lặp.
 
 Nếu Gemini xếp lưới lệch tới mức dò khe không ra đủ vùng, editor window có chế độ lưới chỉnh tay làm
 đường lui.
