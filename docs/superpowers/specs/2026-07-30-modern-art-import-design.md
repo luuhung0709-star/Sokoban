@@ -1,26 +1,26 @@
 # Thiết kế: Nhập bộ art mới từ sprite sheet do Gemini tạo
 
-Ngày: 2026-07-30
+Ngày: 2026-07-30 (sửa lần 2 sau khi đo ảnh thật)
 
 ## 1. Mục tiêu
 
 Thay bộ art hiện tại (sinh bằng code, tường vát cạnh phẳng, nhân vật là khối bầu dục có mũi chỉ hướng)
-bằng một bộ art vẽ tay giàu chi tiết hơn: tường đá bo góc có vân nứt, hộp gỗ có ván và nẹp kim loại,
-sàn ô caro sáng/tối xen kẽ, nhân vật là người mặc vest đen đội mũ phớt.
+bằng bộ art pixel do người dùng tạo bên Gemini: tường gạch đá, sàn lát gạch, đích là vòng tròn đỏ có
+chữ thập, hộp gỗ, và nhân vật nam mặc vest đen đội mũ phớt có đủ 4 hướng nhìn.
 
-Art do người dùng tạo bên Gemini và giao dưới dạng **một sprite sheet duy nhất**. Phần việc trong repo
-là dựng đường ống nhập: cắt sheet thành 10 sprite rời, tách nền, chuẩn hoá khung, ghi vào project với
-import setting đúng, và nối vào Tile asset + prefab + scene.
+Art giao dưới dạng **một sprite sheet duy nhất**. Phần việc trong repo là dựng đường ống nhập: cắt sheet
+thành sprite rời, tách nền, khử nhiễu về đúng lưới pixel gốc, sinh thêm các biến thể bằng code, ghi vào
+project với import setting đúng, và nối vào Tile asset + scene.
 
-Thành công khi: lần đầu nối dây xong, mọi lần thay art sau đó chỉ cần bỏ sheet mới vào `ArtSource/` và
+Thành công khi: lần đầu nối dây xong, mọi lần thay art sau đó chỉ cần đè sheet mới vào `ArtSource/` và
 bấm một menu là game đổi art, không phải chạm vào Inspector (xem mục 6).
 
 ## 2. Bối cảnh
 
-Hiện tại `Assets/Editor/ClassicTileGenerator.cs` sinh 9 ảnh 64×64 vào `Assets/Art/Classic/` bằng thuật
-toán vẽ thuần (bevel, ring, cross, ellipse). Import setting: Sprite, PPU 64, `FilterMode.Point`,
-uncompressed. Ba Tile asset trong `Assets/Tiles/` trỏ vào các sprite đó; sáu sprite còn lại (hộp ×2,
-nhân vật ×4) gán trực tiếp vào `BoardRenderer` trong scene `Main`.
+`Assets/Editor/ClassicTileGenerator.cs` sinh 9 ảnh 64×64 vào `Assets/Art/Classic/` bằng thuật toán vẽ
+thuần. Import setting: Sprite, PPU 64, `FilterMode.Point`, uncompressed. Ba Tile asset trong
+`Assets/Tiles/` trỏ vào các sprite đó; sáu sprite còn lại (hộp ×2, nhân vật ×4) gán trực tiếp vào
+`BoardRenderer` trong scene `Main`.
 
 `BoardRenderer.Render` hiện vẽ một loại sàn duy nhất cho mọi ô không phải tường.
 
@@ -33,51 +33,83 @@ Camera background đã là `#0D0D10`, khớp sẵn nền tối của art mới n
 Art mới ghi vào **`Assets/Art/Modern/`**. Không đụng `Assets/Art/Classic/`.
 
 Lý do: menu `Sokoban/Generate Classic Art` vẫn tồn tại và ghi đè thẳng vào `Assets/Art/Classic/`. Nếu
-art mới dùng chung thư mục đó thì một cú bấm nhầm menu là mất sạch. Hai thư mục tách biệt cho phép hai
-bộ art cùng tồn tại và đổi qua lại để so sánh.
+art mới dùng chung thư mục đó thì một cú bấm nhầm menu là mất sạch.
 
 ### 3.2 Ảnh gốc để ngoài `Assets/`
 
-Sheet gốc từ Gemini để ở **`ArtSource/`** tại thư mục gốc repo, ngoài `Assets/`. Unity không import,
-không sinh `.meta`, không tính vào build. Vẫn được commit để lần sau xử lý lại từ bản gốc độ phân giải
-cao mà không phải tạo lại ảnh.
+Sheet gốc để ở **`ArtSource/sheet.png`** tại thư mục gốc repo, ngoài `Assets/`. Unity không import,
+không sinh `.meta`, không tính vào build. Vẫn được commit để lần sau xử lý lại từ bản gốc.
 
-### 3.3 Bố cục sheet: 4 cột × 3 hàng, ảnh vuông
+### 3.3 Bố cục sheet 3×3, ánh xạ ô → asset chỉnh được trong editor window
+
+Sheet thực tế Gemini trả về là lưới **3 hàng × 3 cột = 9 ô**:
 
 ```
-hàng 1:  wall         floor_a       floor_b      goal
-hàng 2:  box          box_on_goal   player_down  player_up
-hàng 3:  player_left  player_right  (trống)      (trống)
+hàng 1:  wall          floor          goal
+hàng 2:  box           (không dùng)   player_down
+hàng 3:  player_up     player_right   player_left
 ```
 
-Chọn lưới 4×3 trên ảnh tỉ lệ 1:1 vì Gemini xuất ảnh theo tập tỉ lệ cố định và 1:1 là tỉ lệ nó xử lý tốt
-nhất. Lưới 5×2 vừa khít 10 ô nhưng ép ra tỉ lệ 2.5:1, không có trong tập tỉ lệ Gemini hỗ trợ.
+Không hard-code ánh xạ này. Gemini xếp lưới khác nhau giữa các lần sinh, nên editor window cho chọn
+asset cho từng vùng đã dò bằng dropdown, và nhớ lựa chọn trong `EditorPrefs` để lần sau không phải
+chọn lại.
 
-Hai ô cuối để trống. Nếu Gemini vẫn vẽ gì đó vào đó, importer lấy 10 vùng đầu theo thứ tự đọc và bỏ qua
-phần dư.
+Ô hàng 2 cột 2 trong sheet hiện tại là hộp-trên-đích nhưng **không dùng** — xem 3.6.
 
-### 3.4 Cắt bằng dò khe, không dùng lưới cứng
+### 3.4 Tách nền: khoá theo "độ magenta", không lấy mẫu 4 góc
 
-Không tính toạ độ ô theo `width / 4`. Gemini gần như chắc chắn xếp lệch lưới đôi chút, và lưới cứng sẽ
-cắt cụt hoặc dính sang ô bên cạnh.
+Ảnh thật có **hai tông hồng**: nền ngoài magenta đậm (đo được `(253, 31, 252)`) và nền riêng của từng ô
+màu hồng nhạt. Lấy mẫu 4 góc chỉ bắt được tông đậm, mỗi sprite sẽ còn nguyên một vuông hồng nhạt.
 
-Thay vào đó **dò khe**: quét tìm các hàng và cột gồm toàn pixel màu nền, lấy các dải nội dung nằm giữa
-chúng làm biên vùng. Dò ra đúng 10 vùng thì gán tên theo thứ tự đọc trái→phải, trên→dưới. Ra sai số
-lượng thì chuyển sang chế độ lưới chỉnh tay trong editor window.
+Dùng phép thử độ magenta thay thế: `R > 180 && B > 180 && G < min(R, B) - 25`.
 
-### 3.5 Đầu ra 128 hoặc 256 px, filter Bilinear
+Đã kiểm trên ảnh thật: bắt được cả hai tông hồng, và **không** bắt nhầm bất kỳ màu nào của art — đá xám
+có `R≈G≈B`; gỗ nâu và vòng đích đỏ đều có `B` thấp; áo sơ mi trắng có `G` không thấp hơn `R`; da mặt có
+`B` thấp.
 
-Sheet chia 12 ô nên mỗi ô chỉ được 1/4 chiều rộng sheet, trừ tiếp khe hở. Sheet 1024×1024 cho mỗi ô
-thực dùng khoảng 200px; sheet 2048×2048 cho khoảng 512px.
+Ngưỡng để nới rộng cho nhiễu JPEG là hằng số chỉnh được trong window.
 
-Importer tự chọn theo kích thước ô đo được: ô nhỏ hơn 300px → xuất sprite 128×128; ô từ 300px trở lên
-→ xuất 256×256. Editor window cho override thủ công.
+### 3.5 Pixel art: snap về lưới pixel gốc, filter Point
 
-PPU đặt bằng đúng cạnh sprite (128 hoặc 256) nên **1 ô = 1 unit** không đổi. Không phải sửa camera,
-level data, hay logic di chuyển.
+Art trả về là **pixel art**, không phải nét vẽ mượt như dự kiến ban đầu. Điều này lật ngược quyết định
+độ phân giải ở bản spec trước.
 
-Bỏ `FilterMode.Point`, dùng **Bilinear**. Art Gemini là nét vẽ mượt chứ không phải pixel art; để Point
-sẽ răng cưa khi scale.
+- Dùng **`FilterMode.Point`**, không dùng Bilinear. Bilinear sẽ làm nhoè hết chất pixel.
+- Downsample về **đúng lưới pixel gốc** thay vì resize tuỳ ý. Với mỗi ô pixel gốc, lấy **màu trung vị**
+  của các pixel thật nằm trong ô đó. Trung vị (không phải trung bình) vì nó loại được nhiễu nén JPEG mà
+  không kéo màu về phía màu trung gian.
+- Cỡ hạt pixel gốc **dò tự động**: tìm các biên màu dọc và ngang, lấy khoảng cách giữa các biên, chọn
+  cỡ hạt giải thích được nhiều biên nhất. Kết quả hiển thị trong window và chỉnh tay được.
+- PPU đặt bằng đúng cạnh sprite đầu ra, nên **1 ô = 1 unit** không đổi. Không phải sửa camera, level
+  data, hay logic di chuyển.
+
+Trên ảnh mẫu đầu tiên (JPEG 472×1024, chụp màn hình) cỡ hạt đo được chỉ ~2.75px — nhỏ hơn cả block DCT
+8×8 của JPEG, nghĩa là nhiễu nén thô hơn chính hạt pixel art và không gỡ sạch được. Vì vậy yêu cầu người
+dùng cung cấp **bản tải gốc từ Gemini, định dạng PNG**, chứ không phải ảnh chụp màn hình.
+
+### 3.6 Ba asset sinh bằng code, không lấy từ sheet
+
+| Asset | Sinh từ | Lý do |
+|---|---|---|
+| `floor_a` | `floor` × 0.55 độ sáng | Xem 3.7 |
+| `floor_b` | `floor` × 0.45 độ sáng | Tông thứ hai cho ô caro; sheet không có |
+| `box_on_goal` | `box` + phủ tint vàng ấm | Xem dưới |
+
+Ô hộp-trên-đích trong sheet vẽ một cái thùng **nghiêng và nhỏ hơn** nằm lọt trong vòng đích, khác hẳn ô
+hộp thường vốn là thùng nhìn thẳng. Dùng cả hai thì khi đẩy hộp vào đích hình sẽ nhảy sang một cái thùng
+khác chứ không phải cùng cái thùng đó được đánh dấu. Phủ tint bằng code giữ nguyên một cái thùng duy
+nhất, chỉ đổi màu.
+
+Hệ số 0.55 / 0.45 và màu tint là hằng số chỉnh được trong window.
+
+### 3.7 Làm tối sàn để lấy lại tương phản với tường
+
+Đo trên ảnh thật, độ sáng trung bình: tường **121.8**, sàn **131.8**. Sàn còn *sáng hơn* tường, gần như
+không có tương phản — nhìn vào bàn cờ sẽ khó tách tường khỏi đường đi. Ảnh mẫu ban đầu người dùng gửi có
+tường ~185 và sàn ~78, chênh nhau rất rõ.
+
+Không yêu cầu tạo lại ảnh. Hạ độ sáng sàn bằng code (3.6) vừa lấy lại tương phản, vừa tiện sinh luôn
+tông thứ hai cho ô caro, và đảm bảo hai tông khớp tuyệt đối với nhau.
 
 ## 4. Kiến trúc
 
@@ -89,48 +121,48 @@ Nhận vào mảng `Color32[]` + kích thước, trả ra kết quả. Không g�
 
 | Hàm | Nhiệm vụ |
 |---|---|
-| `DetectBackground` | Lấy màu khoá từ 4 góc ảnh; nếu ảnh đã có alpha thật (tồn tại pixel `a < 250`) thì báo là dùng alpha sẵn có |
-| `KeyOut` | Xoá pixel gần màu khoá theo ngưỡng khoảng cách màu; khử ám màu nền còn dính ở mép |
-| `FindRegions` | Dò hàng/cột toàn nền, trả về danh sách `RectInt` vùng nội dung theo thứ tự đọc |
-| `CropToContent` | Cắt sát bounding box của pixel không trong suốt |
+| `IsBackground` | Phép thử độ magenta ở 3.4, ngưỡng truyền vào |
+| `FindRegions` | Dò hàng/cột toàn nền → vùng nội dung; rồi thu từng vùng về bounding box riêng của nó. Lọc bỏ vùng có diện tích nhỏ hơn 25% diện tích trung vị (loại watermark Gemini ở góc dưới phải) |
+| `KeyOut` | Đặt alpha 0 cho pixel nền; khử ám hồng còn dính ở mép |
+| `DetectPixelScale` | Dò cỡ hạt pixel gốc theo 3.5 |
+| `SnapDownsample` | Gộp về lưới pixel gốc bằng màu trung vị từng ô |
 | `FitSquare` | Đặt vùng đã cắt vào canvas vuông, có tham số lề |
-| `Resize` | Nội suy bilinear về kích thước đích |
+| `Scale` | Nhân độ sáng RGB, giữ alpha — dùng cho `floor_a` / `floor_b` |
+| `Tint` | Phủ màu theo tỉ lệ, giữ alpha — dùng cho `box_on_goal` |
 
 ### 4.2 `ModernArtImporter` — phần đụng Unity
 
-Đọc file từ `ArtSource/`, gọi `SpriteSheetSlicer`, ghi PNG vào `Assets/Art/Modern/`, đặt import setting,
-tạo/cập nhật Tile asset. Menu `Sokoban/Import Modern Art` chạy toàn bộ với thiết lập mặc định.
+Đọc file từ `ArtSource/`, gọi `SpriteSheetSlicer`, ghi PNG vào `Assets/Art/Modern/`, đặt import setting
+(Sprite, PPU = cạnh sprite, `FilterMode.Point`, uncompressed, `alphaIsTransparency`, no mipmap), tạo và
+cập nhật Tile asset. Menu `Sokoban/Import Modern Art` chạy toàn bộ với thiết lập đã lưu.
 
 ### 4.3 `ModernArtImporterWindow` — editor window kiểm tra trước khi ghi
 
-Vẽ overlay các vùng đã dò lên chính tấm sheet để mắt thường xác nhận trước khi ghi đè asset. Có ô chỉnh
-tay: số cột, số hàng, lề, khe, ngưỡng tách nền, kích thước đầu ra. Nút Import ghi asset.
+Vẽ overlay các vùng đã dò lên chính tấm sheet để mắt thường xác nhận trước khi ghi đè asset. Mỗi vùng có
+một dropdown chọn asset đích. Chỉnh được: ngưỡng tách nền, cỡ hạt pixel, lề tile, hệ số làm tối sàn, màu
+tint hộp. Nút Import ghi asset.
 
 Theo tiền lệ `Assets/Editor/LevelCollectionWindow.cs` sẵn có trong project.
-
-Giá trị mặc định: ngưỡng tách nền 0.25 (khoảng cách RGB đã chuẩn hoá về 0..1), lề tile 4%, ngưỡng coi
-một hàng/cột là khe khi từ 99% pixel trở lên là màu nền.
 
 ## 5. Chuẩn hoá khung theo loại asset
 
 Tile và vật thể xử lý khác nhau ở bước đặt vào canvas vuông:
 
-- **Tile** (`wall`, `floor_a`, `floor_b`): cắt sát nội dung rồi đặt vào canvas vuông **chừa lề nhỏ**
-  (mặc định 4% mỗi cạnh). Giữ lại khe hở tối giữa các viên gạch như trong ảnh mẫu; cắt sát rồi phóng
-  đầy ô sẽ làm các viên dính liền nhau.
-- **`goal`**: nền trong suốt quanh dấu đích. Tilemap đích vẽ đè lên tilemap sàn, nên `goal` chỉ chứa
-  dấu hiệu, phần còn lại phải trong suốt để lộ sàn bên dưới. Nhờ vậy một sprite `goal` dùng chung được
+- **Tile** (`wall`, `floor`): cắt sát nội dung rồi ép vào canvas vuông phủ kín ô. Vùng đo được là
+  148×157 và 146×157 — lệch vuông 6%, ép vuông không nhìn ra.
+- **`goal`**: nền trong suốt quanh vòng đích. Tilemap đích vẽ đè lên tilemap sàn, nên `goal` chỉ chứa
+  vòng tròn, phần còn lại phải trong suốt để lộ sàn bên dưới. Nhờ vậy một sprite `goal` dùng chung được
   cho cả hai tông sàn ô caro.
-- **Vật thể** (`box`, `box_on_goal`, `player_*`): cắt sát rồi căn giữa vào canvas vuông, giữ nguyên tỉ
-  lệ khung hình gốc.
+- **Vật thể** (`box`, `player_*`): cắt sát rồi căn giữa vào canvas vuông, **giữ nguyên tỉ lệ khung hình
+  gốc**. Nhân vật đo được 70×130 và hộp 97×130 — ép vuông sẽ làm họ béo ra rất rõ.
 
 ## 6. Nối dây và sàn ô caro
 
 ### 6.1 Nối dây một lần, các lần sau tự cập nhật
 
 Importer luôn ghi ra **đúng cùng một đường dẫn** cho mỗi asset (`Assets/Art/Modern/box.png`, …). Ghi đè
-một file PNG có sẵn giữ nguyên `.meta` và GUID của nó, nên mọi tham chiếu đang trỏ tới sprite đó vẫn
-còn nguyên. Hệ quả: chỉ cần nối dây **một lần**.
+một file PNG có sẵn giữ nguyên `.meta` và GUID của nó, nên mọi tham chiếu đang trỏ tới sprite đó vẫn còn
+nguyên. Hệ quả: chỉ cần nối dây **một lần**.
 
 - **Tile asset** (`WallTile`, `GroundTile`, `GroundTileB`, `GoalTile`): importer tự tạo nếu chưa có và
   tự trỏ `m_Sprite` sang sprite mới. Không cần thao tác tay.
@@ -157,27 +189,23 @@ Test dựng ảnh giả bằng code (không cần file ảnh thật) và kiểm:
 
 | Test | Kiểm điều gì |
 |---|---|
-| Tách nền đúng | Pixel màu khoá thành trong suốt |
-| Không xoá nhầm | Pixel vật thể có màu gần màu khoá nhưng ngoài ngưỡng thì giữ lại |
-| Đã có alpha | Ảnh vào đã có alpha thật thì không keying, giữ nguyên alpha |
-| Dò vùng | Ảnh giả 4×3 ô có khe rõ → trả về đúng 12 vùng, đúng thứ tự đọc |
-| Dò vùng, ô trống | Hai ô cuối toàn nền → trả về đúng 10 vùng |
-| Crop | Bounding box đúng, không thừa không thiếu một pixel |
-| Canvas vuông | Đầu ra vuông, vật thể căn giữa, lề tile đúng tỉ lệ |
-| Resize | Đầu ra đúng kích thước đích |
+| Khoá hai tông hồng | Cả magenta đậm và hồng nhạt đều thành trong suốt |
+| Không xoá nhầm | Xám, nâu, đỏ, trắng, màu da đều được giữ lại |
+| Dò vùng | Ảnh giả 3×3 có khe rõ → đúng 9 vùng, đúng thứ tự đọc |
+| Thu vùng | Mỗi vùng thu về bounding box riêng, không dính lề của hàng/cột |
+| Lọc watermark | Một đốm nhỏ ngoài lưới bị loại theo ngưỡng diện tích |
+| Dò cỡ hạt | Ảnh giả vẽ ở cỡ hạt 4px → dò ra đúng 4 |
+| Trung vị | Ô pixel gốc bị nhiễu vài pixel lạ → vẫn ra màu đa số |
+| Canvas vuông | Tile phủ kín ô; vật thể căn giữa và **giữ đúng tỉ lệ khung hình** |
+| Làm tối | `Scale(0.5)` cho đúng nửa độ sáng và **không đụng alpha** |
+| Tint | Phủ tint giữ nguyên alpha, pixel trong suốt vẫn trong suốt |
 
 ## 8. Prompt cho Gemini
 
-Kèm theo spec là một prompt để người dùng dán vào Gemini, ràng buộc:
-
-- Sheet vuông 1:1, xuất ở độ phân giải lớn nhất có thể (ưu tiên 2K trở lên).
-- Lưới 4 cột × 3 hàng, có khe hở rõ giữa các ô, hai ô cuối để trống.
-- Nền toàn ảnh màu hồng đặc `#FF00FF`, kể cả trong khe.
-- Nhìn thẳng từ trên xuống, không phối cảnh nghiêng.
-- Không có bóng đổ tràn ra ngoài vật thể sang vùng nền.
-- Mô tả style bám theo ảnh mẫu: tường đá xám bo góc có vân nứt, sàn hai tông xám đậm, hộp gỗ vàng có
-  ván và nẹp, hộp thường mang dấu tròn / hộp đã vào đích mang dấu chữ thập, nhân vật nam mặc vest đen
-  sơ mi trắng đội mũ phớt, vẽ ở 4 hướng nhìn.
+Lưu trong spec để lần sau tạo lại art không phải nghĩ lại. Ràng buộc: sheet vuông, lưới có khe hở rõ,
+nền hồng đặc kể cả trong khe, nhìn thẳng từ trên xuống, không bóng đổ tràn ra nền, **4 hướng nhân vật
+phải thật sự khác nhau** (down thấy mặt, up chỉ thấy đỉnh mũ và lưng, left/right là nghiêng mặt), và
+**xuất ở độ phân giải cao nhất, tải file về chứ không chụp màn hình**.
 
 ## 9. Ngoài phạm vi
 
@@ -192,9 +220,10 @@ Kèm theo spec là một prompt để người dùng dán vào Gemini, ràng bu�
 **Chất lượng cuối phụ thuộc gần như hoàn toàn vào ảnh Gemini trả về.** Đường ống nhập chỉ cắt và chuẩn
 hoá, không sửa được nét vẽ.
 
-Gộp 10 asset vào một sheet đánh đổi độ chi tiết lấy tính đồng nhất: mỗi asset chỉ chiếm 1/12 khung nên
-nhân vật sẽ ít chi tiết mặt và trang phục hơn so với vẽ riêng một ảnh; bù lại 10 asset chắc chắn cùng
-nguồn sáng, cùng bảng màu, và 4 hướng nhân vật chắc chắn là cùng một người.
+Sheet đầu tiên đã lộ ba lỗi mà đường ống không tự chữa được, phải quay lại Gemini: thiếu hướng nhìn từ
+sau lưng, hộp-trên-đích vẽ khác hộp thường, và ảnh giao dưới dạng chụp màn hình JPEG thay vì file tải
+gốc. Hai lỗi đầu đã có đường lui bằng code (tint cho hộp) hoặc bằng một lần sinh lại; lỗi thứ ba thì
+không.
 
-Nếu Gemini xếp lưới lệch tới mức dò khe không ra 10 vùng, editor window có chế độ lưới chỉnh tay làm
+Nếu Gemini xếp lưới lệch tới mức dò khe không ra đủ vùng, editor window có chế độ lưới chỉnh tay làm
 đường lui.
