@@ -137,11 +137,13 @@ Nhận vào mảng `Color32[]` + kích thước, trả ra kết quả. Không g�
 |---|---|
 | `IsBackground` | Phép thử độ magenta ở 3.4, ngưỡng truyền vào |
 | `FindRegions` | Dò hàng/cột toàn nền → vùng nội dung; rồi thu từng vùng về bounding box riêng của nó. Lọc bỏ vùng có diện tích nhỏ hơn 25% diện tích trung vị (loại watermark Gemini ở góc dưới phải) |
+| `Crop` | Cắt một `RectInt` ra thành buffer riêng |
 | `KeyOut` | Đặt alpha 0 cho pixel nền |
 | `Despill` | Khử ám hồng ở mép theo 3.5b |
-| `BoxDownsample` | Thu nhỏ bằng trung bình vùng, có tính trọng số alpha |
-| `FitCanvas` | Đặt vùng đã cắt vào canvas vuông theo quy tắc tỉ lệ ở mục 5 |
-| `Scale` | Nhân độ sáng RGB, giữ alpha — dùng cho `floor_a` / `floor_b` |
+| `Resample` | Thu nhỏ bằng trung bình vùng, màu tính theo trọng số alpha |
+| `ObjectSize` | Cỡ vật thể trên canvas, đo theo ô tường — quy tắc tỉ lệ ở mục 5 |
+| `PlaceCentered` | Đặt nội dung đã thu nhỏ vào giữa canvas vuông trong suốt |
+| `Brightness` | Nhân độ sáng RGB, giữ alpha — dùng cho `floor_a` / `floor_b` |
 | `Tint` | Phủ màu theo tỉ lệ, giữ alpha — dùng cho `box_on_goal` |
 
 ### 4.2 `ModernArtImporter` — phần đụng Unity
@@ -176,9 +178,10 @@ vùng: đo được cột cách nhau ~491px còn hàng ~524px, lưới Gemini kh
   được nhân vật 205×377 và hộp 289×387 — ép vuông sẽ làm họ béo ra rất rõ, còn chuẩn hoá theo bounding
   box riêng của từng cái sẽ phá tương quan kích thước mà người vẽ đã đặt.
 
-Mỗi asset có thêm một **hệ số tỉ lệ chỉnh tay** trong window, mặc định 1.0. Cần nó vì tương quan kích
-thước Gemini vẽ ra không phải lúc nào cũng hợp lý — hộp đo được chỉ rộng 0.62 ô, có thể trông hơi nhỏ
-khi ghép vào bàn cờ thật.
+Có **một hệ số tỉ lệ chung cho mọi vật thể**, chỉnh trong window, mặc định 1.0 — dùng khi cả bộ trông
+to hay nhỏ so với ô. Cố tình chưa làm hệ số riêng cho từng asset: hộp đo được chỉ rộng 0.62 ô và *có
+thể* trông nhỏ, nhưng đó mới là phỏng đoán. Nếu bước kiểm mắt sau khi nhập cho thấy đúng là chỉ riêng
+hộp bị lệch cỡ thì lúc đó mới tách hệ số riêng.
 
 ## 6. Nối dây và sàn ô caro
 
