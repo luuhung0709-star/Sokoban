@@ -1,0 +1,82 @@
+Nguồn âm thanh trong thư mục này — tất cả đều CC0 (Creative Commons Zero) của Kenney (www.kenney.nl).
+
+  step.ogg        <- Impact Sounds / footstep_wood_000.ogg
+  push.ogg        <- Impact Sounds / impactWood_medium_000.ogg
+  box_on_goal.ogg <- Impact Sounds / impactBell_heavy_001.ogg
+  undo.ogg        <- UI Audio / switch2.ogg
+  win.ogg         <- Music Jingles / Pizzicato jingles / jingles_PIZZI07.ogg
+
+Giấy phép gốc của cả ba bộ, chép nguyên văn:
+
+=== Impact Sounds ===
+	
+
+	Impact Sounds (1.0)
+
+	Created/distributed by Kenney (www.kenney.nl)
+	Creation date: 19-12-2019
+
+			------------------------------
+
+	License: (Creative Commons Zero, CC0)
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+	This content is free to use in personal, educational and commercial projects.
+	Support us by crediting Kenney or www.kenney.nl (this is not mandatory)
+
+			------------------------------
+
+	Donate:   http://support.kenney.nl
+	Request:  http://request.kenney.nl
+	Patreon:  http://patreon.com/kenney/
+
+	Follow on Twitter for updates:
+	http://twitter.com/KenneyNL
+=== UI Audio ===
+	
+
+	UI SFX Set
+
+	by  Kenney Vleugels (Kenney.nl)
+
+			------------------------------
+
+	License (Creative Commons Zero, CC0)
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+	You may use these assets in personal and commercial projects.
+	Credit (Kenney or www.kenney.nl) would be nice but is not mandatory.
+
+			------------------------------
+
+	Donate:   http://support.kenney.nl
+	Request:  http://request.kenney.nl
+
+	Follow on Twitter for updates:
+	@KenneyNL
+=== Music Jingles ===
+	
+
+	Music Jingles
+
+	by  Kenney Vleugels (Kenney.nl)
+
+			------------------------------
+
+	License (Creative Commons Zero, CC0)
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+	You may use these assets in personal and commercial projects.
+	Credit (Kenney or www.kenney.nl) would be nice but is not mandatory.
+
+			------------------------------
+
+	Donate:   http://support.kenney.nl
+	Request:  http://request.kenney.nl
+
+	Follow on Twitter for updates:
+	@KenneyNL
+=== music_loop.mp3 ===
+  "Town Theme RPG" — cynicmusic (https://opengameart.org/content/town-theme-rpg)
+  Giấy phép: CC0 (ghi trên trang tải, mục License(s)).
+  Giữ nguyên file gốc TownTheme.mp3, chỉ đổi tên.
