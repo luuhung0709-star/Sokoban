@@ -117,5 +117,95 @@ namespace Sokoban.EditorTools
 
             return regions.Where(r => (long)r.width * r.height >= median * minAreaRatio).ToList();
         }
+
+        public static PixelBuffer KeyOut(PixelBuffer src, int tolerance)
+        {
+            var dst = new PixelBuffer(src.Width, src.Height);
+            for (int i = 0; i < src.Pixels.Length; i++)
+            {
+                var c = src.Pixels[i];
+                dst.Pixels[i] = IsBackground(c, tolerance) ? new Color32(0, 0, 0, 0) : c;
+            }
+            return dst;
+        }
+
+        /// <summary>
+        /// Bounding box ôm luôn các pixel khử răng cưa nằm giữa art và nền, nên mép sprite
+        /// còn ám hồng. Với pixel đục nằm sát vùng trong suốt, nếu cả đỏ lẫn lam đều vượt
+        /// hẳn lục thì hạ hai kênh đó xuống ngang lục. Chỉ chạm dải mép nên phần trong ruột
+        /// của vật thể không bị đụng, và điều kiện "cả đỏ lẫn lam" chừa lại màu đỏ thuần
+        /// của vòng đích cùng màu trắng của sơ mi.
+        /// </summary>
+        public static void Despill(PixelBuffer buf, int band, int tolerance)
+        {
+            var original = (Color32[])buf.Pixels.Clone();
+
+            for (int y = 0; y < buf.Height; y++)
+                for (int x = 0; x < buf.Width; x++)
+                {
+                    var c = original[y * buf.Width + x];
+                    if (c.a == 0) continue;
+                    if (!NearTransparent(original, buf.Width, buf.Height, x, y, band)) continue;
+
+                    if (Mathf.Min(c.r, c.b) <= c.g + tolerance) continue;
+
+                    byte cap = (byte)Mathf.Min(255, c.g + tolerance);
+                    buf.Set(x, y, new Color32(c.r < cap ? c.r : cap, c.g, c.b < cap ? c.b : cap, c.a));
+                }
+        }
+
+        static bool NearTransparent(Color32[] pixels, int width, int height, int x, int y, int band)
+        {
+            for (int dy = -band; dy <= band; dy++)
+                for (int dx = -band; dx <= band; dx++)
+                {
+                    int nx = x + dx, ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx >= width || ny >= height) return true;
+                    if (pixels[ny * width + nx].a == 0) return true;
+                }
+            return false;
+        }
+
+        /// <summary>
+        /// Thu nhỏ bằng trung bình vùng. Màu lấy trung bình có trọng số alpha để pixel
+        /// trong suốt không kéo màu của mép về đen; alpha thì lấy trung bình thẳng.
+        /// </summary>
+        public static PixelBuffer Resample(PixelBuffer src, int width, int height)
+        {
+            var dst = new PixelBuffer(width, height);
+
+            for (int y = 0; y < height; y++)
+            {
+                int sy0 = y * src.Height / height;
+                int sy1 = Mathf.Max(sy0 + 1, (y + 1) * src.Height / height);
+
+                for (int x = 0; x < width; x++)
+                {
+                    int sx0 = x * src.Width / width;
+                    int sx1 = Mathf.Max(sx0 + 1, (x + 1) * src.Width / width);
+
+                    float r = 0f, g = 0f, b = 0f, a = 0f, weight = 0f;
+                    for (int sy = sy0; sy < sy1; sy++)
+                        for (int sx = sx0; sx < sx1; sx++)
+                        {
+                            var c = src.Get(sx, sy);
+                            float w = c.a / 255f;
+                            r += c.r * w; g += c.g * w; b += c.b * w;
+                            a += c.a; weight += w;
+                        }
+
+                    int count = (sy1 - sy0) * (sx1 - sx0);
+                    byte alpha = (byte)Mathf.RoundToInt(a / count);
+
+                    dst.Set(x, y, weight < 0.0001f
+                        ? new Color32(0, 0, 0, 0)
+                        : new Color32((byte)Mathf.RoundToInt(r / weight),
+                                      (byte)Mathf.RoundToInt(g / weight),
+                                      (byte)Mathf.RoundToInt(b / weight), alpha));
+                }
+            }
+
+            return dst;
+        }
     }
 }

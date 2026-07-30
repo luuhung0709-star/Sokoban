@@ -123,5 +123,97 @@ namespace Sokoban.Tests
             Assert.AreEqual(Art.r, cell.Get(0, 0).r);
             Assert.AreEqual(Art.r, cell.Get(29, 29).r);
         }
+
+        [Test]
+        public void KeyOut_ClearsBothPinkTones_AndKeepsArt()
+        {
+            var buf = new PixelBuffer(3, 1);
+            buf.Set(0, 0, Bg);                            // magenta ngoài
+            buf.Set(1, 0, new Color32(255, 127, 255, 255)); // hồng nhạt trong ô
+            buf.Set(2, 0, Art);
+
+            var keyed = SpriteSheetSlicer.KeyOut(buf, Tol);
+
+            Assert.AreEqual(0, keyed.Get(0, 0).a);
+            Assert.AreEqual(0, keyed.Get(1, 0).a);
+            Assert.AreEqual(255, keyed.Get(2, 0).a);
+            Assert.AreEqual(Art.r, keyed.Get(2, 0).r, "màu art không được đụng vào");
+        }
+
+        [Test]
+        public void Despill_PullsPinkFringeTowardsItsNeighbour()
+        {
+            // [trong suốt][mép ám hồng][art]
+            var buf = new PixelBuffer(3, 1);
+            buf.Set(0, 0, new Color32(0, 0, 0, 0));
+            buf.Set(1, 0, new Color32(200, 80, 200, 255));
+            buf.Set(2, 0, Art);
+
+            SpriteSheetSlicer.Despill(buf, band: 2, tolerance: 8);
+
+            var fringe = buf.Get(1, 0);
+            Assert.LessOrEqual(fringe.r, 88, "đỏ bị hạ về quanh mức lục");
+            Assert.LessOrEqual(fringe.b, 88, "lam bị hạ về quanh mức lục");
+            Assert.AreEqual(80, fringe.g, "lục giữ nguyên");
+        }
+
+        [Test]
+        public void Despill_LeavesRedAndWhiteAlone()
+        {
+            var buf = new PixelBuffer(3, 1);
+            buf.Set(0, 0, new Color32(0, 0, 0, 0));
+            buf.Set(1, 0, new Color32(200, 40, 40, 255));    // vòng đích đỏ
+            buf.Set(2, 0, new Color32(250, 250, 250, 255));  // sơ mi trắng
+
+            SpriteSheetSlicer.Despill(buf, band: 2, tolerance: 8);
+
+            Assert.AreEqual(200, buf.Get(1, 0).r);
+            Assert.AreEqual(250, buf.Get(2, 0).r);
+        }
+
+        [Test]
+        public void Despill_DoesNotTouchPixelsAwayFromTheEdge()
+        {
+            // Phải đủ rộng cả hai chiều: biên ảnh cũng bị coi là trong suốt, nên một buffer
+            // cao 1 pixel thì pixel nào cũng nằm trong dải khử ám và test sẽ vô nghĩa.
+            var buf = new PixelBuffer(12, 12);
+            Fill(buf, new RectInt(0, 0, 12, 12), new Color32(200, 80, 200, 255));
+            Fill(buf, new RectInt(0, 0, 1, 12), new Color32(0, 0, 0, 0));
+
+            SpriteSheetSlicer.Despill(buf, band: 2, tolerance: 8);
+
+            Assert.LessOrEqual(buf.Get(1, 6).r, 88, "pixel sát cột trong suốt thì bị khử ám");
+            Assert.AreEqual(200, buf.Get(6, 6).r, "pixel giữa ảnh nằm ngoài dải khử ám");
+        }
+
+        [Test]
+        public void Resample_AveragesEachBlock()
+        {
+            var buf = new PixelBuffer(4, 4);
+            for (int i = 0; i < buf.Pixels.Length; i++) buf.Pixels[i] = new Color32(100, 100, 100, 255);
+            // Một góc 2x2 sáng hơn hẳn.
+            Fill(buf, new RectInt(0, 0, 2, 2), new Color32(200, 200, 200, 255));
+
+            var small = SpriteSheetSlicer.Resample(buf, 2, 2);
+
+            Assert.AreEqual(2, small.Width);
+            Assert.AreEqual(200, small.Get(0, 0).r, "khối toàn màu sáng ra đúng màu đó");
+            Assert.AreEqual(100, small.Get(1, 1).r);
+        }
+
+        [Test]
+        public void Resample_DoesNotBleedColourOutOfTransparentPixels()
+        {
+            var buf = new PixelBuffer(2, 2);
+            buf.Set(0, 0, new Color32(255, 0, 0, 255));
+            buf.Set(1, 0, new Color32(0, 0, 0, 0));
+            buf.Set(0, 1, new Color32(0, 0, 0, 0));
+            buf.Set(1, 1, new Color32(0, 0, 0, 0));
+
+            var small = SpriteSheetSlicer.Resample(buf, 1, 1);
+
+            Assert.AreEqual(255, small.Get(0, 0).r, "màu lấy từ pixel đục, không bị pixel trong suốt kéo về 0");
+            Assert.AreEqual(64, small.Get(0, 0).a, "alpha là trung bình thẳng của 4 pixel");
+        }
     }
 }
