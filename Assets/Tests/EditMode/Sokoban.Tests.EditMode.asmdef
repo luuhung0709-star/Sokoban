@@ -3,6 +3,7 @@
     "rootNamespace": "Sokoban.Tests",
     "references": [
         "Sokoban.Runtime",
+        "Sokoban.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
