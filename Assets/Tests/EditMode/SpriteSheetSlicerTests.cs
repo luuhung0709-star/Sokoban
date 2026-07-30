@@ -100,6 +100,38 @@ namespace Sokoban.Tests
         }
 
         [Test]
+        public void FindRegions_HandlesAnIrregularGrid_WithPerCellJitterInPositionAndSize()
+        {
+            // Grid() dựng ô cách đều nhau — kể cả công thức width/cols ngây thơ cũng qua được
+            // test đó, vì nó không kiểm đúng lý do thiết kế chọn dò khe: sheet thật của Gemini
+            // cột cách nhau chừng 491px, hàng chừng 524px, không phải lưới vuông đều. Dựng thủ
+            // công 2 hàng x 3 cột, mỗi ô lệch cả vị trí lẫn kích thước so với ô cùng cột/hàng,
+            // và khe giữa các ô cũng rộng hẹp khác nhau — giả không dò theo khe thật sẽ cắt lệch.
+            var sheet = new PixelBuffer(210, 160);
+            for (int i = 0; i < sheet.Pixels.Length; i++) sheet.Pixels[i] = Bg;
+
+            var cellA = new RectInt(10, 8, 40, 45);
+            var cellB = new RectInt(70, 15, 55, 35);
+            var cellC = new RectInt(160, 5, 30, 50);
+            var cellD = new RectInt(5, 85, 50, 40);
+            var cellE = new RectInt(75, 90, 45, 55);
+            var cellF = new RectInt(165, 88, 35, 48);
+
+            foreach (var r in new[] { cellA, cellB, cellC, cellD, cellE, cellF })
+                Fill(sheet, r, Art);
+
+            var regions = SpriteSheetSlicer.FindRegions(sheet, Tol, 0.985f, 0.25f);
+
+            Assert.AreEqual(6, regions.Count);
+            Assert.AreEqual(cellA, regions[0], "hàng 1 cột 1");
+            Assert.AreEqual(cellB, regions[1], "hàng 1 cột 2 — cột rộng hơn và lệch xuống so với cột 1");
+            Assert.AreEqual(cellC, regions[2], "hàng 1 cột 3 — cột hẹp hơn hẳn hai cột kia");
+            Assert.AreEqual(cellD, regions[3], "hàng 2 cột 1 — rộng hơn ô cùng cột ở hàng 1");
+            Assert.AreEqual(cellE, regions[4], "hàng 2 cột 2 — cao hơn hẳn ô cùng cột ở hàng 1");
+            Assert.AreEqual(cellF, regions[5], "hàng 2 cột 3");
+        }
+
+        [Test]
         public void FindRegions_DropsSpecksLikeTheGeminiWatermark()
         {
             var sheet = Grid(cell: 30, gutter: 6, cols: 3, rows: 3);
@@ -151,9 +183,12 @@ namespace Sokoban.Tests
 
             SpriteSheetSlicer.Despill(buf, band: 2, tolerance: 8);
 
+            // Đẳng thức chặt, không phải LessOrEqual: cap đúng bằng green + tolerance = 88. Một
+            // lỗi ép quá tay về phía 0 thay vì dừng đúng ở mức cap này sẽ vẫn qua được LessOrEqual
+            // mà không bị bắt.
             var fringe = buf.Get(1, 0);
-            Assert.LessOrEqual(fringe.r, 88, "đỏ bị hạ về quanh mức lục");
-            Assert.LessOrEqual(fringe.b, 88, "lam bị hạ về quanh mức lục");
+            Assert.AreEqual(88, fringe.r, "đỏ bị hạ đúng về mức trần green + tolerance, không hơn không kém");
+            Assert.AreEqual(88, fringe.b, "lam bị hạ đúng về mức trần green + tolerance, không hơn không kém");
             Assert.AreEqual(80, fringe.g, "lục giữ nguyên");
         }
 
@@ -243,6 +278,17 @@ namespace Sokoban.Tests
             Assert.AreEqual(255, opaque.Get(1, 0).a, "kể cả pixel vốn trong suốt cũng bị ép đục");
             Assert.AreEqual(200, opaque.Get(0, 0).r, "màu giữ nguyên");
             Assert.AreEqual(20, opaque.Get(1, 0).g, "màu giữ nguyên");
+        }
+
+        [Test]
+        public void CountFullyTransparentPixels_CountsOnlyAlphaZero()
+        {
+            var buf = new PixelBuffer(3, 1);
+            buf.Set(0, 0, new Color32(0, 0, 0, 0));    // trong suốt hoàn toàn
+            buf.Set(1, 0, new Color32(10, 20, 30, 1));  // gần như trong suốt nhưng không phải 0
+            buf.Set(2, 0, Art);
+
+            Assert.AreEqual(1, SpriteSheetSlicer.CountFullyTransparentPixels(buf));
         }
 
         [Test]
@@ -342,15 +388,22 @@ namespace Sokoban.Tests
         }
 
         [Test]
-        public void ResampleToCanvas_LeavesTilesFullyOpaque()
+        public void Resample_KeepsFullAlpha_WhenSourceHasNoTransparentPixels()
         {
+            // Tên cũ của test này ("...LeavesTilesFullyOpaque") hứa một điều Resample không tự
+            // đảm bảo: trên ảnh thật, Resample một mình cho alpha 243 và 130 ở rìa tile (đo trên
+            // wall/floor thật) — việc ép tile luôn đục là của Opaque (xem
+            // Opaque_ForcesAlphaTo255_KeepsColour), gọi ngay sau Resample ở ModernArtImporter.
+            // Test này chỉ kiểm phép tính trung bình alpha của Resample không tự làm rơi alpha
+            // khi nguồn vốn đã đục hoàn toàn — một hồi quy hợp lý là làm tròn sai ở rìa khối lệch.
             var tile = new PixelBuffer(120, 130);
             for (int i = 0; i < tile.Pixels.Length; i++) tile.Pixels[i] = Art;
 
             var square = SpriteSheetSlicer.Resample(tile, 64, 64);
 
             for (int i = 0; i < square.Pixels.Length; i++)
-                Assert.AreEqual(255, square.Pixels[i].a, "tile phải phủ kín ô, không chừa pixel trong suốt");
+                Assert.AreEqual(255, square.Pixels[i].a,
+                    "nguồn đục hoàn toàn thì trung bình alpha vẫn phải ra đúng 255");
         }
 
         [Test]

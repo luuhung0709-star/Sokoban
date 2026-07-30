@@ -261,6 +261,20 @@ namespace Sokoban.EditorTools
             return dst;
         }
 
+        /// <summary>
+        /// Đếm pixel trong suốt hoàn toàn (alpha = 0). Opaque ép đục vô điều kiện nên không tự
+        /// phân biệt được rìa Resample hụt alpha (vô hại) với một mảng trong suốt thật sự nằm
+        /// giữa tile (ví dụ góc tường bo tròn) — cái sau sẽ hoá thành một mảng đen đục không lời
+        /// cảnh báo. Gọi hàm này trước Opaque ở nơi biết tên asset để log cảnh báo.
+        /// </summary>
+        public static int CountFullyTransparentPixels(PixelBuffer src)
+        {
+            int n = 0;
+            foreach (var c in src.Pixels)
+                if (c.a == 0) n++;
+            return n;
+        }
+
         /// <summary>Pha màu về phía tint, giữ nguyên alpha. Dùng để đánh dấu hộp đã vào đích.</summary>
         public static PixelBuffer Tint(PixelBuffer src, Color32 tint, float amount)
         {

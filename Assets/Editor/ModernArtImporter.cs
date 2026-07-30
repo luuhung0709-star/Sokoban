@@ -66,12 +66,28 @@ namespace Sokoban.EditorTools
             ArtSlot.PlayerUp,   ArtSlot.PlayerRight,  ArtSlot.PlayerLeft,
         };
 
+        /// <summary>Trả về khi FindRegions không thấy vùng nào — lỗi cứng, không nhập được gì.</summary>
+        public const string NoRegionsFoundError = "Không dò được vùng nào trên sheet.";
+
+        /// <summary>
+        /// Trả về khi không có vùng nào gán làm Wall — lỗi cứng, vì Wall là mốc quy chiếu kích
+        /// thước ô cho mọi asset khác.
+        /// </summary>
+        public const string NoWallMappedError =
+            "Chưa có ô nào được gán làm Wall — cần nó làm mốc quy chiếu kích thước ô.";
+
+        /// <summary>Hai chuỗi lỗi cứng ở trên không phải log info như báo cáo thành công bình thường.</summary>
+        public static bool IsHardFailure(string report) =>
+            report == NoRegionsFoundError || report == NoWallMappedError;
+
         public static string NewestSource()
         {
             if (!Directory.Exists(SourceFolder)) return null;
 
             return Directory.GetFiles(SourceFolder)
-                .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg"))
+                .Where(f => f.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase) ||
+                           f.EndsWith(".jpg", System.StringComparison.OrdinalIgnoreCase) ||
+                           f.EndsWith(".jpeg", System.StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(File.GetLastWriteTimeUtc)
                 .FirstOrDefault();
         }
@@ -84,20 +100,42 @@ namespace Sokoban.EditorTools
                                                  s.gutterRatio, s.minAreaRatio);
         }
 
+        /// <summary>Dựng PixelBuffer từ một Texture2D đã giải mã sẵn — dùng khi nơi gọi (ví dụ cửa
+        /// sổ xem trước) cần giữ lại chính texture đó để vẽ, tránh giải mã file ảnh hai lần.</summary>
+        public static PixelBuffer ToPixelBuffer(Texture2D texture)
+        {
+            // Texture2D đánh y = 0 ở đáy; PixelBuffer đánh y = 0 ở đỉnh. Lật ở đây, khớp với Load.
+            var buffer = new PixelBuffer(texture.width, texture.height);
+            var pixels = texture.GetPixels32();
+            for (int y = 0; y < texture.height; y++)
+                System.Array.Copy(pixels, (texture.height - 1 - y) * texture.width,
+                                  buffer.Pixels, y * texture.width, texture.width);
+            return buffer;
+        }
+
         public static string Import(string sourcePath, ArtSlot[] mapping, ModernArtImportSettings s)
         {
             var regions = FindRegionsIn(sourcePath, s, out var sheet);
-            if (regions.Count == 0) return "Không dò được vùng nào trên sheet.";
+            return Import(regions, sheet, sourcePath, mapping, s);
+        }
+
+        static string Import(List<RectInt> regions, PixelBuffer sheet, string sourcePath,
+                             ArtSlot[] mapping, ModernArtImportSettings s)
+        {
+            if (regions.Count == 0) return NoRegionsFoundError;
 
             var cleaned = new Dictionary<ArtSlot, PixelBuffer>();
             for (int i = 0; i < regions.Count && i < mapping.Length; i++)
             {
                 if (mapping[i] == ArtSlot.Skip) continue;
+                if (cleaned.ContainsKey(mapping[i]))
+                    Debug.LogWarning($"ModernArtImporter: nhiều vùng cùng gán vào {mapping[i]} — " +
+                                     $"vùng {i} ghi đè vùng gán trước đó, vùng cũ bị mất.");
                 cleaned[mapping[i]] = Clean(sheet, regions[i], s);
             }
 
             if (!cleaned.TryGetValue(ArtSlot.Wall, out var wall))
-                return "Chưa có ô nào được gán làm Wall — cần nó làm mốc quy chiếu kích thước ô.";
+                return NoWallMappedError;
 
             // Tường là asset duy nhất chắc chắn lấp đầy một ô, nên lấy nó làm "một ô".
             float cell = Mathf.Max(wall.Width, wall.Height);
@@ -151,14 +189,7 @@ namespace Sokoban.EditorTools
             if (!ImageConversion.LoadImage(texture, File.ReadAllBytes(path)))
                 throw new IOException($"Không đọc được ảnh: {path}");
 
-            // Texture2D đánh y = 0 ở đáy; PixelBuffer đánh y = 0 ở đỉnh. Lật ở đây và
-            // chỉ ở đây, để thứ tự đọc vùng khớp với mắt người nhìn tấm sheet.
-            var buffer = new PixelBuffer(texture.width, texture.height);
-            var pixels = texture.GetPixels32();
-            for (int y = 0; y < texture.height; y++)
-                System.Array.Copy(pixels, (texture.height - 1 - y) * texture.width,
-                                  buffer.Pixels, y * texture.width, texture.width);
-
+            var buffer = ToPixelBuffer(texture);
             Object.DestroyImmediate(texture);
             return buffer;
         }
@@ -174,10 +205,22 @@ namespace Sokoban.EditorTools
         /// <summary>
         /// Tile phải phủ kín ô, nên ép thẳng về 64x64 kể cả khi nguồn lệch vuông, rồi ép alpha
         /// về 255 — Resample lấy trung bình alpha thẳng nên rìa ô có thể hụt xuống dưới 255 dù
-        /// màu đã đúng, để lộ nền camera qua khe ô trên bàn cờ.
+        /// màu đã đúng, để lộ nền camera qua khe ô trên bàn cờ. Ép đục không phân biệt được rìa
+        /// hụt alpha vô hại với một mảng trong suốt thật sự (ví dụ góc tường bo tròn trên sheet
+        /// mới) — cái sau sẽ hoá đen đục âm thầm, nên cảnh báo trước khi ép.
         /// </summary>
-        static void WriteTile(string name, PixelBuffer content) =>
-            Write(name, SpriteSheetSlicer.Opaque(SpriteSheetSlicer.Resample(content, OutSize, OutSize)));
+        static void WriteTile(string name, PixelBuffer content)
+        {
+            var resampled = SpriteSheetSlicer.Resample(content, OutSize, OutSize);
+
+            int transparent = SpriteSheetSlicer.CountFullyTransparentPixels(resampled);
+            if (transparent > 0)
+                Debug.LogWarning($"ModernArtImporter: {name}.png có {transparent} pixel trong suốt " +
+                                 "hoàn toàn bị ép thành đen đục — nếu đây không phải rìa hụt alpha do " +
+                                 "Resample mà là phần trong suốt thật trên sheet, tile sẽ có mảng đen.");
+
+            Write(name, SpriteSheetSlicer.Opaque(resampled));
+        }
 
         /// <summary>
         /// Vật thể giữ tỉ lệ khung hình gốc và giữ đúng tương quan kích thước với ô tường,
@@ -221,7 +264,12 @@ namespace Sokoban.EditorTools
         static void ApplyImportSettings(string path)
         {
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-            if (importer == null) return;
+            if (importer == null)
+            {
+                Debug.LogError($"ModernArtImporter: không lấy được TextureImporter cho {path} — " +
+                               "sprite giữ nguyên PPU 100 và filter mặc định của Unity, sẽ nhìn sai.");
+                return;
+            }
 
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
@@ -244,7 +292,12 @@ namespace Sokoban.EditorTools
         static void LinkTile(string tilePath, string spriteName)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{OutFolder}/{spriteName}.png");
-            if (sprite == null) return;
+            if (sprite == null)
+            {
+                Debug.LogError($"ModernArtImporter: không tìm thấy {OutFolder}/{spriteName}.png — " +
+                               $"{tilePath} vẫn trỏ vào art cũ.");
+                return;
+            }
 
             var tile = AssetDatabase.LoadAssetAtPath<Tile>(tilePath);
             if (tile == null)
@@ -257,6 +310,13 @@ namespace Sokoban.EditorTools
             EditorUtility.SetDirty(tile);
         }
 
+        /// <summary>
+        /// Đường một-cú-bấm cho trường hợp thường: sheet mới xếp đúng lưới 3x3 như
+        /// DefaultMapping giả định. Không đoán khi số vùng dò được lệch với DefaultMapping —
+        /// một gutter hụt trên sheet mới có thể làm hai ô dính lại, mọi slot từ chỗ dính trở đi
+        /// lệch hết một bậc mà vẫn "chạy được", ghi đè cả mười PNG bằng art sai không ai hay.
+        /// Lệch thì dừng và trỏ sang cửa sổ Modern Art Importer để người dùng ánh xạ tay.
+        /// </summary>
         [MenuItem("Sokoban/Import Modern Art")]
         public static void ImportNewest()
         {
@@ -267,8 +327,23 @@ namespace Sokoban.EditorTools
                 return;
             }
 
-            Debug.Log("ModernArtImporter: " +
-                      Import(source, DefaultMapping, new ModernArtImportSettings()));
+            var settings = new ModernArtImportSettings();
+            var regions = FindRegionsIn(source, settings, out var sheet);
+
+            if (regions.Count != DefaultMapping.Length)
+            {
+                Debug.LogError($"ModernArtImporter: dò được {regions.Count} vùng nhưng " +
+                               $"DefaultMapping có {DefaultMapping.Length} ô — lệch nhau nên không " +
+                               "tự ghép được, có thể hai ô đã dính do gutter hụt. Mở " +
+                               "Sokoban/Modern Art Importer để xem overlay và ánh xạ tay.");
+                return;
+            }
+
+            string report = Import(regions, sheet, source, DefaultMapping, settings);
+            if (IsHardFailure(report))
+                Debug.LogError("ModernArtImporter: " + report);
+            else
+                Debug.Log("ModernArtImporter: " + report);
         }
     }
 }

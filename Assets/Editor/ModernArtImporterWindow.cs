@@ -21,6 +21,14 @@ namespace Sokoban.EditorTools
         Vector2 _scroll;
         string _report;
 
+        // Ba thiết lập này quyết định FindRegions ra vùng gì. Ghi nhớ giá trị tại lần Dò lại gần
+        // nhất để phát hiện khi người dùng chỉnh chúng sau đó mà chưa dò lại — nếu không chặn,
+        // Import sẽ dò lại với thiết lập mới (số vùng có thể đổi) trong khi overlay và mọi
+        // dropdown ánh xạ trên màn hình vẫn là của lần dò cũ, lệch hàng loạt mà không ai biết.
+        int _scannedTolerance;
+        float _scannedGutterRatio;
+        float _scannedMinAreaRatio;
+
         [MenuItem("Sokoban/Modern Art Importer")]
         public static void Open() => GetWindow<ModernArtImporterWindow>("Modern Art");
 
@@ -69,18 +77,27 @@ namespace Sokoban.EditorTools
 
         void DrawSettings()
         {
-            EditorGUILayout.LabelField("Tách nền", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Tách nền và dò vùng", EditorStyles.boldLabel);
             _settings.backgroundTolerance =
                 EditorGUILayout.IntSlider("Ngưỡng nền", _settings.backgroundTolerance, 5, 80);
+            _settings.gutterRatio = EditorGUILayout.Slider(
+                new GUIContent("Ngưỡng khe",
+                    "Tỉ lệ nền tối thiểu của một hàng/cột để coi nó là khe giữa các ô, không phải " +
+                    "nội dung. Sheet thật lệch lưới nên khe không đều nhau giữa các ô."),
+                _settings.gutterRatio, 0.8f, 0.999f);
+            _settings.minAreaRatio =
+                EditorGUILayout.Slider("Ngưỡng loại đốm", _settings.minAreaRatio, 0.02f, 0.9f);
+
+            EditorGUILayout.LabelField("Khử ám mép", EditorStyles.boldLabel);
             _settings.despillBand =
                 EditorGUILayout.IntSlider("Dải khử ám", _settings.despillBand, 0, 5);
+            _settings.despillTolerance =
+                EditorGUILayout.IntSlider("Ngưỡng khử ám", _settings.despillTolerance, 0, 40);
             _settings.despillWholeSprite = EditorGUILayout.Toggle(
                 new GUIContent("Khử ám toàn sprite",
                     "Bật thì quét khử ám hồng/tím trên toàn bộ sprite thay vì chỉ dải sát mép " +
                     "trong suốt. Cần bật để xoá mảng bóng tím đặc dưới chân nhân vật."),
                 _settings.despillWholeSprite);
-            _settings.minAreaRatio =
-                EditorGUILayout.Slider("Ngưỡng loại đốm", _settings.minAreaRatio, 0.02f, 0.9f);
 
             EditorGUILayout.LabelField("Màu suy ra", EditorStyles.boldLabel);
             _settings.floorALevel = EditorGUILayout.Slider("Sàn tông A", _settings.floorALevel, 0.2f, 1f);
@@ -91,8 +108,10 @@ namespace Sokoban.EditorTools
             _settings.objectScale = EditorGUILayout.Slider("Cỡ vật thể", _settings.objectScale, 0.5f, 1.5f);
 
             EditorGUILayout.HelpBox(
-                "Đổi ngưỡng nền hoặc ngưỡng loại đốm thì bấm Dò lại để cập nhật khung xem trước. " +
-                "Không dò tự động vì mỗi lần dò phải quét hết 4.3 triệu pixel, kéo thanh trượt sẽ đứng hình.",
+                "Đổi Ngưỡng nền, Ngưỡng khe hoặc Ngưỡng loại đốm thì bấm Dò lại — ba thứ này " +
+                "quyết định vùng nào được dò ra. Import sẽ bị khoá cho tới khi làm vậy, vì overlay " +
+                "và ánh xạ bên dưới lúc đó không còn khớp với vùng Import sắp dò lại. Không dò tự " +
+                "động vì mỗi lần dò phải quét hết 4.3 triệu pixel, kéo thanh trượt sẽ đứng hình.",
                 MessageType.None);
         }
 
@@ -132,25 +151,56 @@ namespace Sokoban.EditorTools
         void DrawImportRow()
         {
             EditorGUILayout.Space();
-            if (GUILayout.Button("Import — ghi đè Assets/Art/Modern", GUILayout.Height(28)))
+
+            bool stale = DetectionSettingsChangedSinceLastScan();
+            using (new EditorGUI.DisabledScope(stale))
             {
-                SaveMapping();
-                _report = ModernArtImporter.Import(_sourcePath, _mapping, _settings);
-                Debug.Log("ModernArtImporter: " + _report);
+                if (GUILayout.Button("Import — ghi đè Assets/Art/Modern", GUILayout.Height(28)))
+                {
+                    SaveMapping();
+                    _report = ModernArtImporter.Import(_sourcePath, _mapping, _settings);
+                    if (ModernArtImporter.IsHardFailure(_report))
+                        Debug.LogError("ModernArtImporter: " + _report);
+                    else
+                        Debug.Log("ModernArtImporter: " + _report);
+                }
             }
+
+            if (stale)
+                EditorGUILayout.HelpBox(
+                    "Ngưỡng nền, Ngưỡng khe hoặc Ngưỡng loại đốm đã đổi từ lần Dò lại gần nhất — " +
+                    "overlay và ánh xạ bên trên không còn khớp với vùng Import sắp dò ra. Import " +
+                    "bị khoá cho tới khi bấm Dò lại.", MessageType.Warning);
 
             if (!string.IsNullOrEmpty(_report))
                 EditorGUILayout.HelpBox(_report,
                     _report.Contains("THIẾU") ? MessageType.Warning : MessageType.Info);
         }
 
+        /// <summary>Xem Important 1: ba thiết lập này quyết định FindRegions, nên chỉnh mà chưa
+        /// Dò lại thì overlay/ánh xạ đang hiển thị không còn khớp với vùng Import sắp dò ra.</summary>
+        bool DetectionSettingsChangedSinceLastScan() =>
+            _scannedTolerance != _settings.backgroundTolerance ||
+            !Mathf.Approximately(_scannedGutterRatio, _settings.gutterRatio) ||
+            !Mathf.Approximately(_scannedMinAreaRatio, _settings.minAreaRatio);
+
         ArtSlot SlotAt(int i) => i < _mapping.Length ? _mapping[i] : ArtSlot.Skip;
 
         void Scan()
         {
-            _regions = ModernArtImporter.FindRegionsIn(_sourcePath, _settings, out _);
+            if (!BuildPreview()) { _regions = new List<RectInt>(); return; }
+
+            // Dựng PixelBuffer từ chính _preview đã giải mã ở trên thay vì đọc và giải mã lại
+            // file — sheet 1408x3054 giải mã một lần đã đủ nặng để tránh làm hai lần mỗi lần dò.
+            var sheet = ModernArtImporter.ToPixelBuffer(_preview);
+            _regions = SpriteSheetSlicer.FindRegions(sheet, _settings.backgroundTolerance,
+                                                     _settings.gutterRatio, _settings.minAreaRatio);
+
+            _scannedTolerance = _settings.backgroundTolerance;
+            _scannedGutterRatio = _settings.gutterRatio;
+            _scannedMinAreaRatio = _settings.minAreaRatio;
+
             EnsureMappingLength();
-            BuildPreview();
         }
 
         void EnsureMappingLength()
@@ -162,13 +212,23 @@ namespace Sokoban.EditorTools
             _mapping = grown;
         }
 
-        void BuildPreview()
+        /// <summary>Giải mã _sourcePath vào _preview. Trả false và dọn _preview nếu giải mã lỗi,
+        /// thay vì bỏ qua giá trị bool của LoadImage và để lại một texture rỗng không lời báo.</summary>
+        bool BuildPreview()
         {
             if (_preview != null) DestroyImmediate(_preview);
 
             _preview = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-            ImageConversion.LoadImage(_preview, File.ReadAllBytes(_sourcePath));
+            if (!ImageConversion.LoadImage(_preview, File.ReadAllBytes(_sourcePath)))
+            {
+                Debug.LogError($"ModernArtImporterWindow: không đọc được ảnh {_sourcePath}");
+                DestroyImmediate(_preview);
+                _preview = null;
+                return false;
+            }
+
             _preview.filterMode = FilterMode.Bilinear;
+            return true;
         }
 
         void LoadMapping()
