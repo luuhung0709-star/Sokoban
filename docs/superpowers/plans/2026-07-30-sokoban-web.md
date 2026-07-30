@@ -34,7 +34,7 @@ Spec liệt kê `view/boardRenderer.js` và `view/moveAnimator.js`. Kế hoạch
 | File | Trách nhiệm |
 |---|---|
 | `web/package.json` | Bật ESM cho `.js`, khai báo `npm test` |
-| `web/src/levels/sokobanChars.js` | Bảy ký tự + `isGrid` / `isContent` |
+| `web/src/levels/sokobanChars.js` | Bảy ký tự + `isGrid` / `isContent` + `countPieces` |
 | `web/src/core/direction.js` | Bốn hướng + vector |
 | `web/src/core/board.js` | Lưới tĩnh, vị trí người, tập hộp, `isSolved` |
 | `web/src/core/moveResolver.js` | `resolve` / `apply` / `revert` |
@@ -66,12 +66,17 @@ Spec liệt kê `view/boardRenderer.js` và `view/moveAnimator.js`. Kế hoạch
 - Create: `web/src/levels/sokobanChars.js`
 - Create: `web/src/core/direction.js`
 - Test: `web/tests/direction.test.mjs`
+- Test: `web/tests/sokobanChars.test.mjs`
 
 **Interfaces:**
 - Consumes: không có.
 - Produces:
-  - `sokobanChars.js`: `WALL`, `FLOOR`, `PLAYER`, `PLAYER_ON_GOAL`, `BOX`, `BOX_ON_GOAL`, `GOAL` (đều là `string` một ký tự); `isGrid(c: string): boolean`; `isContent(c: string): boolean`
+  - `sokobanChars.js`: `WALL`, `FLOOR`, `PLAYER`, `PLAYER_ON_GOAL`, `BOX`, `BOX_ON_GOAL`, `GOAL` (đều là `string` một ký tự); `isGrid(c: string): boolean`; `isContent(c: string): boolean`; `countPieces(rows: string[]): { players: number, boxes: number, goals: number, playerPos: {x,y}|null }`
   - `direction.js`: `Direction` (object đông cứng với 4 khoá `Up`/`Down`/`Left`/`Right`, giá trị là chính chuỗi đó); `toDelta(dir: string): {dx: number, dy: number}`
+
+`countPieces` là hàm đếm **dùng chung** cho `parseMicroban` (Task 5) và `levelValidator` (Task 6).
+Hai chỗ đó đều cần đúng ba con số này; viết riêng mỗi nơi một vòng lặp thì đổi lệ đếm sau này phải
+sửa hai chỗ. `playerPos` trả kèm vì validator cần điểm bắt đầu để loang kiểm tra tường bao kín.
 
 - [ ] **Step 1: Tạo `web/package.json`**
 
@@ -155,7 +160,65 @@ cd web && npm test
 
 Kỳ vọng: PASS, 2 test.
 
-- [ ] **Step 6: Viết `web/src/levels/sokobanChars.js`**
+- [ ] **Step 6: Viết test cho `sokobanChars.js`**
+
+Tạo `web/tests/sokobanChars.test.mjs`:
+
+```js
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { isGrid, isContent, countPieces } from '../src/levels/sokobanChars.js';
+
+test('isGrid nhận đúng bảy ký tự lưới', () => {
+  for (const c of ['#', ' ', '@', '+', '$', '*', '.']) {
+    assert.equal(isGrid(c), true, `${JSON.stringify(c)} phải là ký tự lưới`);
+  }
+});
+
+test('isGrid từ chối chữ, số và ký tự lạ', () => {
+  for (const c of ['a', 'T', '1', ':', '\t']) {
+    assert.equal(isGrid(c), false, `${JSON.stringify(c)} không phải ký tự lưới`);
+  }
+});
+
+test('isContent loại nền trống ra khỏi ký tự lưới', () => {
+  assert.equal(isContent(' '), false);
+  assert.equal(isContent('#'), true);
+  assert.equal(isContent('.'), true);
+  assert.equal(isContent('a'), false);
+});
+
+test('countPieces đếm đúng người chơi, hộp và đích', () => {
+  const counts = countPieces(['#####', '#@$.#', '#####']);
+  assert.equal(counts.players, 1);
+  assert.equal(counts.boxes, 1);
+  assert.equal(counts.goals, 1);
+  assert.deepEqual(counts.playerPos, { x: 1, y: 1 });
+});
+
+test('countPieces tính * và + vào cả hai phía', () => {
+  // '*' vừa là hộp vừa là đích; '+' vừa là người vừa là đích.
+  const counts = countPieces(['#+*#']);
+  assert.equal(counts.players, 1);
+  assert.equal(counts.boxes, 1);
+  assert.equal(counts.goals, 2);
+  assert.deepEqual(counts.playerPos, { x: 1, y: 0 });
+});
+
+test('countPieces trên lưới không có người trả playerPos null', () => {
+  assert.equal(countPieces(['####']).playerPos, null);
+});
+```
+
+- [ ] **Step 7: Chạy test để chắc chắn nó hỏng**
+
+```bash
+cd web && npm test
+```
+
+Kỳ vọng: FAIL, `Cannot find module .../src/levels/sokobanChars.js`.
+
+- [ ] **Step 8: Viết `web/src/levels/sokobanChars.js`**
 
 ```js
 /** Bảy ký tự của định dạng Sokoban chuẩn. */
@@ -177,16 +240,52 @@ export function isGrid(c) {
 export function isContent(c) {
   return isGrid(c) && c !== FLOOR;
 }
+
+/**
+ * Đếm người chơi, hộp và đích trên một mảng hàng, kèm vị trí người chơi.
+ *
+ * Dùng chung cho parser và validator: cả hai đều cần đúng ba con số này, và
+ * lệ đếm có chỗ dễ quên — '*' tính cả vào hộp lẫn đích, '+' tính cả vào người
+ * lẫn đích. Viết riêng mỗi nơi một vòng lặp thì sửa lệ phải sửa hai chỗ.
+ */
+export function countPieces(rows) {
+  let players = 0, boxes = 0, goals = 0;
+  let playerPos = null;
+
+  for (let y = 0; y < rows.length; y++) {
+    const row = rows[y];
+    for (let x = 0; x < row.length; x++) {
+      const c = row[x];
+      if (c === PLAYER || c === PLAYER_ON_GOAL) {
+        players++;
+        playerPos = { x, y };
+      }
+      if (c === BOX || c === BOX_ON_GOAL) boxes++;
+      if (c === GOAL || c === BOX_ON_GOAL || c === PLAYER_ON_GOAL) goals++;
+    }
+  }
+
+  return { players, boxes, goals, playerPos };
+}
 ```
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 9: Chạy test để chắc chắn nó xanh**
 
 ```bash
-git add web/package.json web/src/core/direction.js web/src/levels/sokobanChars.js web/tests/direction.test.mjs
+cd web && npm test
+```
+
+Kỳ vọng: PASS, 8 test.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add web/package.json web/src/core/direction.js web/src/levels/sokobanChars.js web/tests/direction.test.mjs web/tests/sokobanChars.test.mjs
 git commit -m "Dựng khung web/ với hằng ký tự và hướng đi
 
 Bật type=module ngay từ đầu vì không có nó thì mọi import trong src/ sẽ
-hỏng khi chạy node --test."
+hỏng khi chạy node --test. countPieces để sẵn ở đây vì cả parser lẫn
+validator sẽ cần đúng phép đếm đó."
 ```
 
 ---
@@ -379,7 +478,7 @@ export class Board {
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 10 test (2 của Task 1 + 8 mới).
+Kỳ vọng: PASS, 16 test (8 của Task 1 + 8 mới).
 
 - [ ] **Step 6: Commit**
 
@@ -579,7 +678,7 @@ export function revert(board, move) {
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 20 test.
+Kỳ vọng: PASS, 26 test.
 
 - [ ] **Step 5: Commit**
 
@@ -902,7 +1001,7 @@ export class GameSession {
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 33 test.
+Kỳ vọng: PASS, 39 test.
 
 - [ ] **Step 8: Commit**
 
@@ -1056,9 +1155,7 @@ Kỳ vọng: FAIL, `Cannot find module .../src/levels/parseMicroban.js`.
 - [ ] **Step 3: Viết `web/src/levels/parseMicroban.js`**
 
 ```js
-import {
-  isGrid, isContent, PLAYER, PLAYER_ON_GOAL, BOX, BOX_ON_GOAL, GOAL,
-} from './sokobanChars.js';
+import { isGrid, isContent, countPieces } from './sokobanChars.js';
 
 const TITLE_PREFIX = 'Title:';
 
@@ -1102,14 +1199,7 @@ function tryAddLevel(block, blockStartLine, result) {
   // Khối header không có hàng lưới nào — bỏ qua, đây không phải lỗi.
   if (rows.length === 0) return;
 
-  let players = 0, boxes = 0, goals = 0;
-  for (const row of rows) {
-    for (const c of row) {
-      if (c === PLAYER || c === PLAYER_ON_GOAL) players++;
-      if (c === BOX || c === BOX_ON_GOAL) boxes++;
-      if (c === GOAL || c === BOX_ON_GOAL || c === PLAYER_ON_GOAL) goals++;
-    }
-  }
+  const { players, boxes, goals } = countPieces(rows);
 
   if (players !== 1) {
     result.errors.push(`Dòng ${blockStartLine}: phải có đúng 1 người chơi, đang có ${players}`);
@@ -1151,7 +1241,7 @@ function isGridLine(line) {
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 44 test.
+Kỳ vọng: PASS, 50 test.
 
 - [ ] **Step 5: Commit**
 
@@ -1232,7 +1322,7 @@ Kỳ vọng: FAIL, `Cannot find module .../src/levels/levelValidator.js`.
 - [ ] **Step 3: Viết `web/src/levels/levelValidator.js`**
 
 ```js
-import { WALL, PLAYER, PLAYER_ON_GOAL, BOX, BOX_ON_GOAL, GOAL } from './sokobanChars.js';
+import { WALL, countPieces } from './sokobanChars.js';
 
 /**
  * Kiểm tra cấu trúc một màn. KHÔNG kiểm tra màn có giải được hay không —
@@ -1242,21 +1332,7 @@ export function validateLevel(level) {
   if (!level || !level.rows || level.rows.length === 0) return ['Màn rỗng'];
 
   const issues = [];
-  let players = 0, boxes = 0, goals = 0;
-  let playerPos = null;
-
-  for (let y = 0; y < level.rows.length; y++) {
-    const row = level.rows[y];
-    for (let x = 0; x < row.length; x++) {
-      const c = row[x];
-      if (c === PLAYER || c === PLAYER_ON_GOAL) {
-        players++;
-        playerPos = { x, y };
-      }
-      if (c === BOX || c === BOX_ON_GOAL) boxes++;
-      if (c === GOAL || c === BOX_ON_GOAL || c === PLAYER_ON_GOAL) goals++;
-    }
-  }
+  const { players, boxes, goals, playerPos } = countPieces(level.rows);
 
   if (players !== 1) issues.push(`Phải có đúng một người chơi, đang có ${players}`);
   if (boxes === 0) issues.push('Màn không có hộp nào');
@@ -1302,7 +1378,7 @@ function isEnclosed(level, start) {
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 51 test.
+Kỳ vọng: PASS, 57 test.
 
 - [ ] **Step 5: Commit**
 
@@ -1457,7 +1533,7 @@ for (const [index, solution] of Object.entries(SOLUTIONS)) {
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 59 test (51 cũ + 3 hồi quy + 5 lời giải).
+Kỳ vọng: PASS, 65 test (57 cũ + 3 hồi quy + 5 lời giải).
 
 - [ ] **Step 5: Commit**
 
@@ -2702,7 +2778,7 @@ export class ProgressStore {
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 71 test.
+Kỳ vọng: PASS, 77 test.
 
 - [ ] **Step 5: Commit**
 
@@ -3679,7 +3755,7 @@ Mở `/editor/` qua local server. Trang này không nằm trong bản deploy.
 cd web && npm test
 ```
 
-Kỳ vọng: PASS, 71 test, 0 fail.
+Kỳ vọng: PASS, 77 test, 0 fail.
 
 - [ ] **Step 4: Commit**
 
@@ -3721,4 +3797,4 @@ Việc này làm trên giao diện GitHub, không làm bằng lệnh được: *
 
 **Placeholder scan** — không có "TBD", "TODO", "tương tự task N", hay bước nào chỉ mô tả mà không có code.
 
-**Type consistency** — các tên đã đối chiếu chéo: `boxKey` (Task 2) dùng lại ở Task 3 và 8; `Move` có đúng các trường `dir/blocked/push/from/to/boxFrom/boxTo` ở Task 3, 9; `renderer.placeActor` / `boxElAt` / `rekeyBox` / `refreshBoxLook` / `fitCellSize` / `playerEl` khai báo ở Task 8 và gọi ở Task 9; `session.onChange` trả hàm gỡ (Task 4) và được dùng đúng kiểu đó ở Task 10; `Command` và `commandToDirection` khai báo ở Task 9, dùng ở Task 10; `progress.getRecord/isUnlocked/recordCompletion/setLastPlayedIndex/muted` khai báo Task 11, dùng ở Task 12; `audio.play(name)` nhận đúng 5 tên `step`/`push`/`boxOnGoal`/`win`/`undo` ở Task 9 và Task 13.
+**Type consistency** — các tên đã đối chiếu chéo: `countPieces` khai báo ở Task 1, dùng ở Task 5 và Task 6 (trả thêm `playerPos` vì validator cần điểm bắt đầu để loang); `boxKey` (Task 2) dùng lại ở Task 3 và 8; `Move` có đúng các trường `dir/blocked/push/from/to/boxFrom/boxTo` ở Task 3, 9; `renderer.placeActor` / `boxElAt` / `rekeyBox` / `refreshBoxLook` / `fitCellSize` / `playerEl` khai báo ở Task 8 và gọi ở Task 9; `session.onChange` trả hàm gỡ (Task 4) và được dùng đúng kiểu đó ở Task 10; `Command` và `commandToDirection` khai báo ở Task 9, dùng ở Task 10; `progress.getRecord/isUnlocked/recordCompletion/setLastPlayedIndex/muted` khai báo Task 11, dùng ở Task 12; `audio.play(name)` nhận đúng 5 tên `step`/`push`/`boxOnGoal`/`win`/`undo` ở Task 9 và Task 13.
