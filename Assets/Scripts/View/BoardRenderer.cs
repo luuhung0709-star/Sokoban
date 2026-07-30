@@ -15,6 +15,7 @@ namespace Sokoban.View
 
         [Header("Tiles")]
         [SerializeField] TileBase groundTile;
+        [SerializeField] TileBase groundTileB;
         [SerializeField] TileBase goalTile;
         [SerializeField] TileBase wallTile;
 
@@ -66,7 +67,11 @@ namespace Sokoban.View
                         continue;
                     }
 
-                    groundTilemap.SetTile(pos, Resolve(groundTile, "ground"));
+                    // Sàn hai tông xen kẽ như bàn cờ, để bàn chơi rộng đỡ phẳng lì.
+                    bool even = (x + y) % 2 == 0;
+                    groundTilemap.SetTile(pos, even
+                        ? Resolve(groundTile, "ground")
+                        : Resolve(groundTileB, "ground B"));
                     if (type == CellType.Goal) goalTilemap.SetTile(pos, Resolve(goalTile, "goal"));
                 }
             }

@@ -6247,17 +6247,18 @@ MonoBehaviour:
   goalTilemap: {fileID: 819335200}
   wallTilemap: {fileID: 1257847320}
   groundTile: {fileID: 11400000, guid: 6eaaa0bc0ee438840b106b13939c623f, type: 2}
+  groundTileB: {fileID: 11400000, guid: b1dd971d1d2bacf41996e0a6a7e11da0, type: 2}
   goalTile: {fileID: 11400000, guid: ff08d760118eb9949b3e14b5ba147a92, type: 2}
   wallTile: {fileID: 11400000, guid: 865d28e91057e414191d7f49d188d33c, type: 2}
   playerPrefab: {fileID: 4916155480146569704, guid: 950b1e26bf18316489d446212eb1d5d2, type: 3}
   boxPrefab: {fileID: 8619688453510891453, guid: fc4e239bdc949a542aa71e8b01f0079e, type: 3}
   boardRoot: {fileID: 1976146105}
-  boxSprite: {fileID: 21300000, guid: e66556f41beaf03408ed0e5d04a6019b, type: 3}
-  boxOnGoalSprite: {fileID: 21300000, guid: 80e3b7feef20591419cce4aa82408b01, type: 3}
-  playerDownSprite: {fileID: 21300000, guid: c154c1bc4bec49f439c864305d871217, type: 3}
-  playerUpSprite: {fileID: 21300000, guid: db6d0e2f155d3f142bedd1f1ec2c306e, type: 3}
-  playerLeftSprite: {fileID: 21300000, guid: 0112366557c0a6345b57fc1e6a3550ee, type: 3}
-  playerRightSprite: {fileID: 21300000, guid: 30c26a20c48b70a4c845169b3b05cbf0, type: 3}
+  boxSprite: {fileID: 21300000, guid: 415fce34592c9474e8fc3b4be544ce2b, type: 3}
+  boxOnGoalSprite: {fileID: 21300000, guid: ac601cd6ba775e94cb978cb837a83b84, type: 3}
+  playerDownSprite: {fileID: 21300000, guid: ba7e57fe93d455c4b987cf55cc26d9d2, type: 3}
+  playerUpSprite: {fileID: 21300000, guid: 67e55cef882086e4e8dabfaf8ecc5b0a, type: 3}
+  playerLeftSprite: {fileID: 21300000, guid: c3c4a1186a9cee14f8230a5ba57bce0a, type: 3}
+  playerRightSprite: {fileID: 21300000, guid: 2d228fe299cb5224e9b8b825a850065a, type: 3}
 --- !u!114 &1976146108
 MonoBehaviour:
   m_ObjectHideFlags: 0
