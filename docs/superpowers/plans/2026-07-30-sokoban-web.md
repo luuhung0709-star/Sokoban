@@ -1967,7 +1967,7 @@ goal.png cũ."
   - `class MoveAnimator`: `constructor(renderer, rootEl)`, `get isBusy(): boolean`, `play(move, { reverse = false }): Promise<void>`, `snap(board): void`
   - `Command`: object đông cứng `{ Up, Down, Left, Right, Undo, Redo, Restart, Exit }`, giá trị là chuỗi trùng tên khoá
   - `class InputRouter`: `constructor(target = window)`, `attach(): void`, `detach(): void`, `onCommand(fn): () => void`, `bindButton(el, command): void`, `get heldDirection(): string|null`
-  - `class LevelPlayer`: `constructor({ session, renderer, animator, hooks })` với `hooks` là `{ onSolved?, onExit?, onSound? }`; `handle(command): void`; `start(): void`
+  - `class LevelPlayer`: `constructor({ session, renderer, animator, router, hooks })` với `hooks` là `{ onSolved?, onExit?, onSound? }`; `handle(command): void`; `start(): void`. Cần `router` để hỏi `heldDirection` sau mỗi animation.
 
 - [ ] **Step 1: Viết `web/src/view/moveAnimator.js`**
 
