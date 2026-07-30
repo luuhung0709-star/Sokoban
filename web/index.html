@@ -6,11 +6,30 @@
   <title>Sokoban</title>
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/board.css">
+  <link rel="stylesheet" href="styles/ui.css">
 </head>
 <body>
-  <main class="stage" id="stage">
-    <div class="board" id="board"></div>
+  <main class="screen screen--play" data-name="play">
+    <header class="hud" id="hud">
+      <span class="hud__name" id="hud-name">Màn 1</span>
+      <span class="hud__stat">Bước <b id="hud-moves">0</b></span>
+      <span class="hud__stat">Đẩy <b id="hud-pushes">0</b></span>
+      <span class="hud__spacer"></span>
+      <button class="btn btn--ghost" id="btn-mute" type="button" aria-pressed="false">🔊</button>
+    </header>
+
+    <div class="stage" id="stage">
+      <div class="board" id="board"></div>
+    </div>
+
+    <footer class="toolbar">
+      <button class="btn" id="btn-undo" type="button">↶ Undo</button>
+      <button class="btn" id="btn-redo" type="button">↷ Redo</button>
+      <button class="btn" id="btn-restart" type="button">⟳ Chơi lại</button>
+      <button class="btn" id="btn-exit" type="button">← Chọn màn</button>
+    </footer>
   </main>
+
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

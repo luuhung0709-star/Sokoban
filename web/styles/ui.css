@@ -1,0 +1,64 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-line);
+  font-size: 14px;
+}
+
+.hud__name { font-weight: 600; }
+.hud__stat { color: var(--text-dim); }
+.hud__stat b { color: var(--text); font-variant-numeric: tabular-nums; }
+.hud__spacer { flex: 1; }
+
+/*
+ * `.stage` đã có rule trong board.css (display:flex, canh giữa, padding, min-height
+ * 100vh). Trong màn chơi nó là ô flex nằm giữa HUD và hàng nút, nên chiều cao do
+ * flex quyết định chứ không phải 100vh. Chỉ ghi đè đúng hai thuộc tính đó — ui.css
+ * nạp sau board.css nên thắng.
+ */
+.stage {
+  flex: 1;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 12px;
+  background: var(--panel);
+  border-top: 1px solid var(--panel-line);
+}
+
+.btn {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #2b3542;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+}
+
+.btn:hover:not(:disabled) { background: #35414f; }
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn--ghost {
+  background: transparent;
+  box-shadow: none;
+}
