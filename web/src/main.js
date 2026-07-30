@@ -7,6 +7,7 @@ import { MainMenu } from './ui/mainMenu.js';
 import { LevelSelect } from './ui/levelSelect.js';
 import { LevelComplete } from './ui/levelComplete.js';
 import { GameFlow } from './ui/gameFlow.js';
+import { AudioService } from './audio/audioService.js';
 
 let collection;
 try {
@@ -29,8 +30,12 @@ const router = new InputRouter();
 const progress = new ProgressStore();
 const hud = new Hud(document.body, router);
 
-// Tạm thời chưa có tiếng; Task 13 thay bằng AudioService thật.
-const audio = { play() {}, get muted() { return progress.muted; }, set muted(v) { progress.muted = v; } };
+const audio = new AudioService(progress);
+
+// Trình duyệt chỉ cho phát tiếng từ trong một thao tác thật của người dùng.
+const unlockAudio = () => audio.unlock();
+window.addEventListener('pointerdown', unlockAudio, { once: true });
+window.addEventListener('keydown', unlockAudio, { once: true });
 
 const panels = {
   menu: new MainMenu(document.body, {
@@ -39,6 +44,7 @@ const panels = {
     onToggleMute: () => {
       audio.muted = !audio.muted;
       panels.menu.refresh(progress, collection.collectionName, collection.levels);
+      refreshMuteButton();
     },
   }),
   levelSelect: new LevelSelect(document.body, {
@@ -51,6 +57,17 @@ const panels = {
     onSelect: () => flow.showLevelSelect(),
   }),
 };
+
+const hudMute = document.getElementById('btn-mute');
+const refreshMuteButton = () => {
+  hudMute.textContent = audio.muted ? '🔇' : '🔊';
+  hudMute.setAttribute('aria-pressed', String(audio.muted));
+};
+hudMute.addEventListener('click', () => {
+  audio.muted = !audio.muted;
+  refreshMuteButton();
+});
+refreshMuteButton();
 
 const flow = new GameFlow({ collection, progress, router, renderer, animator, hud, panels, audio });
 flow.start();
