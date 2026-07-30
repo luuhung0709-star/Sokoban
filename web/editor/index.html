@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sokoban — Level editor</title>
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/ui.css">
+  <style>
+    .editor { padding: 20px; display: grid; gap: 16px; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .grid { display: grid; gap: 1px; width: max-content; background: var(--panel-line); }
+    .grid button {
+      width: 26px; height: 26px; border: 0; cursor: pointer;
+      background: #232a34; color: var(--text); font: 14px/1 monospace;
+    }
+    .grid button[data-char="#"] { background: #5e6878; }
+    .grid button[data-char="."] { background: #4a2523; }
+    .grid button[data-char="$"], .grid button[data-char="*"] { background: #9c5f2c; }
+    .grid button[data-char="@"], .grid button[data-char="+"] { background: #2f7fd4; }
+    .brush[aria-pressed="true"] { outline: 2px solid var(--accent); }
+    .issues { color: #ff9c94; white-space: pre-line; min-height: 1.5em; }
+    textarea { width: 100%; min-height: 130px; background: #0e1218; color: var(--text);
+               border: 1px solid var(--panel-line); border-radius: 6px; padding: 8px;
+               font: 12px/1.45 monospace; }
+  </style>
+</head>
+<body>
+  <div class="editor">
+    <h1 class="panel__title" style="text-align:left">Level editor</h1>
+
+    <div class="row" id="brushes"></div>
+
+    <div class="row">
+      Rộng <input id="width" type="number" min="3" max="40" value="9">
+      Cao <input id="height" type="number" min="3" max="24" value="7">
+      <button class="btn" id="btn-resize" type="button">Đổi kích thước</button>
+      <button class="btn" id="btn-clear" type="button">Xoá sạch</button>
+      <button class="btn" id="btn-check" type="button">Kiểm tra</button>
+      <button class="btn" id="btn-export" type="button">Xuất JSON</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+    <p class="issues" id="issues"></p>
+
+    <div class="row" style="width:100%">
+      <button class="btn" id="btn-import" type="button">Import .txt</button>
+      <span class="panel__hint" style="margin:0">Dán nội dung Microban vào ô dưới rồi bấm Import</span>
+    </div>
+    <textarea id="io" spellcheck="false"></textarea>
+  </div>
+
+  <script type="module" src="editor.js"></script>
+</body>
+</html>
