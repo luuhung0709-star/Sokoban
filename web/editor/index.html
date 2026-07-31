@@ -10,14 +10,30 @@
     .editor { padding: 20px; display: grid; gap: 16px; }
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .grid { display: grid; gap: 1px; width: max-content; background: var(--panel-line); }
+    /*
+     * Màu ô lấy thẳng từ bảng màu bàn cờ trong base.css, không chép lại giá trị
+     * hex: đổi tông game một lần là editor theo luôn. Trước đây chép cứng nên
+     * editor mắc kẹt ở bộ màu thời hộp còn là thùng gỗ, vẽ màn xong mở game ra
+     * thấy khác hẳn.
+     */
     .grid button {
       width: 26px; height: 26px; border: 0; cursor: pointer;
-      background: #232a34; color: var(--text); font: 14px/1 monospace;
+      background: var(--floor); color: var(--text); font: 14px/1 monospace;
     }
-    .grid button[data-char="#"] { background: #5e6878; }
-    .grid button[data-char="."] { background: #4a2523; }
-    .grid button[data-char="$"], .grid button[data-char="*"] { background: #9c5f2c; }
-    .grid button[data-char="@"], .grid button[data-char="+"] { background: #2f7fd4; }
+    .grid button[data-char="."] { background: var(--goal-bg); }
+
+    /*
+     * Tường và hộp là hai màu SÁNG nên màu chữ phải lật sang tối. Giữ nguyên chữ
+     * sáng như các ô nền tối thì ký tự '#' và '$' chìm mất, mà editor thì đọc ô
+     * bằng ký tự chứ không chỉ bằng màu.
+     */
+    .grid button[data-char="#"] { background: var(--wall-face); color: var(--bg); }
+    .grid button[data-char="$"],
+    .grid button[data-char="*"] { background: var(--box); color: var(--bg); }
+
+    /* Người chơi cố ý dùng màu ngoài bảng màu bàn cờ để nổi hẳn lên giữa lưới. */
+    .grid button[data-char="@"],
+    .grid button[data-char="+"] { background: #2f7fd4; }
     .brush[aria-pressed="true"] { outline: 2px solid var(--accent); }
     .issues { color: #ff9c94; white-space: pre-line; min-height: 1.5em; }
     textarea { width: 100%; min-height: 130px; background: #0e1218; color: var(--text);
