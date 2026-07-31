@@ -1,22 +1,12 @@
-# Unity writes LF; keep it that way so diffs stay clean on Windows.
+# Giữ LF cho mọi file text, để diff không nhiễu khi làm trên Windows.
 * text=auto eol=lf
 
-# Unity YAML — text, but never merged automatically.
-*.unity   text eol=lf merge=binary
-*.prefab  text eol=lf merge=binary
-*.asset   text eol=lf merge=binary
-*.mat     text eol=lf merge=binary
-*.anim    text eol=lf merge=binary
-*.controller text eol=lf merge=binary
-*.meta    text eol=lf
-
-# Binary assets
+# Tài sản nhị phân
 *.png binary
 *.jpg binary
 *.psd binary
-*.wav binary
 *.mp3 binary
 *.ogg binary
+*.wav binary
 *.ttf binary
 *.otf binary
-*.unitypackage binary
