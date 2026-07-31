@@ -68,8 +68,8 @@ web/
       audioService.js
     main.js               bootstrap
   assets/
-    art/                  sprite copy từ Assets/Art/
-    audio/                copy từ Assets/Audio/ (kèm License.txt)
+    art/                  sprite nhân vật, cắt từ sheet trong art-source/
+    audio/                hiệu ứng + nhạc nền (kèm License.txt)
   editor/
     index.html · editor.js    level editor cho dev, không deploy
   tools/
@@ -128,8 +128,8 @@ gì đã đi từ đâu tới đâu.
 
 ### 5.2 Từ .txt sang JSON
 
-`tools/import-microban.mjs` đọc [Assets/Levels/microban.txt](../../../Assets/Levels/microban.txt)
-đang có trong repo và sinh ra `web/src/levels/microban.json`:
+`tools/import-microban.mjs` đọc [web/tools/microban.txt](../../../web/tools/microban.txt) nằm ngay
+cạnh nó và sinh ra `web/src/levels/microban.json`:
 
 ```json
 { "collectionName": "Microban",
@@ -247,10 +247,10 @@ có `box-shadow` nhấc lên khỏi nền trang, và vì bàn cờ đặc nên �
 bóng ôm theo đường viền răng cưa của tường thì trước hết phải thêm loại ô thứ tư "ngoài bàn cờ", đụng
 tới `Board`, parser, validator và renderer.
 
-Người chơi đổi sprite theo hướng đi — bộ Modern có sẵn 4 hướng, bản Unity chưa dùng tới.
+Người chơi đổi sprite theo hướng đi, cộng bốn tư thế đẩy tuỳ chọn như mô tả ở trên.
 
-Art được **copy** vào `web/assets/art/`, không tham chiếu ngược vào `Assets/`: GitHub Pages chỉ deploy
-`web/`, và bản web phải chạy được kể cả khi sau này xoá project Unity.
+Sprite thành phẩm nằm hẳn trong `web/assets/art/`, còn sheet gốc để ngoài ở `art-source/`: GitHub Pages
+chỉ deploy `web/`, nên bản chạy không kéo theo mấy chục MB ảnh nguồn.
 
 ### 6.2 Cấu trúc DOM
 
@@ -372,9 +372,8 @@ Kỷ lục chỉ ghi đè khi tốt hơn; lần đầu hoàn thành thì ghi th�
 
 ## 10. Âm thanh
 
-`audioService.js` dùng lại nguyên bộ [Assets/Audio/](../../../Assets/Audio/): `step.ogg`, `push.ogg`,
-`box_on_goal.ogg`, `win.ogg`, `undo.ogg` và `music_loop.mp3`, copy sang `web/assets/audio/` **kèm
-`License.txt`**.
+`audioService.js` dùng bộ tiếng trong [web/assets/audio/](../../../web/assets/audio/): `step.ogg`,
+`push.ogg`, `box_on_goal.ogg`, `win.ogg`, `undo.ogg` và `music_loop.mp3`, **kèm `License.txt`**.
 
 SFX phát chồng được bằng cách clone node audio — bấm phím nhanh không được nuốt tiếng. Trình duyệt
 chặn autoplay trước thao tác đầu tiên, nên nhạc nền chỉ bắt đầu từ lần bấm đầu tiên chứ không phát
