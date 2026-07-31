@@ -104,6 +104,11 @@ export class LevelPlayer {
 
     this.#hooks.onSound?.(move.push ? 'push' : 'step');
     await this.#animator.play(move);
+    // Rời màn giữa lúc animation chạy thì dừng hẳn ở đây: #afterMove sẽ gọi
+    // onSolved trên session đã bị huỷ, và màn vừa giải xong sẽ không được ghi
+    // là hoàn thành.
+    if (this.#stopped) return false;
+
     this.#afterMove(move);
     return true;
   }
@@ -113,6 +118,9 @@ export class LevelPlayer {
 
     this.#hooks.onSound?.('undo');
     await this.#animator.play(move, { reverse });
+    // Renderer có thể đã dựng lại cho màn khác trong lúc chờ.
+    if (this.#stopped) return false;
+
     this.#renderer.refreshBoxLook(this.#session.board);
     return true;
   }
