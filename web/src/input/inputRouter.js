@@ -78,7 +78,9 @@ export class InputRouter {
     const command = KEY_TO_COMMAND[event.code];
     if (!command) return;
 
-    event.preventDefault();   // mũi tên không được cuộn trang
+    // Chỉ chặn cuộn trang khi đang chơi: ở màn chọn màn, mũi tên phải cuộn được
+    // lưới 155 nút.
+    if (document.body.dataset.screen === 'play') event.preventDefault();
 
     if (commandToDirection(command)) {
       if (event.repeat) return;                 // nhịp lặp của OS bỏ qua, đã tự lo

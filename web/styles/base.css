@@ -13,8 +13,6 @@
   --wall-top: #5e6878;
   --wall-bottom: #414956;
 
-  --cell-min: 20px;
-  --cell-max: 64px;
   --move-duration: 120ms;
 }
 

@@ -18,7 +18,7 @@ export class LevelComplete {
 
   show({ moves, pushes, bestMoves, hasNext }) {
     this.#stats.textContent = `${moves} bước · ${pushes} lần đẩy`;
-    this.#best.textContent = bestMoves > 0 && bestMoves < moves
+    this.#best.textContent = bestMoves > 0 && bestMoves <= moves
       ? `Kỷ lục của bạn: ${bestMoves} bước`
       : 'Kỷ lục mới!';
 

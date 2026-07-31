@@ -118,6 +118,23 @@ test('storage ném lỗi lúc đọc thì reset về rỗng, không ném ra ngo�
   assert.equal(store.muted, false);
 });
 
+test('collections chứa phần tử rác thì bị lọc, không ném lỗi', () => {
+  const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{"collections":[null,3,"x"]}' }));
+
+  assert.doesNotThrow(() => store.getLastPlayedIndex('Microban'));
+  assert.equal(store.getRecord('Microban', 0).completed, false);
+});
+
+test('levels chứa phần tử rác thì bị lọc, giữ lại bản ghi thật', () => {
+  const store = new ProgressStore(fakeStorage({
+    'sokoban.progress':
+      '{"collections":[{"name":"Microban","levels":[null,{"index":0,"completed":true,"bestMoves":33,"bestPushes":9}]}]}',
+  }));
+
+  assert.doesNotThrow(() => store.getRecord('Microban', 0));
+  assert.equal(store.getRecord('Microban', 0).bestMoves, 33);
+});
+
 test('clear xoá sạch tiến độ', () => {
   const storage = fakeStorage();
   const store = new ProgressStore(storage);

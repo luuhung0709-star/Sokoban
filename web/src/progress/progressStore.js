@@ -29,7 +29,19 @@ export class ProgressStore {
       const parsed = JSON.parse(raw);
       this.#root = {
         muted: Boolean(parsed?.muted),
-        collections: Array.isArray(parsed?.collections) ? parsed.collections : [],
+        // Lọc rác một lần ngay ở cửa: JSON đúng cú pháp nhưng sai hình dạng
+        // (mảng chứa null, chuỗi, số) vẫn phải cho ra tiến độ dùng được chứ
+        // không được ném lỗi làm chết game lúc load.
+        collections: Array.isArray(parsed?.collections)
+          ? parsed.collections
+              .filter((c) => c && typeof c === 'object')
+              .map((c) => ({
+                ...c,
+                levels: Array.isArray(c.levels)
+                  ? c.levels.filter((l) => l && typeof l === 'object')
+                  : [],
+              }))
+          : [],
       };
     } catch (error) {
       // Hỏng hoặc bị chặn thì bắt đầu lại — không được ném lỗi làm chết game.

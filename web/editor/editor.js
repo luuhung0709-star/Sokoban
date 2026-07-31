@@ -97,6 +97,18 @@ document.getElementById('btn-export').addEventListener('click', () => {
   ioEl.select();
 });
 
+document.getElementById('btn-download').addEventListener('click', () => {
+  const level = currentLevel();
+  const url = URL.createObjectURL(new Blob([JSON.stringify(level, null, 1)], { type: 'application/json' }));
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${level.name}.json`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+});
+
 document.getElementById('btn-import').addEventListener('click', () => {
   const { levels, errors } = parseMicroban(ioEl.value);
   const lines = [...errors];

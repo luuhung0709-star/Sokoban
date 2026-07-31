@@ -1,4 +1,4 @@
-import { CellType, boxKey } from '../core/board.js';
+import { CellType, boxKey, parseBoxKey } from '../core/board.js';
 import { Direction } from '../core/direction.js';
 
 const ART = 'assets/art';
@@ -49,7 +49,7 @@ export class BoardRenderer {
     this.#actors.className = 'board__actors';
 
     for (const key of board.boxes) {
-      const [x, y] = key.split(',').map(Number);
+      const { x, y } = parseBoxKey(key);
       const el = this.#makeBox();
       this.#place(el, x, y);
       this.#boxes.set(key, el);
@@ -85,7 +85,7 @@ export class BoardRenderer {
 
     // Transform tính bằng px nên mọi actor phải được đặt lại sau khi đổi cỡ ô.
     for (const [key, el] of this.#boxes) {
-      const [x, y] = key.split(',').map(Number);
+      const { x, y } = parseBoxKey(key);
       this.#place(el, x, y);
     }
     if (this.playerEl) this.#place(this.playerEl, board.player.x, board.player.y);
@@ -107,7 +107,7 @@ export class BoardRenderer {
   /** Hộp trên đích đổi sprite và tắt dấu X. */
   refreshBoxLook(board) {
     for (const [key, el] of this.#boxes) {
-      const [x, y] = key.split(',').map(Number);
+      const { x, y } = parseBoxKey(key);
       const onGoal = board.cellAt(x, y) === CellType.Goal;
       el.querySelector('.actor__sprite').src = onGoal
         ? `${ART}/box_on_goal.png`

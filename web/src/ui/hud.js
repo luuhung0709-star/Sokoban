@@ -7,6 +7,7 @@ export class Hud {
   #pushes;
   #undo;
   #redo;
+  #restartBtn;
 
   constructor(rootEl, router) {
     this.#name = rootEl.querySelector('#hud-name');
@@ -14,10 +15,11 @@ export class Hud {
     this.#pushes = rootEl.querySelector('#hud-pushes');
     this.#undo = rootEl.querySelector('#btn-undo');
     this.#redo = rootEl.querySelector('#btn-redo');
+    this.#restartBtn = rootEl.querySelector('#btn-restart');
 
     router.bindButton(this.#undo, Command.Undo);
     router.bindButton(this.#redo, Command.Redo);
-    router.bindButton(rootEl.querySelector('#btn-restart'), Command.Restart);
+    router.bindButton(this.#restartBtn, Command.Restart);
     router.bindButton(rootEl.querySelector('#btn-exit'), Command.Exit);
   }
 
@@ -28,10 +30,14 @@ export class Hud {
   /** Trả về hàm gỡ, để đổi màn không để lại listener bám vào session cũ. */
   bind(session) {
     const refresh = () => {
+      // Thắng rồi thì ba nút này không còn tác dụng — phải xám đi, không thì
+      // chúng trông vẫn bấm được mà bấm không ra gì.
+      const solved = session.isSolved;
       this.#moves.textContent = String(session.moves);
       this.#pushes.textContent = String(session.pushes);
-      this.#undo.disabled = !session.canUndo;
-      this.#redo.disabled = !session.canRedo;
+      this.#undo.disabled = solved || !session.canUndo;
+      this.#redo.disabled = solved || !session.canRedo;
+      this.#restartBtn.disabled = solved;
     };
 
     refresh();

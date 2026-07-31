@@ -9,6 +9,7 @@ export class MoveAnimator {
   #renderer;
   #root;
   #busy = false;
+  #generation = 0;
 
   constructor(renderer, rootEl) {
     this.#renderer = renderer;
@@ -18,6 +19,7 @@ export class MoveAnimator {
   get isBusy() { return this.#busy; }
 
   async play(move, { reverse = false } = {}) {
+    const generation = this.#generation;
     this.#busy = true;
     try {
       const playerTo = reverse ? move.from : move.to;
@@ -35,14 +37,26 @@ export class MoveAnimator {
       this.#renderer.placeActor(this.#renderer.playerEl, playerTo.x, playerTo.y);
       await this.#waitForEnd(this.#renderer.playerEl);
     } finally {
-      this.#busy = false;
+      // Chỉ nhả cờ bận nếu bàn cờ chưa bị dựng lại giữa chừng — animation của
+      // màn cũ không được phép nhả cờ của màn mới.
+      if (generation === this.#generation) this.#busy = false;
     }
   }
 
-  /** Đặt lại mọi actor về đúng ô, không animation — dùng khi load màn và restart. */
-  snap(board) {
+  /**
+   * Đặt lại mọi actor về đúng ô, không animation — dùng khi load màn và restart.
+   * `after` chạy TRONG lúc transition còn tắt: đổi cỡ ô là đổi transform của mọi
+   * actor, làm ngoài cửa sổ này thì chúng trượt tới vị trí mới.
+   */
+  snap(board, after) {
+    // Dựng lại bàn cờ thì animation đang dở hết nghĩa: tăng thế hệ và thả cờ
+    // bận, không thì lượt chơi mới đệm lệnh đầu tiên vào chỗ không ai lấy.
+    this.#generation++;
+    this.#busy = false;
+
     this.#root.classList.add('board--no-anim');
     this.#renderer.build(board);
+    after?.();
     // Ép trình duyệt tính lại layout trước khi bỏ class, nếu không transition
     // sẽ bắt được lần đổi transform này và actor vẫn bay.
     void this.#root.offsetHeight;

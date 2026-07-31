@@ -13,6 +13,7 @@ export class LevelPlayer {
   #router;
   #hooks;
   #buffered = null;
+  #stopped = false;
 
   constructor({ session, renderer, animator, router, hooks = {} }) {
     this.#session = session;
@@ -23,21 +24,39 @@ export class LevelPlayer {
   }
 
   start() {
-    this.#animator.snap(this.#session.board);
-    this.#renderer.fitCellSize(this.#session.board);
+    this.#animator.snap(this.#session.board, () => {
+      this.#renderer.fitCellSize(this.#session.board);
+    });
+  }
+
+  /**
+   * Ngắt lượt chơi này. GameFlow gọi khi rời màn: animation đang dở vẫn giữ
+   * tham chiếu tới session và renderer cũ, không dừng thì nó chạy tiếp và vẽ
+   * đè lên màn vừa mở.
+   */
+  stop() {
+    this.#stopped = true;
+    this.#buffered = null;
   }
 
   handle(command) {
+    if (this.#stopped) return;
+
     if (command === Command.Exit) {
       this.#hooks.onExit?.();
       return;
     }
 
+    // Thắng rồi thì chặn mọi lệnh chơi: overlay đang che bàn cờ nên đổi bàn cờ
+    // sau lưng nó là vô nghĩa. Muốn chơi lại hay đổi màn thì dùng nút trên
+    // overlay — chúng đi qua GameFlow nên dựng lại màn tử tế.
+    if (this.#session.isSolved) return;
+
     if (this.#animator.isBusy) {
       this.#buffered = command;
       return;
     }
-    void this.#loop(command);
+    this.#loop(command).catch((error) => console.error('LevelPlayer: vòng lặp chơi lỗi', error));
   }
 
   /**
@@ -47,8 +66,9 @@ export class LevelPlayer {
   async #loop(first) {
     let command = first;
 
-    while (command) {
+    while (command && !this.#stopped) {
       const acted = await this.#runOne(command);
+      if (this.#stopped) return;
 
       const buffered = this.#buffered;
       this.#buffered = null;
@@ -63,6 +83,8 @@ export class LevelPlayer {
 
   /** Trả về true nếu có gì đó thực sự chạy (và đã chờ animation xong). */
   async #runOne(command) {
+    if (this.#stopped) return false;
+
     const dir = commandToDirection(command);
 
     if (dir) return this.#step(dir);
@@ -97,8 +119,9 @@ export class LevelPlayer {
 
   #restart() {
     this.#session.restart();
-    this.#animator.snap(this.#session.board);
-    this.#renderer.fitCellSize(this.#session.board);
+    this.#animator.snap(this.#session.board, () => {
+      this.#renderer.fitCellSize(this.#session.board);
+    });
   }
 
   /** Đổi sprite hộp ở CUỐI animation, không phải lúc bắt đầu. */

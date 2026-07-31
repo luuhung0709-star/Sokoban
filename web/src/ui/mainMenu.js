@@ -13,7 +13,7 @@ export class MainMenu {
   }
 
   refresh(progress, collectionName, levels) {
-    const last = progress.getLastPlayedIndex(collectionName);
+    const last = Math.min(progress.getLastPlayedIndex(collectionName), levels.length - 1);
     // Số hiển thị lấy từ tên màn chứ không phải chỉ số cộng một — bộ màn khác
     // có thể đặt tên không phải số.
     const name = levels[last]?.name;
