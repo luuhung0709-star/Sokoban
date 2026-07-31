@@ -15,6 +15,12 @@ khi đóng trình duyệt, `npm test` xanh, và không cần Unity để chạy 
 Bản Unity **vẫn nằm trong repo** làm nguồn art, âm thanh và dữ liệu màn. Khi bản web chạy ổn thì mới
 tính chuyện xoá — không xoá trong phạm vi spec này.
 
+> **Cập nhật sau khi thi công (2026-07-31):** việc đó đã làm xong. Dữ liệu màn dọn vào `web/` ở
+> `4328d9e`, project Unity xoá ở `26f993f`, phần rác còn lại (`ArtSource/`, docs mô tả code C#) dọn ở
+> `96434e0` và `e52e867`. Repo giờ chỉ còn bản web. Mọi chỗ nhắc `Unity` hay `Assets/` từ đây trở
+> xuống là **bối cảnh lịch sử giải thích vì sao chốt như vậy**, không phải mô tả trạng thái hiện tại —
+> đừng đọc chúng như đường dẫn còn tồn tại.
+
 ## 2. Quyết định nền tảng
 
 | Quyết định | Chốt | Lý do |

@@ -10,6 +10,12 @@
 
 **Spec:** [2026-07-30-sokoban-web-design.md](../specs/2026-07-30-sokoban-web-design.md)
 
+> **Trạng thái:** đã thi công xong. Đây là bản ghi lịch sử, không phải việc đang chờ làm — các ô
+> `- [ ]` bên dưới chưa bao giờ được tick chứ không phải còn dở. Project Unity đã bị xoá khỏi repo
+> sau đó (`26f993f`), nên mọi đường dẫn `Assets/...` trong tài liệu này đều **không còn tồn tại**:
+> chúng ghi lại nơi code được port từ đó và các file listing tại thời điểm viết. Cách chạy và cách
+> đổi bộ màn hiện tại xem [web/README.md](../../../web/README.md), không lấy theo file này.
+
 ## Global Constraints
 
 - Không framework, không build step, không dependency runtime. `web/package.json` chỉ khai báo `"type": "module"` và script `test`; **không** có `dependencies` hay `devDependencies`.
