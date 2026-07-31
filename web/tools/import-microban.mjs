@@ -1,11 +1,11 @@
-// Sinh web/src/levels/microban.json từ file text gốc trong project Unity.
+// Sinh web/src/levels/microban.json từ microban.txt nằm cạnh script này.
 // Chạy tay khi đổi bộ màn:  node tools/import-microban.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseMicroban } from '../src/levels/parseMicroban.js';
 import { validateLevel } from '../src/levels/levelValidator.js';
 
-const SOURCE = fileURLToPath(new URL('../../Assets/Levels/microban.txt', import.meta.url));
+const SOURCE = fileURLToPath(new URL('./microban.txt', import.meta.url));
 const OUTPUT = fileURLToPath(new URL('../src/levels/microban.json', import.meta.url));
 
 const { levels, errors } = parseMicroban(readFileSync(SOURCE, 'utf8'));

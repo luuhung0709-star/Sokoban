@@ -22,11 +22,14 @@ không có test tự động — kiểm bằng mắt trên trình duyệt.
 
 ## Đổi bộ màn
 
-`src/levels/microban.json` sinh ra từ `../Assets/Levels/microban.txt`, chạy tay rồi commit:
+`src/levels/microban.json` sinh ra từ `tools/microban.txt`, chạy tay rồi commit:
 
 ```bash
 cd web && node tools/import-microban.mjs
 ```
+
+Thay bộ màn khác thì ghi đè `tools/microban.txt` bằng file định dạng Microban rồi chạy lại.
+Script tự kiểm mọi màn và **dừng, không ghi gì** nếu có màn sai định dạng.
 
 ## Level editor
 
