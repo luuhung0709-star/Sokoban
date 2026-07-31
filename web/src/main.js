@@ -39,7 +39,13 @@ window.addEventListener('keydown', unlockAudio, { once: true });
 
 const panels = {
   menu: new MainMenu(document.body, {
-    onContinue: () => flow.playLevel(progress.getLastPlayedIndex(collection.collectionName)),
+    onContinue: () => {
+      // Kẹp lại: tiến độ có thể trỏ ra ngoài bộ màn (bộ màn co lại, hoặc
+      // localStorage bị sửa tay), mà playLevel gặp chỉ số lạ thì lặng lẽ thoát
+      // sau khi đã rời màn — nút trông như hỏng.
+      const last = progress.getLastPlayedIndex(collection.collectionName);
+      flow.playLevel(Math.min(Math.max(last, 0), collection.levels.length - 1));
+    },
     onSelect: () => flow.showLevelSelect(),
     onToggleMute: () => {
       audio.muted = !audio.muted;
