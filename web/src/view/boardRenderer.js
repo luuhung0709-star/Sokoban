@@ -10,6 +10,20 @@ const PLAYER_SPRITE = {
   [Direction.Right]: `${ART}/player_right.png`,
 };
 
+/**
+ * Tư thế đang áp vào hộp — art TUỲ CHỌN, hiện chưa có file.
+ *
+ * Thiếu file thì lặng lẽ lùi về sprite thường chứ không hiện ô hồng báo lỗi như
+ * art bắt buộc: game vẫn chơi được trọn vẹn khi không có bộ này, nên thiếu nó
+ * không phải hỏng. Thả bốn file vào `assets/art/` là chạy, không phải sửa code.
+ */
+const PLAYER_PUSH_SPRITE = {
+  [Direction.Up]: `${ART}/player_push_up.png`,
+  [Direction.Down]: `${ART}/player_push_down.png`,
+  [Direction.Left]: `${ART}/player_push_left.png`,
+  [Direction.Right]: `${ART}/player_push_right.png`,
+};
+
 const CELL_MIN = 20;
 const CELL_MAX = 64;
 
@@ -24,6 +38,11 @@ export class BoardRenderer {
   #actors;
   #boxes = new Map();   // "x,y" -> phần tử hộp
   #cell = 44;
+  #facing = Direction.Down;
+  #pushing = false;
+  // Sprite đẩy nào tải hỏng thì ghi vào đây, lần sau không thử lại. Cố ý KHÔNG
+  // xoá khi dựng màn mới: file thiếu ở màn này thì màn sau cũng thiếu.
+  #missingPush = new Set();
 
   constructor(rootEl) {
     this.#root = rootEl;
@@ -33,6 +52,10 @@ export class BoardRenderer {
   build(board) {
     this.#root.textContent = '';
     this.#boxes.clear();
+    // Khớp với sprite mà #makePlayer dựng ra, không thì lần đổi hướng đầu tiên
+    // sang Down bị bỏ qua vì tưởng đã đúng rồi.
+    this.#facing = Direction.Down;
+    this.#pushing = false;
 
     this.#root.style.setProperty('--cols', String(board.width));
     this.#root.style.setProperty('--rows', String(board.height));
@@ -104,22 +127,30 @@ export class BoardRenderer {
     this.#boxes.set(boxKey(toX, toY), el);
   }
 
-  /** Hộp trên đích đổi sprite và tắt dấu X. */
+  /**
+   * Hộp trên đích chỉ cần đổi class — phần vẽ (đổi dấu X thành vòng tròn) nằm
+   * trọn trong board.css.
+   */
   refreshBoxLook(board) {
     for (const [key, el] of this.#boxes) {
       const { x, y } = parseBoxKey(key);
-      const onGoal = board.cellAt(x, y) === CellType.Goal;
-      el.querySelector('.actor__sprite').src = onGoal
-        ? `${ART}/box_on_goal.png`
-        : `${ART}/box.png`;
-      el.querySelector('.actor__mark').hidden = onGoal;
+      el.classList.toggle('actor--on-goal', board.cellAt(x, y) === CellType.Goal);
     }
   }
 
   setPlayerFacing(dir) {
-    const src = PLAYER_SPRITE[dir];
-    if (src) this.playerEl.querySelector('.actor__sprite').src = src;
+    if (!PLAYER_SPRITE[dir]) return;
+    this.#facing = dir;
+    this.#updatePlayerSprite();
   }
+
+  /** Nhân vật đang áp mặt vào hộp — đổi sang tư thế đẩy nếu có art. */
+  setPlayerPushing(on) {
+    this.#pushing = Boolean(on);
+    this.#updatePlayerSprite();
+  }
+
+  get playerFacing() { return this.#facing; }
 
   /** Đặt vị trí tức thì, không animation. */
   placeActor(el, x, y) {
@@ -139,39 +170,73 @@ export class BoardRenderer {
       return tile;
     }
 
-    tile.className = `tile tile--floor-${(x + y) % 2 === 0 ? 'a' : 'b'}`;
-    if (cell === CellType.Goal) {
-      tile.classList.add('tile--goal');
-      tile.append(this.#makeImg(`${ART}/mark_o.png`, 'tile__sprite', 'tile--missing'));
-    }
+    // Sàn một tông duy nhất — kiểu caro xen kẽ hai màu đã bỏ.
+    tile.className = 'tile tile--floor';
+    if (cell === CellType.Goal) tile.classList.add('tile--goal');
     return tile;
   }
 
+  /**
+   * Hộp không dùng file ảnh nào: `.actor__face` là mặt hộp, hai pseudo-element
+   * của nó là dấu X (hoặc vòng tròn khi đã vào đích). Xem board.css.
+   */
   #makeBox() {
     const el = document.createElement('div');
     el.className = 'actor actor--box';
-    el.append(this.#makeImg(`${ART}/box.png`, 'actor__sprite', 'actor--missing'));
-    el.append(this.#makeImg(`${ART}/mark_x.png`, 'actor__mark', 'actor--missing'));
+    const face = document.createElement('i');
+    face.className = 'actor__face';
+    el.append(face);
     return el;
   }
 
   #makePlayer() {
     const el = document.createElement('div');
     el.className = 'actor actor--player';
-    el.append(this.#makeImg(PLAYER_SPRITE[Direction.Down], 'actor__sprite', 'actor--missing'));
+
+    const img = document.createElement('img');
+    img.className = 'actor__sprite';
+    img.alt = '';
+    img.dataset.src = PLAYER_SPRITE[Direction.Down];
+    img.src = img.dataset.src;
+    img.addEventListener('error', () => this.#onPlayerSpriteError(img));
+
+    el.append(img);
     return el;
   }
 
-  #makeImg(src, className, missingClass) {
-    const img = document.createElement('img');
-    img.className = className;
-    img.alt = '';
+  /** Chọn sprite theo hướng nhìn và trạng thái đẩy hiện tại. */
+  #updatePlayerSprite() {
+    const img = this.playerEl?.querySelector('.actor__sprite');
+    if (!img) return;
+
+    const push = PLAYER_PUSH_SPRITE[this.#facing];
+    const src = this.#pushing && !this.#missingPush.has(push)
+      ? push
+      : PLAYER_SPRITE[this.#facing];
+
+    // So bằng dataset chứ không bằng `img.src`: trình duyệt trả về `img.src` dưới
+    // dạng URL tuyệt đối nên so với đường dẫn tương đối sẽ không bao giờ khớp, và
+    // ta gán lại ảnh sau mỗi nước đi một cách vô ích.
+    if (img.dataset.src === src) return;
+    img.dataset.src = src;
     img.src = src;
-    // Thiếu file art thì hiện ô hồng chói kèm lỗi, không im lặng bỏ trống.
-    img.addEventListener('error', () => {
-      img.parentElement?.classList.add(missingClass);
-      console.error(`BoardRenderer: không tải được sprite ${src}`);
-    });
-    return img;
+  }
+
+  /**
+   * Sprite đẩy thiếu là chuyện bình thường (art tuỳ chọn): ghi nhớ rồi lùi về
+   * sprite thường. Sprite thường thiếu mới là hỏng thật — hiện ô hồng chói kèm
+   * lỗi, không im lặng bỏ trống.
+   */
+  #onPlayerSpriteError(img) {
+    const failed = img.dataset.src;
+
+    if (Object.values(PLAYER_PUSH_SPRITE).includes(failed)) {
+      this.#missingPush.add(failed);
+      this.#updatePlayerSprite();
+      return;
+    }
+
+    img.parentElement?.classList.add('actor--missing');
+    console.error(`BoardRenderer: không tải được sprite ${failed}`);
   }
 }

@@ -1,8 +1,33 @@
 .board {
   --cell: 44px;
+
+  /*
+   * Độ dày mọi nét vẽ trên bàn cờ: vòng tròn ô đích, vòng tròn và chữ X trên
+   * hộp. Buộc theo cỡ ô chứ không đặt cứng px — ô chạy từ 20 đến 64px, nét cố
+   * định 2.5px sẽ thô ở ô nhỏ và mảnh hụt ở ô lớn.
+   */
+  --stroke: calc(var(--cell) * 0.06);
+
   position: relative;
   width: calc(var(--cols) * var(--cell));
   height: calc(var(--rows) * var(--cell));
+
+  /*
+   * Bóng đổ nhấc cả bàn cờ lên khỏi nền trang.
+   *
+   * Bóng của một khối CHỮ NHẬT, không ôm theo viền răng cưa của tường — vì bàn
+   * cờ vốn đặc: CellType chỉ có Wall/Floor/Goal nên vùng ngoài viền tường vẫn là
+   * sàn. Muốn bóng ôm viền thì phải thêm loại ô "ngoài bàn cờ" trước đã.
+   *
+   * Để cứng px chứ không buộc theo --cell như các nét bên trong: đây là thuộc
+   * tính của cả bàn cờ đặt trên trang, không phải của lưới ô. Với lại fitCellSize
+   * đã kéo cỡ ô sao cho bàn cờ luôn lấp đầy khung, nên bàn cờ to nhỏ khá giống
+   * nhau trên màn hình dù màn có mấy hàng mấy cột.
+   *
+   * box-shadow chứ không filter: drop-shadow — actor chạy transform 60fps bên
+   * trong, mà filter thì buộc trình duyệt tô lại cả cây con sau mỗi khung hình.
+   */
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
 }
 
 .board__statics {
@@ -17,26 +42,50 @@
   position: relative;
 }
 
-.tile--floor-a { background: linear-gradient(180deg, var(--floor-a-top), var(--floor-a-bottom)); }
-.tile--floor-b { background: linear-gradient(180deg, var(--floor-b-top), var(--floor-b-bottom)); }
+.tile--floor { background: var(--floor); }
 
-/* Tường vẽ bằng CSS: hai lớp kẻ mạch vữa chồng lên nền dốc. */
+/*
+ * Tường là viên gạch nổi: mặt phẳng một màu, vát sáng trên-trái và vát tối
+ * dưới-phải, chừa khe 1px quanh viên để lộ nền tối phía dưới — chính cái khe
+ * đó tách các viên ra khỏi nhau.
+ *
+ * Vát để cứng 2px chứ không buộc theo --cell: ở ô 20px thì 2px vẫn đọc được,
+ * còn nếu tính theo tỉ lệ nó tụt xuống dưới 1px và viên gạch bẹt ra thành một
+ * mảng phẳng không còn khối.
+ */
 .tile--wall {
-  background:
-    repeating-linear-gradient(0deg, transparent 0 calc(var(--cell) / 4),
-                              rgba(0, 0, 0, 0.30) calc(var(--cell) / 4) calc(var(--cell) / 3.4)),
-    repeating-linear-gradient(90deg, transparent 0 calc(var(--cell) / 2.4),
-                              rgba(0, 0, 0, 0.30) calc(var(--cell) / 2.4) calc(var(--cell) / 2.2)),
-    linear-gradient(180deg, var(--wall-top), var(--wall-bottom));
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  background: var(--board-void);
+}
+.tile--wall::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 2px;
+  background: var(--wall-face);
+  box-shadow:
+    inset 2px 2px 0 var(--wall-hi),
+    inset -2px -3px 0 var(--wall-lo);
 }
 
-/* Ô đích là sprite nền trong suốt nằm trên lớp nền. */
-.tile--goal > img {
+/*
+ * Ô đích là một hốc lõm: nền sẫm hơn sàn, thêm bóng ở mép trên cho ra cảm giác
+ * thụt xuống, rồi vòng tròn viền sáng nổi lên trên.
+ */
+.tile--goal {
+  background: var(--goal-bg);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+.tile--goal::before {
+  content: '';
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: 50%;
+  top: 50%;
+  box-sizing: border-box;   /* để 44% là đường kính NGOÀI, đã gồm cả nét viền */
+  width: 44%;
+  height: 44%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: var(--stroke) solid var(--goal-ring);
 }
 
 /*
@@ -69,19 +118,90 @@
   will-change: transform;
 }
 
-.actor__sprite,
-.actor__mark {
+.actor__sprite {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.actor__mark[hidden] { display: none; }
+/*
+ * Hộp: mặt vàng phẳng, vát cạnh mảnh. KHÔNG đổ gradient chéo qua cả ô — mặt
+ * phẳng mới ra đúng chất liệu trong ảnh tham khảo; gradient mạnh làm hộp trông
+ * đậm và nặng hơn hẳn dù màu nền y hệt.
+ *
+ * Phải có phần tử con `.actor__face` chứ không vẽ thẳng lên `.actor`: cần ba
+ * lớp — mặt hộp và hai nét chữ X — mà một phần tử chỉ cho hai pseudo-element.
+ * Đặt mặt hộp vào con thì ::before/::after của nó lo hai nét, vừa đủ.
+ */
+.actor__face {
+  position: absolute;
+  inset: 2px;
+  border-radius: 2px;
+  background: var(--box);
+  box-shadow:
+    inset 1.5px 1.5px 0 var(--box-hi),
+    inset -1.5px -2px 0 var(--box-lo);
+}
+
+/*
+ * Chữ X: hai thanh xoay ±45°, mỗi thanh dài 62% cạnh hộp.
+ *
+ * 62% để bốn đầu X chạm đúng bốn góc của khung 44% × 44% mà vòng tròn đang nằm
+ * trong (44% × √2 ≈ 62%). Nghĩa là X và vòng tròn choán cùng một khung vuông.
+ * Lưu ý đánh đổi: X vươn ra 31% tính từ tâm còn vòng tròn chỉ 22%, nên nhìn X
+ * vẫn nhỉnh hơn — đây là lựa chọn có cân nhắc, không phải nhầm.
+ */
+.actor__face::before,
+.actor__face::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 62%;
+  height: var(--stroke);
+  border-radius: 999px;
+  background: var(--box-mark);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.actor__face::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+/*
+ * Hộp đã vào đích: giữ nguyên màu vàng, chỉ đổi dấu X thành vòng tròn cho khớp
+ * ký hiệu của ô đích. Một thanh biến thành vòng tròn, thanh còn lại tắt đi.
+ */
+.actor--on-goal .actor__face::before {
+  box-sizing: border-box;
+  width: 44%;
+  height: 44%;
+  border: var(--stroke) solid var(--box-mark);
+  border-radius: 50%;
+  background: none;
+  transform: translate(-50%, -50%);
+}
+.actor--on-goal .actor__face::after { display: none; }
+
+/*
+ * Bóng đổ dưới chân người chơi, để nhân vật đứng trên sàn chứ không như dán lên.
+ *
+ * Phải là drop-shadow, không phải box-shadow: box-shadow đổ theo khung vuông của
+ * phần tử, mà sprite có lề trong suốt bao quanh nên sẽ ra một vệt vuông lơ lửng
+ * quanh người. drop-shadow bám đúng viền alpha của hình.
+ *
+ * Buộc theo --cell chứ không đặt cứng px: cỡ ô chạy 20–64px, bóng cố định 2px sẽ
+ * nặng nề ở ô nhỏ và mảnh hụt ở ô lớn.
+ */
+.actor--player .actor__sprite {
+  filter: drop-shadow(0 calc(var(--cell) * 0.045)
+                        calc(var(--cell) * 0.06)
+                        rgba(0, 0, 0, 0.55));
+}
 
 /* Bật khi load màn hoặc restart, để actor không bay từ vị trí màn cũ sang. */
 .board--no-anim .actor { transition: none; }
 
-/* Ô thiếu sprite: hiện hồng chói thay vì im lặng bỏ trống. */
-.tile--missing,
+/*
+ * Thiếu sprite thì hiện hồng chói thay vì im lặng bỏ trống. Giờ chỉ còn nhân vật
+ * dùng file ảnh — tường, sàn, ô đích và hộp đều vẽ bằng CSS nên không thể thiếu.
+ */
 .actor--missing { background: #ff00ff; }

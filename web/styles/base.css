@@ -6,14 +6,30 @@
   --text-dim: rgba(230, 235, 242, 0.65);
   --accent: #d53b35;
 
-  --floor-a-top: #262d38;
-  --floor-a-bottom: #1f242d;
-  --floor-b-top: #2c3441;
-  --floor-b-bottom: #232a34;
-  --wall-top: #5e6878;
-  --wall-bottom: #414956;
+  /*
+   * Bảng màu bàn cờ. Sàn chỉ còn MỘT màu — kiểu caro hai tông đã bỏ, nên không
+   * còn cặp biến -a / -b nữa.
+   */
+  --board-void: #08090c;   /* khe hở giữa các viên tường, lộ ra nền tối */
+  --floor: #3a3d4c;
 
-  --move-duration: 120ms;
+  --wall-face: #a4a9bc;
+  --wall-hi: #c8ccd7;      /* cạnh vát trên-trái */
+  --wall-lo: #797e93;      /* cạnh vát dưới-phải */
+
+  --goal-bg: #232635;      /* hốc đích, sẫm hơn sàn để phân biệt */
+  --goal-ring: #7c8194;
+
+  --box: #f5d64e;
+  --box-hi: #fce889;
+  --box-lo: #d9bb38;
+  --box-mark: #8d8878;     /* dấu X và vòng tròn trên nắp hộp */
+
+  /*
+   * Thời lượng trượt một ô. Cũng chính là nhịp lặp khi giữ phím, vì nước sau chỉ
+   * bắt đầu khi nước trước chạy xong — 165ms ra khoảng 6 ô mỗi giây.
+   */
+  --move-duration: 165ms;
 }
 
 * { box-sizing: border-box; }

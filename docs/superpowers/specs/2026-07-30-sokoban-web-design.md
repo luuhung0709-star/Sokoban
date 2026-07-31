@@ -158,19 +158,85 @@ riêng, nằm ngoài phạm vi spec này.
 
 | Vai trò | Cách vẽ | Nguồn |
 |---|---|---|
-| Nền | CSS, hai tông xen kẽ theo `(x + y) % 2` | — |
-| Tường | CSS, gradient + inset shadow | — |
-| Ô đích | sprite | `Assets/Art/Markers/mark_o.png` |
-| Hộp chưa vào đích | sprite + **dấu X chồng lên** | `Assets/Art/Modern/box.png` + `Markers/mark_x.png` |
-| Hộp trên đích | sprite, không có dấu X | `Assets/Art/Modern/box_on_goal.png` |
-| Người chơi | sprite, đổi theo hướng đi | `Assets/Art/Modern/player_{up,down,left,right}.png` |
+| Nền | CSS, một tông phẳng | — |
+| Tường | CSS, mặt phẳng + vát sáng trên-trái, vát tối dưới-phải, chừa khe lộ nền | — |
+| Ô đích | CSS, hốc sẫm hơn sàn + vòng tròn viền mảnh | — |
+| Hộp chưa vào đích | CSS, mặt vàng phẳng + **chữ X** | — |
+| Hộp trên đích | CSS, cùng mặt vàng, **X đổi thành vòng tròn** | — |
+| Người chơi | sprite, đổi theo hướng đi | `player_{up,down,left,right}.png` |
+| Người chơi đang áp vào hộp | sprite tư thế đẩy | `player_push_{up,down,left,right}.png` |
 
-Nền và tường lặp lại nhiều nhất nên để CSS lo: luôn sắc nét ở mọi cỡ ô, đổi tông màu chỉ cần sửa một
-biến. Những thứ có tính cách thì giữ sprite.
+Mọi thứ hình học đều để CSS lo, chỉ người chơi giữ sprite. Ba cái lợi: sắc nét ở mọi cỡ ô, đổi cả tông
+màu chỉ cần sửa một biến, và không phải bù trừ cho phần lề trong suốt mà file PNG mang sẵn theo — chính
+cái lề đó từng bắt phải căn dấu bằng những con số như 76,5% và 68,4%.
 
-**Ô đích dùng `mark_o.png` chứ không phải `goal.png`.** Bản Unity đã chuyển sang vòng tròn đỏ —
-[MarkGenerator.cs](../../../Assets/Editor/MarkGenerator.cs) trỏ `GoalTile` sang `mark_o`. Bản web theo
-trạng thái mới này; `goal.png` là art cũ, không copy sang.
+**Mọi nét vẽ buộc theo cỡ ô**, không đặt cứng px: `--stroke: calc(var(--cell) * 0.06)`. Ô co giãn trong
+khoảng 20–64px, nét cố định sẽ thô ở ô nhỏ và mảnh hụt ở ô lớn. Riêng vát cạnh của tường và hộp thì để
+cứng 2px — tính theo tỉ lệ thì ở ô 20px nó tụt xuống dưới 1px và viên gạch bẹt thành mảng phẳng.
+
+**Chữ X và vòng tròn choán chung một khung 44% × 44%.** Vòng tròn chạm bốn cạnh khung, X chạm bốn góc
+nên cánh X dài 44% × √2 ≈ 62%. Hệ quả đã cân nhắc và chấp nhận: tính từ tâm, X vươn ra 31% còn vòng
+tròn chỉ 22%, nên nhìn X vẫn nhỉnh hơn vòng tròn.
+
+Bốn file `box.png`, `box_on_goal.png`, `mark_x.png`, `mark_o.png` từng dùng cho hộp và ô đích nay không
+còn ai tham chiếu.
+
+**Sprite đẩy căn sát mép khung, không căn giữa.** Sprite thường đặt nhân vật giữa khung 64px; sprite
+đẩy phải đẩy hẳn bàn tay ra mép — `player_push_right` chiếm x 32–63, `player_push_left` chiếm x 0–31.
+Căn giữa thì bàn tay dừng cách mép 16px, tức một phần tư ô, và nhìn ra ngay là tay hụt không chạm tới
+thùng. Hệ quả có chủ ý: lúc chuyển sang tư thế đẩy, thân người dịch về phía thùng — đọc ra là bước lên
+áp vào thùng.
+
+**Tư thế đẩy bật khi nhân vật quay mặt vào ô liền kề có hộp** — không phải chỉ trong lúc animation
+chạy. Trạng thái này tính lại sau mọi lệnh, kể cả nước bị chặn, vì quay mặt vào tường hay vào hộp thì
+nhân vật vẫn đổi hướng.
+
+Renderer coi bộ đẩy là **art tuỳ chọn**: thiếu file thì ghi nhớ và lặng lẽ lùi về sprite thường, không
+hiện ô hồng báo thiếu như art bắt buộc. Hiện đủ cả bốn hướng, nhưng giữ cơ chế này để bỏ bớt hay thêm
+tư thế về sau không phải sửa code.
+
+**Cả bốn sprite đẩy đều căn sát mép khung về phía thùng**, mỗi hướng một trục:
+
+| Sprite | Chiếm khung | Sát mép | Bàn tay cách mép |
+|---|---|---|---|
+| `player_push_left` | x 0–22, y 5–57 | trái | 2 px |
+| `player_push_right` | x 41–63, y 5–57 | phải | 2 px |
+| `player_push_up` | x 20–44, y 0–53 | trên | 1 px |
+| `player_push_down` | x 18–46, y 19–63 | dưới | 1 px |
+
+Sprite đứng thì căn giữa và chân chạm y=57. Căn giữa cho cả sprite đẩy là hỏng: nhân vật đứng cách
+thùng cả chục pixel, nhìn ra ngay là đang lơ lửng chứ không đẩy.
+
+**Tư thế phải có bàn tay vươn tới mép khung — đây là ràng buộc lên chính bức tranh, không phải lên
+cách lắp.** Bộ art đầu tiên vẽ hai tư thế lên/xuống với tay giơ ngang ngực kiểu ra hiệu "dừng lại";
+đo ra bàn tay cách mép 18–20px, tức gần một phần ba ô, và không cách căn chỉnh nào cứu được — dịch
+nhân vật đi chừng đó thì nửa thân đè sang ô của thùng. Phải vẽ lại thành cúi người chống hai tay xuống
+(đẩy xuống) và giơ thẳng hai tay lên (đẩy lên). Khi đặt thêm tư thế mới, đo lại khoảng cách này trước
+khi tin là xong.
+
+Cả tám sprite cắt từ **sheet nền xanh phẳng** do Gemini vẽ, lưu trong `art-source/` (ngoài `web/` nên
+không bị deploy). Nền một màu là điều kiện then chốt: lọc đúng một màu thì tách được chính xác tuyệt
+đối. Bộ art trước vẽ nhân vật nằm trong cảnh có tường gạch, tách bằng flood fill lan vùng — vest đen
+trên tường xám sẫm chênh lệch quá thấp nên không có ngưỡng nào vừa: thấp thì sót mảng tường, cao thì
+ăn mất người. Lần sau cần thêm tư thế, yêu cầu nền phẳng ngay từ đầu.
+
+Quy trình cắt: lọc nền theo màu → tách mảng liền khối, bỏ mảnh vụn → khử ám xanh ở rìa → thu nhỏ bằng
+trung bình vùng có nhân trọng số alpha → đặt vào khung 64×64.
+
+**Thu nhỏ phải dùng chung một hệ số, không ép các tư thế về cùng chiều cao.** Tư thế đứng cao 1325px ở
+ảnh gốc, tư thế cúi chống tay chỉ 1114px, tư thế giơ tay 1348px — vì cúi thì thấp mà giơ tay thì cao,
+đúng giải phẫu. Ép cả ba về cùng 53px thì nhân vật phình to lên đúng lúc cúi xuống. Lấy 1325px làm mốc
+ứng với 53px rồi áp cùng hệ số cho mọi tư thế: cúi ra 45px, giơ tay ra 54px, và cỡ người giữ nguyên.
+
+Sprite vẫn **không phải pixel art khối phẳng** — 64×64 mà có 350–420 màu, tô chuyển sắc mượt. Nên
+không ghép thêm chi tiết (tay, bóng) lên người bằng hình khối CSS được: không tồn tại một "màu vest"
+duy nhất để khớp. Muốn thêm tư thế thì phải vẽ sprite mới.
+
+**Bàn cờ là một hình chữ nhật đặc.** `CellType` chỉ có `Wall`, `Floor`, `Goal`, nên ký tự trống `' '`
+nằm ngoài viền tường cũng thành `Floor` — vùng ngoài viền vẫn là sàn, không phải nền trống. Cả bàn cờ
+có `box-shadow` nhấc lên khỏi nền trang, và vì bàn cờ đặc nên đó là bóng của một khối chữ nhật. Muốn
+bóng ôm theo đường viền răng cưa của tường thì trước hết phải thêm loại ô thứ tư "ngoài bàn cờ", đụng
+tới `Board`, parser, validator và renderer.
 
 Người chơi đổi sprite theo hướng đi — bộ Modern có sẵn 4 hướng, bản Unity chưa dùng tới.
 
@@ -184,10 +250,10 @@ Hai lớp chồng nhau trong một khung `.board`:
 ```html
 <div class="board" style="--cols:20; --rows:12; --cell:44px">
   <div class="statics">   <!-- CSS Grid, dựng đúng một lần khi load màn -->
-    <i class="tile floor-a"></i> <i class="tile wall"></i> <img class="tile goal" …>
+    <i class="tile floor"></i> <i class="tile wall"></i> <i class="tile floor goal"></i>
   </div>
   <div class="actors">    <!-- con position:absolute, chỉ đụng khi có nước đi -->
-    <div class="box" style="transform:translate(264px,132px)"><img …><img class="mark" …></div>
+    <div class="box" style="transform:translate(264px,132px)"><i class="face"></i></div>
     <div class="player"><img src="player_down.png"></div>
   </div>
 </div>
@@ -195,6 +261,10 @@ Hai lớp chồng nhau trong một khung `.board`:
 
 Phần tĩnh vẽ một lần, phần động tách riêng — chính là kiến trúc Tilemap tĩnh + GameObject động của
 bản Unity, nên port sang gần như một-đối-một.
+
+Hộp phải có phần tử con `.face` chứ không vẽ thẳng lên chính nó: cần ba lớp — mặt hộp và hai nét chữ X
+— mà một phần tử chỉ cho hai pseudo-element. Đẩy mặt hộp xuống con thì `::before`/`::after` của con lo
+nốt hai nét, vừa đủ. Tường và ô đích không gặp chuyện này vì chỉ cần hai lớp.
 
 Hai hướng đã cân nhắc và loại:
 
@@ -219,7 +289,8 @@ linear` — cùng thời lượng với bản Unity.
 - Trong lúc tween chạy, input tiếp theo được **đệm tối đa 1 nước** rồi thực thi ngay khi tween xong.
 - Undo/redo dùng cùng animation, hướng ngược lại.
 - Load màn và restart gắn class tắt transition, để actor không "bay" từ vị trí màn cũ sang.
-- Hộp vào/ra khỏi đích thì đổi `src` và bật/tắt lớp dấu X ở **cuối** animation, không phải lúc bắt đầu.
+- Hộp vào/ra khỏi đích thì bật/tắt class `actor--on-goal` (X ↔ O) ở **cuối** animation, không phải lúc
+  bắt đầu.
 
 ## 7. Điều khiển
 
@@ -235,8 +306,23 @@ linear` — cùng thời lượng với bản Unity.
 
 Nút trên thanh dưới làm đúng bốn lệnh sau, bấm được bằng chuột.
 
-**Giữ phím**: router theo dõi phím đang được giữ và tự phát nước tiếp ngay khi animation xong, **không**
-dựa vào auto-repeat của hệ điều hành — auto-repeat trễ khoảng 500ms ở nhịp đầu, cầm phím sẽ khựng.
+**Giữ phím**: router theo dõi phím đang được giữ và tự phát nước tiếp khi animation xong, **không** dựa
+vào auto-repeat của hệ điều hành — auto-repeat trễ khoảng 500ms ở nhịp đầu, cầm phím sẽ khựng.
+
+**Quãng nghỉ trước khi lặp — `REPEAT_DELAY_MS = 250`.** Nước đầu đi ngay, sau đó phải giữ phím đủ 250ms
+mới bắt đầu tự đi tiếp. Không có quãng nghỉ này thì gõ nhẹ một cái ra 2–3 nước (mỗi nước 120ms) và đẩy
+thùng lố mất một ô — trong Sokoban đó là hỏng cả thế cờ. Con số 250 nằm giữa: đủ để gõ chính xác từng
+ô, mà cầm phím đi đường dài vẫn không khựng như mức 500ms của hệ điều hành.
+
+Ba chỗ dễ hỏng khi hiện thực, đều đã có test riêng trong `repeatDelay.test.mjs`:
+
+- **Chờ, không được thoát.** Trong lúc chờ mà trả `null` thì vòng lặp kết thúc, người chơi phải buông
+  phím bấm lại mới đi tiếp được. `msUntilRepeat` vì thế tách khỏi `heldDirection`: `null` là không giữ
+  phím (dừng hẳn), còn số dương là có giữ nhưng chưa tới lúc (phải chờ).
+- **Giấc ngủ phải đánh thức được.** Gõ phím giữa lúc đang chờ mà chỉ đệm lại thì lệnh đó nằm im tới hết
+  250ms — gõ nhanh sẽ thấy trễ. `handle` và `stop` cùng gọi `#wake` để cắt ngắn giấc ngủ.
+- **Chốt `#looping`.** Trong lúc chờ thì animation đã xong nên `isBusy` tắt; chỉ dựa vào `isBusy` thì
+  phím bấm mới sẽ khởi động một vòng lặp thứ hai chạy song song, mỗi nước đi thành hai.
 
 Mũi tên phải `preventDefault` để không cuộn trang.
 
