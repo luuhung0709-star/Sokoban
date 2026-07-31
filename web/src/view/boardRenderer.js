@@ -11,11 +11,12 @@ const PLAYER_SPRITE = {
 };
 
 /**
- * Tư thế đang áp vào hộp — art TUỲ CHỌN, hiện chưa có file.
+ * The pose while braced against a box — OPTIONAL art.
  *
- * Thiếu file thì lặng lẽ lùi về sprite thường chứ không hiện ô hồng báo lỗi như
- * art bắt buộc: game vẫn chơi được trọn vẹn khi không có bộ này, nên thiếu nó
- * không phải hỏng. Thả bốn file vào `assets/art/` là chạy, không phải sửa code.
+ * A missing file falls back quietly to the normal sprite instead of showing the pink
+ * error tile that required art does: the game plays perfectly well without this set,
+ * so its absence is not a fault. Drop the four files into `assets/art/` and they work,
+ * no code change needed.
  */
 const PLAYER_PUSH_SPRITE = {
   [Direction.Up]: `${ART}/player_push_up.png`,
@@ -28,20 +29,20 @@ const CELL_MIN = 20;
 const CELL_MAX = 64;
 
 /**
- * Dựng phần tĩnh của màn một lần rồi để yên, còn người chơi và hộp là phần tử
- * absolute di chuyển bằng transform. Chính là kiểu Tilemap tĩnh + GameObject
- * động của bản Unity.
+ * Builds the static part of a level once and leaves it alone, while the player and
+ * boxes are absolutely-positioned elements moved by transform. The same static
+ * Tilemap + dynamic GameObject split the Unity build used.
  */
 export class BoardRenderer {
   #root;
   #statics;
   #actors;
-  #boxes = new Map();   // "x,y" -> phần tử hộp
+  #boxes = new Map();   // "x,y" -> box element
   #cell = 44;
   #facing = Direction.Down;
   #pushing = false;
-  // Sprite đẩy nào tải hỏng thì ghi vào đây, lần sau không thử lại. Cố ý KHÔNG
-  // xoá khi dựng màn mới: file thiếu ở màn này thì màn sau cũng thiếu.
+  // Push sprites that failed to load land here and are not retried. Deliberately NOT
+  // cleared when building a new level: a file missing here is missing there too.
   #missingPush = new Set();
 
   constructor(rootEl) {
@@ -52,8 +53,8 @@ export class BoardRenderer {
   build(board) {
     this.#root.textContent = '';
     this.#boxes.clear();
-    // Khớp với sprite mà #makePlayer dựng ra, không thì lần đổi hướng đầu tiên
-    // sang Down bị bỏ qua vì tưởng đã đúng rồi.
+    // Match the sprite #makePlayer builds, or the first turn to Down gets skipped
+    // because it looks like it is already correct.
     this.#facing = Direction.Down;
     this.#pushing = false;
 
@@ -87,13 +88,13 @@ export class BoardRenderer {
     this.refreshBoxLook(board);
   }
 
-  /** Kích thước ô theo chỗ trống còn lại, kẹp trong 20–64px. */
+  /** Cell size from the space left over, clamped to 20–64px. */
   fitCellSize(board) {
     const stage = this.#root.parentElement ?? document.body;
 
-    // Đo content box, không dùng getBoundingClientRect: rect gồm cả padding nên
-    // cỡ ô bị tính vượt và bàn cờ tràn qua lề. clientWidth/Height là padding box,
-    // trừ padding ra thì còn đúng chỗ vẽ được.
+    // Measure the content box, not getBoundingClientRect: the rect includes padding,
+    // so the cell size comes out too big and the board spills past the margin.
+    // clientWidth/Height is the padding box; subtracting padding leaves the drawable area.
     const style = getComputedStyle(stage);
     const availableWidth = stage.clientWidth
       - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
@@ -106,7 +107,7 @@ export class BoardRenderer {
     this.#cell = Math.max(CELL_MIN, Math.min(CELL_MAX, Math.floor(Math.min(byWidth, byHeight))));
     this.#root.style.setProperty('--cell', `${this.#cell}px`);
 
-    // Transform tính bằng px nên mọi actor phải được đặt lại sau khi đổi cỡ ô.
+    // Transforms are in px, so every actor has to be replaced after a cell resize.
     for (const [key, el] of this.#boxes) {
       const { x, y } = parseBoxKey(key);
       this.#place(el, x, y);
@@ -128,8 +129,8 @@ export class BoardRenderer {
   }
 
   /**
-   * Hộp trên đích chỉ cần đổi class — phần vẽ (đổi dấu X thành vòng tròn) nằm
-   * trọn trong board.css.
+   * A box on a goal only needs a class change — the drawing (swapping the X for a
+   * circle) lives entirely in board.css.
    */
   refreshBoxLook(board) {
     for (const [key, el] of this.#boxes) {
@@ -144,7 +145,7 @@ export class BoardRenderer {
     this.#updatePlayerSprite();
   }
 
-  /** Nhân vật đang áp mặt vào hộp — đổi sang tư thế đẩy nếu có art. */
+  /** The player is braced against a box — switch to the push pose if that art exists. */
   setPlayerPushing(on) {
     this.#pushing = Boolean(on);
     this.#updatePlayerSprite();
@@ -152,7 +153,7 @@ export class BoardRenderer {
 
   get playerFacing() { return this.#facing; }
 
-  /** Đặt vị trí tức thì, không animation. */
+  /** Position immediately, with no animation. */
   placeActor(el, x, y) {
     this.#place(el, x, y);
   }
@@ -170,15 +171,15 @@ export class BoardRenderer {
       return tile;
     }
 
-    // Sàn một tông duy nhất — kiểu caro xen kẽ hai màu đã bỏ.
+    // A single floor tone — the two-colour checkerboard was dropped.
     tile.className = 'tile tile--floor';
     if (cell === CellType.Goal) tile.classList.add('tile--goal');
     return tile;
   }
 
   /**
-   * Hộp không dùng file ảnh nào: `.actor__face` là mặt hộp, hai pseudo-element
-   * của nó là dấu X (hoặc vòng tròn khi đã vào đích). Xem board.css.
+   * Boxes use no image file at all: `.actor__face` is the box face and its two
+   * pseudo-elements draw the X (or a circle once on a goal). See board.css.
    */
   #makeBox() {
     const el = document.createElement('div');
@@ -204,7 +205,7 @@ export class BoardRenderer {
     return el;
   }
 
-  /** Chọn sprite theo hướng nhìn và trạng thái đẩy hiện tại. */
+  /** Picks the sprite from the current facing and push state. */
   #updatePlayerSprite() {
     const img = this.playerEl?.querySelector('.actor__sprite');
     if (!img) return;
@@ -214,18 +215,18 @@ export class BoardRenderer {
       ? push
       : PLAYER_SPRITE[this.#facing];
 
-    // So bằng dataset chứ không bằng `img.src`: trình duyệt trả về `img.src` dưới
-    // dạng URL tuyệt đối nên so với đường dẫn tương đối sẽ không bao giờ khớp, và
-    // ta gán lại ảnh sau mỗi nước đi một cách vô ích.
+    // Compare via dataset, not `img.src`: the browser hands back `img.src` as an
+    // absolute URL, so it never matches a relative path and we would pointlessly
+    // reassign the image after every move.
     if (img.dataset.src === src) return;
     img.dataset.src = src;
     img.src = src;
   }
 
   /**
-   * Sprite đẩy thiếu là chuyện bình thường (art tuỳ chọn): ghi nhớ rồi lùi về
-   * sprite thường. Sprite thường thiếu mới là hỏng thật — hiện ô hồng chói kèm
-   * lỗi, không im lặng bỏ trống.
+   * A missing push sprite is normal (the art is optional): remember it and fall back
+   * to the normal sprite. A missing normal sprite is a real fault — show the glaring
+   * pink tile and log an error rather than leaving a silent gap.
    */
   #onPlayerSpriteError(img) {
     const failed = img.dataset.src;
@@ -237,6 +238,6 @@ export class BoardRenderer {
     }
 
     img.parentElement?.classList.add('actor--missing');
-    console.error(`BoardRenderer: không tải được sprite ${failed}`);
+    console.error(`BoardRenderer: could not load sprite ${failed}`);
   }
 }

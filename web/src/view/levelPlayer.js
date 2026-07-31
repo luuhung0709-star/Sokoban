@@ -3,9 +3,9 @@ import { toDelta } from '../core/direction.js';
 import { commandToDirection, Command } from '../input/inputRouter.js';
 
 /**
- * Vòng lặp chơi một màn: nhận lệnh, gọi session, chạy animation. Trong lúc
- * animation chạy thì đệm tối đa 1 lệnh — đệm nhiều hơn thì thả phím ra rồi
- * nhân vật vẫn đi thêm mấy bước.
+ * The play loop for one level: take a command, call the session, run the animation.
+ * While an animation runs it buffers at most 1 command — buffer more and the player
+ * keeps walking several steps after the key is released.
  */
 export class LevelPlayer {
   #session;
@@ -16,7 +16,7 @@ export class LevelPlayer {
   #buffered = null;
   #stopped = false;
   #looping = false;
-  #wake = null;         // đánh thức vòng lặp đang chờ quãng nghỉ lặp phím
+  #wake = null;         // wakes the loop while it waits out the key-repeat delay
 
   constructor({ session, renderer, animator, router, hooks = {} }) {
     this.#session = session;
@@ -30,19 +30,19 @@ export class LevelPlayer {
     this.#animator.snap(this.#session.board, () => {
       this.#renderer.fitCellSize(this.#session.board);
     });
-    // Màn có thể bắt đầu với nhân vật đã áp sẵn vào hộp.
+    // A level can start with the player already braced against a box.
     this.#syncPushPose();
   }
 
   /**
-   * Ngắt lượt chơi này. GameFlow gọi khi rời màn: animation đang dở vẫn giữ
-   * tham chiếu tới session và renderer cũ, không dừng thì nó chạy tiếp và vẽ
-   * đè lên màn vừa mở.
+   * Cuts this play-through short. GameFlow calls it when leaving a level: an
+   * in-flight animation still holds references to the old session and renderer, and
+   * left running it would carry on and draw over the level just opened.
    */
   stop() {
     this.#stopped = true;
     this.#buffered = null;
-    this.#wake?.();     // đang ngủ chờ lặp phím thì tỉnh ngay để thoát vòng lặp
+    this.#wake?.();     // if asleep on the repeat delay, wake now to exit the loop
   }
 
   handle(command) {
@@ -53,27 +53,27 @@ export class LevelPlayer {
       return;
     }
 
-    // Thắng rồi thì chặn mọi lệnh chơi: overlay đang che bàn cờ nên đổi bàn cờ
-    // sau lưng nó là vô nghĩa. Muốn chơi lại hay đổi màn thì dùng nút trên
-    // overlay — chúng đi qua GameFlow nên dựng lại màn tử tế.
+    // Once solved, block every play command: the overlay covers the board, so
+    // changing the board behind it is pointless. Retrying or switching levels goes
+    // through the overlay's buttons — those run via GameFlow, which rebuilds properly.
     if (this.#session.isSolved) return;
 
-    // Phải chặn cả khi vòng lặp đang chờ quãng nghỉ lặp phím: lúc đó animation
-    // đã xong nên `isBusy` tắt, và nếu chỉ dựa vào nó thì phím bấm mới sẽ khởi
-    // động một vòng lặp thứ hai chạy song song, mỗi nước đi thành hai.
+    // This must also block while the loop waits out the key-repeat delay: the
+    // animation has finished by then so `isBusy` is off, and relying on it alone lets
+    // a new key press start a second loop in parallel, doubling every move.
     if (this.#animator.isBusy || this.#looping) {
       this.#buffered = command;
-      // Vòng lặp có thể đang ngủ chờ quãng nghỉ lặp phím. Đánh thức ngay, không
-      // thì gõ phím giữa chừng phải đợi hết quãng nghỉ mới ăn — gõ nhanh sẽ trễ.
+      // The loop may be asleep on the key-repeat delay. Wake it now, or a key pressed
+      // mid-wait only lands once the delay expires — fast typing would feel laggy.
       this.#wake?.();
       return;
     }
-    this.#loop(command).catch((error) => console.error('LevelPlayer: vòng lặp chơi lỗi', error));
+    this.#loop(command).catch((error) => console.error('LevelPlayer: play loop failed', error));
   }
 
   /**
-   * Vòng lặp thay vì đệ quy: giữ phím cả phút thì bản đệ quy chồng thêm một
-   * khung stack mỗi bước và không bao giờ nhả ra.
+   * A loop rather than recursion: hold a key for a minute and the recursive version
+   * stacks one more frame per step and never unwinds.
    */
   async #loop(first) {
     let command = first;
@@ -92,27 +92,27 @@ export class LevelPlayer {
   }
 
   /**
-   * Lệnh kế tiếp: lệnh vừa đệm được ưu tiên, sau đó mới tới phím đang giữ — và
-   * phím giữ còn phải qua quãng nghỉ lặp mới được tính.
+   * The next command: a buffered one wins, and only then the held key — and a held
+   * key still has to clear the repeat delay before it counts.
    *
-   * Chờ hết quãng nghỉ rồi mới đọc lại, chứ không trả `null` ngay: trả `null` là
-   * vòng lặp thoát hẳn, người chơi phải buông phím bấm lại mới đi tiếp được.
+   * It waits out the delay and re-reads rather than returning `null` straight away:
+   * `null` exits the loop entirely, forcing the player to release and press again.
    */
   async #nextCommand(acted) {
     const buffered = this.#takeBuffered();
     if (buffered) return buffered;
 
-    // Nước bị chặn thì KHÔNG tự đi tiếp theo phím đang giữ. Người chơi đang ấn
-    // vào tường, mà #runOne lúc đó không await gì cả — lặp lại sẽ thành vòng lặp
-    // chặt làm treo tab.
+    // A blocked move does NOT auto-continue from the held key. The player is pushing
+    // into a wall, and #runOne awaits nothing in that case — repeating would spin a
+    // tight loop and freeze the tab.
     if (!acted) return null;
 
     const wait = this.#router.msUntilRepeat;
-    if (wait == null) return null;              // không giữ phím hướng nào
+    if (wait == null) return null;              // no direction key held
     if (wait > 0) await this.#sleep(wait);
     if (this.#stopped) return null;
 
-    // Trong lúc chờ người chơi có thể đã buông phím hoặc bấm phím khác.
+    // During the wait the player may have released the key or pressed another.
     return this.#takeBuffered() ?? this.#router.heldDirection;
   }
 
@@ -122,7 +122,7 @@ export class LevelPlayer {
     return command;
   }
 
-  /** Ngủ `ms`, nhưng tỉnh sớm khi có lệnh mới hoặc khi lượt chơi bị dừng. */
+  /** Sleeps `ms`, but wakes early on a new command or when the play-through stops. */
   #sleep(ms) {
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
@@ -137,17 +137,18 @@ export class LevelPlayer {
     });
   }
 
-  /** Trả về true nếu có gì đó thực sự chạy (và đã chờ animation xong). */
+  /** Returns true if something actually ran (and its animation has been awaited). */
   async #runOne(command) {
     const acted = await this.#dispatch(command);
-    // Đồng bộ tư thế ở ĐÚNG MỘT chỗ, sau mọi lệnh — kể cả nước bị chặn, vì nhân
-    // vật vẫn quay mặt sang hướng đó và có thể vừa quay vào một cái hộp. Rải lời
-    // gọi này ra từng nhánh đi/undo/redo/restart thì sớm muộn cũng sót một nhánh.
+    // Sync the pose in EXACTLY ONE place, after every command — including blocked
+    // moves, because the player still turns that way and may have just turned into a
+    // box. Scattering this call across the move/undo/redo/restart branches would
+    // sooner or later miss one.
     if (!this.#stopped) this.#syncPushPose();
     return acted;
   }
 
-  /** Nhân vật đang áp mặt vào hộp thì chuyển sang tư thế đẩy. */
+  /** Switch to the push pose when the player is braced against a box. */
   #syncPushPose() {
     const board = this.#session.board;
     const { dx, dy } = toDelta(this.#renderer.playerFacing);
@@ -178,9 +179,9 @@ export class LevelPlayer {
 
     this.#hooks.onSound?.(move.push ? 'push' : 'step');
     await this.#animator.play(move);
-    // Rời màn giữa lúc animation chạy thì dừng hẳn ở đây: #afterMove sẽ gọi
-    // onSolved trên session đã bị huỷ, và màn vừa giải xong sẽ không được ghi
-    // là hoàn thành.
+    // Leaving the level mid-animation stops right here: #afterMove would call
+    // onSolved on a discarded session, and the level just solved would never be
+    // recorded as complete.
     if (this.#stopped) return false;
 
     this.#afterMove(move);
@@ -192,7 +193,7 @@ export class LevelPlayer {
 
     this.#hooks.onSound?.('undo');
     await this.#animator.play(move, { reverse });
-    // Renderer có thể đã dựng lại cho màn khác trong lúc chờ.
+    // The renderer may have been rebuilt for a different level during the wait.
     if (this.#stopped) return false;
 
     this.#renderer.refreshBoxLook(this.#session.board);
@@ -206,7 +207,7 @@ export class LevelPlayer {
     });
   }
 
-  /** Đổi dấu trên hộp ở CUỐI animation, không phải lúc bắt đầu. */
+  /** Change the mark on a box at the END of the animation, not at its start. */
   #afterMove(move) {
     this.#renderer.refreshBoxLook(this.#session.board);
 

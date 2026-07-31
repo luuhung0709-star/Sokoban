@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Sokoban chạy trên trình duyệt, HTML + CSS + JavaScript thuần",
+  "description": "Sokoban in the browser, plain HTML, CSS and JavaScript",
   "scripts": {
     "test": "node --test"
   }

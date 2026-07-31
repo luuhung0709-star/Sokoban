@@ -9,9 +9,9 @@ const SFX = {
 };
 
 /**
- * SFX và nhạc nền. Trình duyệt chặn autoplay trước thao tác đầu tiên của người
- * dùng, nên nhạc nền chỉ bắt đầu khi unlock() được gọi từ trong một sự kiện
- * chuột hoặc bàn phím.
+ * SFX and background music. Browsers block autoplay before the user's first
+ * interaction, so the music only starts once unlock() is called from inside a
+ * mouse or keyboard event.
  */
 export class AudioService {
   #progress;
@@ -53,8 +53,8 @@ export class AudioService {
     const source = this.#buffers.get(name);
     if (!source) return;
 
-    // Clone để hai tiếng chồng nhau được: bấm phím nhanh mà dùng chung một node
-    // thì tiếng trước bị cắt ngang.
+    // Clone so two sounds can overlap: sharing one node means fast key presses cut
+    // the previous sound off mid-play.
     const clip = source.cloneNode();
     clip.volume = 0.7;
     void clip.play().catch(() => {});

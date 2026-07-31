@@ -2,26 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isGrid, isContent, countPieces } from '../src/levels/sokobanChars.js';
 
-test('isGrid nhận đúng bảy ký tự lưới', () => {
+test('isGrid accepts exactly the seven grid characters', () => {
   for (const c of ['#', ' ', '@', '+', '$', '*', '.']) {
-    assert.equal(isGrid(c), true, `${JSON.stringify(c)} phải là ký tự lưới`);
+    assert.equal(isGrid(c), true, `${JSON.stringify(c)} should be a grid character`);
   }
 });
 
-test('isGrid từ chối chữ, số và ký tự lạ', () => {
+test('isGrid rejects letters, digits and stray characters', () => {
   for (const c of ['a', 'T', '1', ':', '\t']) {
-    assert.equal(isGrid(c), false, `${JSON.stringify(c)} không phải ký tự lưới`);
+    assert.equal(isGrid(c), false, `${JSON.stringify(c)} is not a grid character`);
   }
 });
 
-test('isContent loại nền trống ra khỏi ký tự lưới', () => {
+test('isContent excludes empty floor from the grid characters', () => {
   assert.equal(isContent(' '), false);
   assert.equal(isContent('#'), true);
   assert.equal(isContent('.'), true);
   assert.equal(isContent('a'), false);
 });
 
-test('countPieces đếm đúng người chơi, hộp và đích', () => {
+test('countPieces counts players, boxes and goals correctly', () => {
   const counts = countPieces(['#####', '#@$.#', '#####']);
   assert.equal(counts.players, 1);
   assert.equal(counts.boxes, 1);
@@ -29,8 +29,8 @@ test('countPieces đếm đúng người chơi, hộp và đích', () => {
   assert.deepEqual(counts.playerPos, { x: 1, y: 1 });
 });
 
-test('countPieces tính * và + vào cả hai phía', () => {
-  // '*' vừa là hộp vừa là đích; '+' vừa là người vừa là đích.
+test('countPieces counts * and + on both sides', () => {
+  // '*' is both a box and a goal; '+' is both the player and a goal.
   const counts = countPieces(['#+*#']);
   assert.equal(counts.players, 1);
   assert.equal(counts.boxes, 1);
@@ -38,6 +38,6 @@ test('countPieces tính * và + vào cả hai phía', () => {
   assert.deepEqual(counts.playerPos, { x: 1, y: 0 });
 });
 
-test('countPieces trên lưới không có người trả playerPos null', () => {
+test('countPieces returns a null playerPos on a grid with no player', () => {
   assert.equal(countPieces(['####']).playerPos, null);
 });

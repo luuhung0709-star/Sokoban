@@ -15,11 +15,11 @@ try {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   collection = await response.json();
 } catch (error) {
-  // Không có bộ màn thì hiện lời nhắn, không để người chơi nhìn màn hình trắng.
-  console.error(`Không tải được bộ màn: ${error.message}`);
+  // With no level set, show a message rather than leaving the player a blank screen.
+  console.error(`Could not load the level set: ${error.message}`);
   document.body.dataset.screen = 'levels';
   document.getElementById('levels').innerHTML =
-    '<p class="empty">Không tải được bộ màn. Thử tải lại trang.</p>';
+    '<p class="empty">Could not load the level set. Try reloading the page.</p>';
   throw error;
 }
 
@@ -32,7 +32,7 @@ const hud = new Hud(document.body, router);
 
 const audio = new AudioService(progress);
 
-// Trình duyệt chỉ cho phát tiếng từ trong một thao tác thật của người dùng.
+// Browsers only allow sound to start from inside a real user interaction.
 const unlockAudio = () => audio.unlock();
 window.addEventListener('pointerdown', unlockAudio, { once: true });
 window.addEventListener('keydown', unlockAudio, { once: true });
@@ -40,9 +40,9 @@ window.addEventListener('keydown', unlockAudio, { once: true });
 const panels = {
   menu: new MainMenu(document.body, {
     onContinue: () => {
-      // Kẹp lại: tiến độ có thể trỏ ra ngoài bộ màn (bộ màn co lại, hoặc
-      // localStorage bị sửa tay), mà playLevel gặp chỉ số lạ thì lặng lẽ thoát
-      // sau khi đã rời màn — nút trông như hỏng.
+      // Clamp it: progress can point past the level set (the set shrank, or
+      // localStorage was hand-edited), and playLevel given a stray index bails out
+      // silently after leaving the screen — the button then looks broken.
       const last = progress.getLastPlayedIndex(collection.collectionName);
       flow.playLevel(Math.min(Math.max(last, 0), collection.levels.length - 1));
     },

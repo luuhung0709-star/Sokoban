@@ -1,7 +1,7 @@
 import { CellType, boxKey } from './board.js';
 import { toDelta } from './direction.js';
 
-/** Tính kết quả một nước đi. Hàm thuần — không đổi board. */
+/** Works out the result of one move. Pure — does not touch the board. */
 export function resolve(board, dir) {
   const { dx, dy } = toDelta(dir);
   const from = { ...board.player };
@@ -16,7 +16,7 @@ export function resolve(board, dir) {
 
   if (board.hasBox(to.x, to.y)) {
     const boxTo = { x: to.x + dx, y: to.y + dy };
-    // Đẩy vào tường hoặc vào hộp khác đều không được.
+    // Pushing into a wall or into another box is equally impossible.
     if (board.cellAt(boxTo.x, boxTo.y) === CellType.Wall || board.hasBox(boxTo.x, boxTo.y)) {
       return blockedMove;
     }

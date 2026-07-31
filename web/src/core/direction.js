@@ -1,4 +1,4 @@
-/** Bốn hướng đi. Giá trị trùng tên khoá để log ra đọc được ngay. */
+/** The four directions. Values match their key names so logs read straight off. */
 export const Direction = Object.freeze({
   Up: 'Up',
   Down: 'Down',
@@ -6,7 +6,7 @@ export const Direction = Object.freeze({
   Right: 'Right',
 });
 
-// y tăng xuống dưới, giống thứ tự hàng trong LevelData.rows.
+// y grows downwards, matching the row order in LevelData.rows.
 const DELTAS = Object.freeze({
   Up: { dx: 0, dy: -1 },
   Down: { dx: 0, dy: 1 },
@@ -16,8 +16,8 @@ const DELTAS = Object.freeze({
 
 export function toDelta(dir) {
   const delta = DELTAS[dir];
-  // Ném lỗi chứ không trả undefined: hướng sai mà im lặng thì lỗi sẽ hiện ra ở
-  // tận chỗ cộng toạ độ, xa chỗ gây ra nó.
-  if (!delta) throw new Error(`Hướng không hợp lệ: ${dir}`);
+  // Throw rather than return undefined: a bad direction that fails silently only
+  // surfaces where the coordinates get added, far from what caused it.
+  if (!delta) throw new Error(`Invalid direction: ${dir}`);
   return delta;
 }

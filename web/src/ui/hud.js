@@ -1,6 +1,6 @@
 import { Command } from '../input/inputRouter.js';
 
-/** Thanh thông tin trên và hàng nút dưới. Bám theo session qua onChange. */
+/** The info bar on top and the button row below. Follows the session via onChange. */
 export class Hud {
   #name;
   #moves;
@@ -27,11 +27,11 @@ export class Hud {
     this.#name.textContent = text;
   }
 
-  /** Trả về hàm gỡ, để đổi màn không để lại listener bám vào session cũ. */
+  /** Returns an unbind function, so changing level leaves no listener on the old session. */
   bind(session) {
     const refresh = () => {
-      // Thắng rồi thì ba nút này không còn tác dụng — phải xám đi, không thì
-      // chúng trông vẫn bấm được mà bấm không ra gì.
+      // Once solved these three buttons do nothing — grey them out, or they look
+      // clickable while clicking them achieves nothing.
       const solved = session.isSolved;
       this.#moves.textContent = String(session.moves);
       this.#pushes.textContent = String(session.pushes);

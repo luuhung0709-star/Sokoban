@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,10 +11,10 @@
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .grid { display: grid; gap: 1px; width: max-content; background: var(--panel-line); }
     /*
-     * Màu ô lấy thẳng từ bảng màu bàn cờ trong base.css, không chép lại giá trị
-     * hex: đổi tông game một lần là editor theo luôn. Trước đây chép cứng nên
-     * editor mắc kẹt ở bộ màu thời hộp còn là thùng gỗ, vẽ màn xong mở game ra
-     * thấy khác hẳn.
+     * Cell colours come straight from the board palette in base.css rather than
+     * copied hex values: retune the game once and the editor follows. They used to be
+     * hard-copied, which left the editor stuck on the palette from when boxes were
+     * wooden crates — you would draw a level, open the game, and see something else.
      */
     .grid button {
       width: 26px; height: 26px; border: 0; cursor: pointer;
@@ -23,15 +23,15 @@
     .grid button[data-char="."] { background: var(--goal-bg); }
 
     /*
-     * Tường và hộp là hai màu SÁNG nên màu chữ phải lật sang tối. Giữ nguyên chữ
-     * sáng như các ô nền tối thì ký tự '#' và '$' chìm mất, mà editor thì đọc ô
-     * bằng ký tự chứ không chỉ bằng màu.
+     * Walls and boxes are both LIGHT colours, so the text colour has to flip dark.
+     * Keeping the light text used on dark cells would sink the '#' and '$' glyphs,
+     * and the editor is read by character, not by colour alone.
      */
     .grid button[data-char="#"] { background: var(--wall-face); color: var(--bg); }
     .grid button[data-char="$"],
     .grid button[data-char="*"] { background: var(--box); color: var(--bg); }
 
-    /* Người chơi cố ý dùng màu ngoài bảng màu bàn cờ để nổi hẳn lên giữa lưới. */
+    /* The player deliberately uses a colour outside the board palette to stand out. */
     .grid button[data-char="@"],
     .grid button[data-char="+"] { background: #2f7fd4; }
     .brush[aria-pressed="true"] { outline: 2px solid var(--accent); }
@@ -48,13 +48,13 @@
     <div class="row" id="brushes"></div>
 
     <div class="row">
-      Rộng <input id="width" type="number" min="3" max="40" value="9">
-      Cao <input id="height" type="number" min="3" max="24" value="7">
-      <button class="btn" id="btn-resize" type="button">Đổi kích thước</button>
-      <button class="btn" id="btn-clear" type="button">Xoá sạch</button>
-      <button class="btn" id="btn-check" type="button">Kiểm tra</button>
-      <button class="btn" id="btn-export" type="button">Xuất JSON</button>
-      <button class="btn" id="btn-download" type="button">Tải JSON</button>
+      Width <input id="width" type="number" min="3" max="40" value="9">
+      Height <input id="height" type="number" min="3" max="24" value="7">
+      <button class="btn" id="btn-resize" type="button">Resize</button>
+      <button class="btn" id="btn-clear" type="button">Clear</button>
+      <button class="btn" id="btn-check" type="button">Check</button>
+      <button class="btn" id="btn-export" type="button">Export JSON</button>
+      <button class="btn" id="btn-download" type="button">Download JSON</button>
     </div>
 
     <div class="grid" id="grid"></div>
@@ -62,7 +62,7 @@
 
     <div class="row" style="width:100%">
       <button class="btn" id="btn-import" type="button">Import .txt</button>
-      <span class="panel__hint" style="margin:0">Dán nội dung Microban vào ô dưới rồi bấm Import</span>
+      <span class="panel__hint" style="margin:0">Paste Microban text into the box below, then press Import</span>
     </div>
     <textarea id="io" spellcheck="false"></textarea>
   </div>

@@ -28,19 +28,19 @@ export function commandToDirection(command) {
 }
 
 /**
- * Giữ phím bao lâu thì mới bắt đầu tự đi tiếp.
+ * How long a key must be held before it starts auto-walking.
  *
- * Không có quãng nghỉ này thì gõ nhẹ một cái cũng ra 2–3 nước (mỗi nước 120ms),
- * và đẩy thùng lố mất một ô. Auto-repeat của hệ điều hành nghỉ ~500ms — đủ để
- * chính xác nhưng cầm phím đi đường dài thì khựng, nên lấy mức ngắn hơn.
+ * Without this pause, a light tap yields 2–3 moves (120ms each) and overshoots a box
+ * by a square. The OS auto-repeat waits ~500ms — accurate enough, but it stutters on
+ * long walks, so this uses a shorter delay.
  */
 const REPEAT_DELAY_MS = 250;
 
-/** Gom bàn phím và nút bấm thành một luồng lệnh duy nhất. */
+/** Merges keyboard and on-screen buttons into a single command stream. */
 export class InputRouter {
   #target;
   #listeners = new Set();
-  #held = [];           // { command, at } của phím hướng đang giữ, mới nhất ở cuối
+  #held = [];           // { command, at } for each held direction key, newest last
 
   constructor(target = window) {
     this.#target = target;
@@ -71,21 +71,21 @@ export class InputRouter {
   }
 
   /**
-   * Hướng của phím đang giữ, mới nhất thắng. LevelPlayer hỏi cái này sau mỗi
-   * animation thay vì dựa vào auto-repeat của hệ điều hành — auto-repeat trễ
-   * khoảng 500ms ở nhịp đầu nên cầm phím sẽ khựng.
+   * Direction of the held key, newest wins. LevelPlayer asks for this after every
+   * animation instead of relying on the OS auto-repeat — auto-repeat lags about
+   * 500ms on the first beat, so holding a key would stutter.
    */
   get heldDirection() {
     return this.#newestHeld()?.dir ?? null;
   }
 
   /**
-   * Còn bao nhiêu mili-giây nữa thì phím đang giữ được phép đi tiếp. Trả `null`
-   * khi không giữ phím hướng nào, `0` khi đã qua quãng nghỉ.
+   * Milliseconds until the held key is allowed to step again. Returns `null` when no
+   * direction key is held, `0` once the delay has passed.
    *
-   * Tách khỏi `heldDirection` chứ không gộp làm một: người gọi cần phân biệt
-   * "không giữ phím" với "có giữ nhưng chưa tới lúc", vì trường hợp sau phải
-   * chờ rồi đi tiếp, còn trường hợp đầu là dừng hẳn.
+   * Kept separate from `heldDirection` rather than merged: callers must tell "no key
+   * held" apart from "held, but not yet due", because the latter means wait and then
+   * continue while the former means stop outright.
    */
   get msUntilRepeat() {
     const held = this.#newestHeld();
@@ -93,7 +93,7 @@ export class InputRouter {
     return Math.max(0, REPEAT_DELAY_MS - (performance.now() - held.at));
   }
 
-  /** Phím hướng được giữ gần đây nhất — bấm phím mới thì đổi hướng ngay. */
+  /** The most recently held direction key — a new key changes direction at once. */
   #newestHeld() {
     for (let i = this.#held.length - 1; i >= 0; i--) {
       const dir = commandToDirection(this.#held[i].command);
@@ -106,12 +106,12 @@ export class InputRouter {
     const command = KEY_TO_COMMAND[event.code];
     if (!command) return;
 
-    // Chỉ chặn cuộn trang khi đang chơi: ở màn chọn màn, mũi tên phải cuộn được
-    // lưới 155 nút.
+    // Only block page scrolling during play: on the level select, the arrows must
+    // still scroll the 155-button grid.
     if (document.body.dataset.screen === 'play') event.preventDefault();
 
     if (commandToDirection(command)) {
-      if (event.repeat) return;                 // nhịp lặp của OS bỏ qua, đã tự lo
+      if (event.repeat) return;                 // ignore the OS repeat beat, handled here
       if (!this.#held.some((h) => h.command === command)) {
         this.#held.push({ command, at: performance.now() });
       }
@@ -125,7 +125,7 @@ export class InputRouter {
     this.#held = this.#held.filter((h) => h.command !== command);
   }
 
-  /** Mất focus thì coi như buông hết phím, không thì người chơi sẽ đi mãi. */
+  /** Losing focus counts as releasing every key, or the player would walk forever. */
   onBlur() {
     this.#held = [];
   }

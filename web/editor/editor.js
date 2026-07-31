@@ -3,13 +3,13 @@ import { validateLevel } from '../src/levels/levelValidator.js';
 import { WALL, FLOOR, GOAL, BOX, BOX_ON_GOAL, PLAYER, PLAYER_ON_GOAL } from '../src/levels/sokobanChars.js';
 
 const BRUSHES = [
-  { char: WALL, label: 'Tường #' },
-  { char: FLOOR, label: 'Nền' },
-  { char: GOAL, label: 'Đích .' },
-  { char: BOX, label: 'Hộp $' },
-  { char: BOX_ON_GOAL, label: 'Hộp trên đích *' },
-  { char: PLAYER, label: 'Người @' },
-  { char: PLAYER_ON_GOAL, label: 'Người trên đích +' },
+  { char: WALL, label: 'Wall #' },
+  { char: FLOOR, label: 'Floor' },
+  { char: GOAL, label: 'Goal .' },
+  { char: BOX, label: 'Box $' },
+  { char: BOX_ON_GOAL, label: 'Box on goal *' },
+  { char: PLAYER, label: 'Player @' },
+  { char: PLAYER_ON_GOAL, label: 'Player on goal +' },
 ];
 
 const gridEl = document.getElementById('grid');
@@ -78,9 +78,9 @@ document.getElementById('btn-resize').addEventListener('click', () => {
 });
 
 document.getElementById('btn-clear').addEventListener('click', () => {
-  // Giữ đúng kích thước lưới đang vẽ chứ không lấy theo ô nhập — người dùng có
-  // thể đã gõ số mới mà chưa bấm Đổi kích thước. Lưới rỗng thì lùi về ô nhập,
-  // vì rows[0].length khi đó ném lỗi.
+  // Keep the size of the grid currently drawn rather than reading the inputs — the
+  // user may have typed new numbers without pressing Resize. On an empty grid, fall
+  // back to the inputs, since rows[0].length would throw.
   const width = rows[0]?.length ?? Number(widthEl.value);
   const height = rows.length || Number(heightEl.value);
   rows = makeEmpty(width, height);
@@ -89,7 +89,7 @@ document.getElementById('btn-clear').addEventListener('click', () => {
 
 document.getElementById('btn-check').addEventListener('click', () => {
   const issues = validateLevel(currentLevel());
-  issuesEl.textContent = issues.length === 0 ? 'Màn hợp lệ.' : issues.join('\n');
+  issuesEl.textContent = issues.length === 0 ? 'Level is valid.' : issues.join('\n');
 });
 
 document.getElementById('btn-export').addEventListener('click', () => {
@@ -114,19 +114,19 @@ document.getElementById('btn-import').addEventListener('click', () => {
   const lines = [...errors];
 
   if (levels.length === 0) {
-    lines.push('Không đọc được màn nào.');
+    lines.push('No level could be read.');
   } else {
-    // Import nhiều màn thì lấy màn đầu — editor này sửa từng màn một.
+    // Importing several levels takes the first — this editor edits one at a time.
     rows = [...levels[0].rows];
     widthEl.value = String(levels[0].width);
     heightEl.value = String(levels[0].height);
     drawGrid();
-    lines.push(`Đã nạp màn "${levels[0].name}" (${levels.length} màn trong nguồn).`);
+    lines.push(`Loaded level "${levels[0].name}" (${levels.length} level(s) in the source).`);
   }
 
-  // Gom lỗi và kết quả rồi ghi một lần. Ghi đè từng bước thì lỗi parse biến mất
-  // ngay khi có ít nhất một màn đọc được — mà đó chính là lúc cần thấy lỗi nhất.
-  // Ghi một lần cũng xoá luôn thông báo cũ của lần bấm trước.
+  // Collect errors and result, then write once. Writing step by step makes the parse
+  // errors vanish as soon as at least one level reads — exactly when they matter most.
+  // Writing once also clears the previous press's message.
   issuesEl.textContent = lines.join('\n');
 });
 

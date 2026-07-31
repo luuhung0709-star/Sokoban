@@ -1,27 +1,27 @@
 import { WALL, countPieces } from './sokobanChars.js';
 
 /**
- * Kiểm tra cấu trúc một màn. KHÔNG kiểm tra màn có giải được hay không —
- * viết solver Sokoban là bài toán riêng, nằm ngoài phạm vi.
+ * Checks the structure of a level. Does NOT check whether the level is solvable —
+ * writing a Sokoban solver is a problem of its own, and out of scope.
  */
 export function validateLevel(level) {
-  if (!level || !level.rows || level.rows.length === 0) return ['Màn rỗng'];
+  if (!level || !level.rows || level.rows.length === 0) return ['Empty level'];
 
   const issues = [];
   const { players, boxes, goals, playerPos } = countPieces(level.rows);
 
-  if (players !== 1) issues.push(`Phải có đúng một người chơi, đang có ${players}`);
-  if (boxes === 0) issues.push('Màn không có hộp nào');
-  else if (boxes !== goals) issues.push(`Số hộp (${boxes}) khác số đích (${goals})`);
+  if (players !== 1) issues.push(`Must have exactly one player, found ${players}`);
+  if (boxes === 0) issues.push('Level has no boxes');
+  else if (boxes !== goals) issues.push(`Box count (${boxes}) differs from goal count (${goals})`);
 
   if (players === 1 && !isEnclosed(level, playerPos)) {
-    issues.push('Vùng chơi chưa kín — người chơi đi ra ngoài lưới được');
+    issues.push('Play area is not sealed — the player can walk off the grid');
   }
 
   return issues;
 }
 
-/** Loang từ chỗ người chơi; chạm được ra ngoài lưới nghĩa là tường chưa bao kín. */
+/** Flood from the player; reaching outside the grid means the walls do not enclose it. */
 function isEnclosed(level, start) {
   const height = level.rows.length;
   const seen = new Set([`${start.x},${start.y}`]);

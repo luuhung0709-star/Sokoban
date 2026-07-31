@@ -9,9 +9,9 @@ export const CellType = Object.freeze({
 });
 
 /**
- * Hộp lưu trong Set dưới dạng khoá chuỗi "x,y". JS so sánh object theo tham chiếu
- * nên Set chứa {x,y} sẽ không nhận ra hai toạ độ bằng nhau — đây là khác biệt bắt
- * buộc so với HashSet<Vector2Int> bên C#.
+ * Boxes live in a Set as "x,y" string keys. JS compares objects by reference, so a
+ * Set of {x,y} would never recognise two equal coordinates — a forced difference
+ * from the HashSet<Vector2Int> the C# original used.
  */
 export const boxKey = (x, y) => `${x},${y}`;
 
@@ -20,18 +20,18 @@ export function parseBoxKey(key) {
   return { x, y };
 }
 
-/** Trạng thái một màn đang chơi. Lưới tĩnh không đổi; người chơi và hộp thì đổi. */
+/** State of a level in play. The static grid never changes; the player and boxes do. */
 export class Board {
   constructor(width, height) {
     this.width = width;
     this.height = height;
-    // statics[y][x] — cùng thứ tự với LevelData.rows nên đọc code đỡ phải đảo đầu.
+    // statics[y][x] — same order as LevelData.rows, so reading the code needs no mental flip.
     this.statics = Array.from({ length: height }, () => new Array(width).fill(CellType.Floor));
     this.player = { x: 0, y: 0 };
     this.boxes = new Set();
   }
 
-  /** Ngoài lưới coi như tường, nên nơi khác không cần kiểm tra biên. */
+  /** Outside the grid counts as wall, so nowhere else has to bounds-check. */
   cellAt(x, y) {
     if (x < 0 || x >= this.width || y < 0 || y >= this.height) return CellType.Wall;
     return this.statics[y][x];
@@ -55,7 +55,7 @@ export class Board {
     for (let y = 0; y < level.height; y++) {
       const row = level.rows[y];
       for (let x = 0; x < level.width; x++) {
-        // Hàng ngắn hơn width thì phần thiếu là nền trống.
+        // Rows shorter than width: the missing part is empty floor.
         const c = x < row.length ? row[x] : FLOOR;
 
         if (c === WALL) board.statics[y][x] = CellType.Wall;

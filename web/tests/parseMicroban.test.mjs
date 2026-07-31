@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseMicroban } from '../src/levels/parseMicroban.js';
 
-test('đọc một màn với tên nằm sau lưới', () => {
+test('reads a level whose title sits after the grid', () => {
   const { levels, errors } = parseMicroban([
     '#####',
     '#@$.#',
@@ -17,18 +17,18 @@ test('đọc một màn với tên nằm sau lưới', () => {
   assert.equal(levels[0].height, 3);
 });
 
-test('pad hàng ngắn cho bằng hàng dài nhất', () => {
+test('pads short rows out to the longest row', () => {
   const { levels } = parseMicroban(['####', '#@$.###', '####'].join('\n'));
 
   assert.equal(levels[0].width, 7);
   assert.deepEqual(levels[0].rows, ['####   ', '#@$.###', '####   ']);
 });
 
-test('bỏ qua khối header vì nó không có hàng lưới nào', () => {
+test('skips the header block because it has no grid rows', () => {
   const { levels, errors } = parseMicroban([
     'Title: Microban',
-    'Description: mấy màn nhỏ',
-    '             viết tiếp ở dòng dưới',
+    'Description: a set of small levels',
+    '             continued on the next line',
     'Author: David W Skinner',
     '',
     '#####',
@@ -42,15 +42,15 @@ test('bỏ qua khối header vì nó không có hàng lưới nào', () => {
   assert.equal(levels[0].name, '1');
 });
 
-test('đọc được cả 7 ký tự', () => {
-  // 3 hộp ($ $ *) và 3 đích (. * +) — phải cân nhau, không thì parser báo lỗi.
+test('reads all 7 characters', () => {
+  // 3 boxes ($ $ *) and 3 goals (. * +) — they must balance, or the parser errors.
   const { levels, errors } = parseMicroban(['#+*$$.#', 'Title: x'].join('\n'));
 
   assert.deepEqual(errors, []);
   assert.deepEqual(levels[0].rows, ['#+*$$.#']);
 });
 
-test('nhiều màn cách nhau bằng dòng trống', () => {
+test('several levels separated by a blank line', () => {
   const { levels } = parseMicroban([
     '#####', '#@$.#', '#####', 'Title: 1',
     '',
@@ -61,7 +61,7 @@ test('nhiều màn cách nhau bằng dòng trống', () => {
   assert.deepEqual(levels.map((l) => l.name), ['1', '2']);
 });
 
-test('màn không đúng một người chơi thì báo lỗi kèm số dòng và bị bỏ qua', () => {
+test('a level without exactly one player errors with a line number and is skipped', () => {
   const { levels, errors } = parseMicroban([
     '',
     '#####',
@@ -71,39 +71,39 @@ test('màn không đúng một người chơi thì báo lỗi kèm số dòng v�
 
   assert.equal(levels.length, 0);
   assert.equal(errors.length, 1);
-  assert.match(errors[0], /Dòng 2/);
+  assert.match(errors[0], /Line 2/);
   assert.match(errors[0], /2/);
 });
 
-test('số hộp khác số đích thì báo lỗi', () => {
+test('a box count differing from the goal count errors', () => {
   const { errors } = parseMicroban(['#####', '#@$ #', '#####'].join('\n'));
 
   assert.equal(errors.length, 1);
-  assert.match(errors[0], /1 hộp/);
+  assert.match(errors[0], /1 box/);
 });
 
-test('một màn hỏng không làm hỏng các màn còn lại', () => {
+test('one broken level does not break the rest', () => {
   const { levels, errors } = parseMicroban([
     '#####', '#@$@#', '#####',
     '',
-    '#####', '#@$.#', '#####', 'Title: tốt',
+    '#####', '#@$.#', '#####', 'Title: good',
   ].join('\n'));
 
   assert.equal(errors.length, 1);
   assert.equal(levels.length, 1);
-  assert.equal(levels[0].name, 'tốt');
+  assert.equal(levels[0].name, 'good');
 });
 
-test('màn không có tên thì tự đặt theo thứ tự', () => {
+test('a level without a title is named after its position', () => {
   const { levels } = parseMicroban(['#####', '#@$.#', '#####'].join('\n'));
   assert.equal(levels[0].name, 'Level 1');
 });
 
-test('chuỗi rỗng cho ra kết quả rỗng, không phải lỗi', () => {
+test('an empty string gives an empty result, not an error', () => {
   assert.deepEqual(parseMicroban(''), { levels: [], errors: [] });
 });
 
-test('xuống dòng kiểu Windows đọc được như thường', () => {
+test('Windows line endings read as normal', () => {
   const { levels } = parseMicroban('#####\r\n#@$.#\r\n#####\r\nTitle: 1');
   assert.equal(levels.length, 1);
   assert.equal(levels[0].width, 5);

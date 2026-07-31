@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,18 +12,18 @@
   <section class="screen screen--menu" data-name="menu">
     <div class="panel">
       <h1 class="panel__title">Sokoban</h1>
-      <p class="panel__hint">Mũi tên hoặc WASD để đi · U hoàn tác · Y làm lại · R chơi lại màn · Esc thoát</p>
+      <p class="panel__hint">Arrows or WASD to move · U undo · Y redo · R restart level · Esc exit</p>
       <div class="panel__actions">
-        <button class="btn btn--big" id="btn-continue" type="button">Chơi tiếp</button>
-        <button class="btn btn--big" id="btn-levels" type="button">Chọn màn</button>
-        <button class="btn btn--big" id="btn-menu-mute" type="button" aria-pressed="false">Tiếng: bật</button>
+        <button class="btn btn--big" id="btn-continue" type="button">Continue</button>
+        <button class="btn btn--big" id="btn-levels" type="button">Select level</button>
+        <button class="btn btn--big" id="btn-menu-mute" type="button" aria-pressed="false">Sound: on</button>
       </div>
     </div>
   </section>
 
   <section class="screen screen--levels" data-name="levels">
     <header class="hud">
-      <span class="hud__name">Chọn màn</span>
+      <span class="hud__name">Select level</span>
       <span class="hud__spacer"></span>
       <button class="btn" id="btn-levels-back" type="button">← Menu</button>
     </header>
@@ -32,9 +32,9 @@
 
   <main class="screen screen--play" data-name="play">
     <header class="hud" id="hud">
-      <span class="hud__name" id="hud-name">Màn 1</span>
-      <span class="hud__stat">Bước <b id="hud-moves">0</b></span>
-      <span class="hud__stat">Đẩy <b id="hud-pushes">0</b></span>
+      <span class="hud__name" id="hud-name">Level 1</span>
+      <span class="hud__stat">Moves <b id="hud-moves">0</b></span>
+      <span class="hud__stat">Pushes <b id="hud-pushes">0</b></span>
       <span class="hud__spacer"></span>
       <button class="btn btn--ghost" id="btn-mute" type="button" aria-pressed="false">🔊</button>
     </header>
@@ -44,13 +44,13 @@
 
       <div class="overlay" id="complete" hidden>
         <div class="panel">
-          <h2 class="panel__title">Xong màn!</h2>
+          <h2 class="panel__title">Level complete!</h2>
           <p class="panel__stats" id="complete-stats"></p>
           <p class="panel__hint" id="complete-best"></p>
           <div class="panel__actions">
-            <button class="btn btn--big" id="btn-next" type="button">Màn tiếp →</button>
-            <button class="btn btn--big" id="btn-retry" type="button">Chơi lại</button>
-            <button class="btn btn--big" id="btn-to-levels" type="button">Chọn màn</button>
+            <button class="btn btn--big" id="btn-next" type="button">Next level →</button>
+            <button class="btn btn--big" id="btn-retry" type="button">Play again</button>
+            <button class="btn btn--big" id="btn-to-levels" type="button">Select level</button>
           </div>
         </div>
       </div>
@@ -59,8 +59,8 @@
     <footer class="toolbar">
       <button class="btn" id="btn-undo" type="button">↶ Undo</button>
       <button class="btn" id="btn-redo" type="button">↷ Redo</button>
-      <button class="btn" id="btn-restart" type="button">⟳ Chơi lại</button>
-      <button class="btn" id="btn-exit" type="button">← Chọn màn</button>
+      <button class="btn" id="btn-restart" type="button">⟳ Restart</button>
+      <button class="btn" id="btn-exit" type="button">← Select level</button>
     </footer>
   </main>
 

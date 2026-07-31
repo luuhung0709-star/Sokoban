@@ -1,4 +1,4 @@
-/** Bảy ký tự của định dạng Sokoban chuẩn. */
+/** The seven characters of the standard Sokoban format. */
 export const WALL = '#';
 export const FLOOR = ' ';
 export const PLAYER = '@';
@@ -13,17 +13,18 @@ export function isGrid(c) {
   return GRID_CHARS.has(c);
 }
 
-/** Ký tự lưới khác nền trống — dùng để phân biệt hàng lưới với dòng chữ. */
+/** A grid character other than empty floor — tells grid rows apart from text lines. */
 export function isContent(c) {
   return isGrid(c) && c !== FLOOR;
 }
 
 /**
- * Đếm người chơi, hộp và đích trên một mảy hàng, kèm vị trí người chơi.
+ * Counts players, boxes and goals across an array of rows, plus the player position.
  *
- * Dùng chung cho parser và validator: cả hai đều cần đúng ba con số này, và
- * lệ đếm có chỗ dễ quên — '*' tính cả vào hộp lẫn đích, '+' tính cả vào người
- * lẫn đích. Viết riêng mỗi nơi một vòng lặp thì sửa lệ phải sửa hai chỗ.
+ * Shared by the parser and the validator: both need exactly these three numbers, and
+ * the counting rule has an easy-to-forget corner — '*' counts as both a box and a
+ * goal, '+' as both a player and a goal. A separate loop in each place would mean
+ * fixing the rule twice.
  */
 export function countPieces(rows) {
   let players = 0, boxes = 0, goals = 0;

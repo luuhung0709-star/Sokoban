@@ -1,4 +1,4 @@
-Nguồn âm thanh trong thư mục này — tất cả đều CC0 (Creative Commons Zero) của Kenney (www.kenney.nl).
+Sources for the audio in this folder — all CC0 (Creative Commons Zero) by Kenney (www.kenney.nl).
 
   step.ogg        <- Impact Sounds / footstep_wood_000.ogg
   push.ogg        <- Impact Sounds / impactWood_medium_000.ogg
@@ -6,7 +6,7 @@ Nguồn âm thanh trong thư mục này — tất cả đều CC0 (Creative Comm
   undo.ogg        <- UI Audio / switch2.ogg
   win.ogg         <- Music Jingles / Pizzicato jingles / jingles_PIZZI07.ogg
 
-Giấy phép gốc của cả ba bộ, chép nguyên văn:
+The original licences for all three packs, reproduced verbatim:
 
 === Impact Sounds ===
 	
@@ -21,7 +21,7 @@ Giấy phép gốc của cả ba bộ, chép nguyên văn:
 	License: (Creative Commons Zero, CC0)
 	http://creativecommons.org/publicdomain/zero/1.0/
 
-	This content is free to use in personal, educational and commercial projects.
+	This content is free to use in personal, educational and commercial projects.
 	Support us by crediting Kenney or www.kenney.nl (this is not mandatory)
 
 			------------------------------
@@ -78,5 +78,5 @@ Giấy phép gốc của cả ba bộ, chép nguyên văn:
 	@KenneyNL
 === music_loop.mp3 ===
   "Town Theme RPG" — cynicmusic (https://opengameart.org/content/town-theme-rpg)
-  Giấy phép: CC0 (ghi trên trang tải, mục License(s)).
-  Giữ nguyên file gốc TownTheme.mp3, chỉ đổi tên.
+  Licence: CC0 (stated on the download page, under License(s)).
+  The original TownTheme.mp3 is unchanged, only renamed.

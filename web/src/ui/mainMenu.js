@@ -1,4 +1,4 @@
-/** Màn hình đầu: chơi tiếp, chọn màn, bật tắt tiếng. */
+/** The first screen: continue, pick a level, toggle sound. */
 export class MainMenu {
   #continueBtn;
   #muteBtn;
@@ -14,13 +14,13 @@ export class MainMenu {
 
   refresh(progress, collectionName, levels) {
     const last = Math.min(progress.getLastPlayedIndex(collectionName), levels.length - 1);
-    // Số hiển thị lấy từ tên màn chứ không phải chỉ số cộng một — bộ màn khác
-    // có thể đặt tên không phải số.
+    // The number shown comes from the level's name, not index plus one — another
+    // level set may use names that are not numbers.
     const name = levels[last]?.name;
-    this.#continueBtn.textContent = last > 0 && name ? `Chơi tiếp (màn ${name})` : 'Chơi';
+    this.#continueBtn.textContent = last > 0 && name ? `Continue (level ${name})` : 'Play';
 
     const muted = progress.muted;
-    this.#muteBtn.textContent = muted ? 'Tiếng: tắt' : 'Tiếng: bật';
+    this.#muteBtn.textContent = muted ? 'Sound: off' : 'Sound: on';
     this.#muteBtn.setAttribute('aria-pressed', String(muted));
   }
 }

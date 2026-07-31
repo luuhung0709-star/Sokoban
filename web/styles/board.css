@@ -2,9 +2,9 @@
   --cell: 44px;
 
   /*
-   * Độ dày mọi nét vẽ trên bàn cờ: vòng tròn ô đích, vòng tròn và chữ X trên
-   * hộp. Buộc theo cỡ ô chứ không đặt cứng px — ô chạy từ 20 đến 64px, nét cố
-   * định 2.5px sẽ thô ở ô nhỏ và mảnh hụt ở ô lớn.
+   * The width of every stroke on the board: the goal circle, and the circle and X on
+   * a box. Tied to the cell size rather than fixed px — cells run from 20 to 64px, and
+   * a fixed 2.5px stroke looks coarse on small cells and too thin on large ones.
    */
   --stroke: calc(var(--cell) * 0.06);
 
@@ -13,19 +13,20 @@
   height: calc(var(--rows) * var(--cell));
 
   /*
-   * Bóng đổ nhấc cả bàn cờ lên khỏi nền trang.
+   * A shadow lifting the whole board off the page background.
    *
-   * Bóng của một khối CHỮ NHẬT, không ôm theo viền răng cưa của tường — vì bàn
-   * cờ vốn đặc: CellType chỉ có Wall/Floor/Goal nên vùng ngoài viền tường vẫn là
-   * sàn. Muốn bóng ôm viền thì phải thêm loại ô "ngoài bàn cờ" trước đã.
+   * It is the shadow of a RECTANGLE, not one hugging the ragged wall outline — the
+   * board is solid by construction: CellType only has Wall/Floor/Goal, so the area
+   * outside the wall ring is still floor. Hugging the outline would need an
+   * "outside the board" cell type first.
    *
-   * Để cứng px chứ không buộc theo --cell như các nét bên trong: đây là thuộc
-   * tính của cả bàn cờ đặt trên trang, không phải của lưới ô. Với lại fitCellSize
-   * đã kéo cỡ ô sao cho bàn cờ luôn lấp đầy khung, nên bàn cờ to nhỏ khá giống
-   * nhau trên màn hình dù màn có mấy hàng mấy cột.
+   * Fixed px rather than tied to --cell like the strokes inside: this is a property of
+   * the whole board sitting on the page, not of the cell grid. Besides, fitCellSize
+   * already scales cells so the board fills its frame, which keeps boards roughly the
+   * same size on screen however many rows and columns a level has.
    *
-   * box-shadow chứ không filter: drop-shadow — actor chạy transform 60fps bên
-   * trong, mà filter thì buộc trình duyệt tô lại cả cây con sau mỗi khung hình.
+   * box-shadow, not filter: drop-shadow — actors run transforms at 60fps inside, and
+   * a filter forces the browser to repaint the whole subtree every frame.
    */
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
 }
@@ -45,13 +46,13 @@
 .tile--floor { background: var(--floor); }
 
 /*
- * Tường là viên gạch nổi: mặt phẳng một màu, vát sáng trên-trái và vát tối
- * dưới-phải, chừa khe 1px quanh viên để lộ nền tối phía dưới — chính cái khe
- * đó tách các viên ra khỏi nhau.
+ * A wall is a raised block: a flat single-colour face, a light bevel top-left and a
+ * dark one bottom-right, with a 1px gap around it showing the dark backdrop — that
+ * gap is what separates one block from the next.
  *
- * Vát để cứng 2px chứ không buộc theo --cell: ở ô 20px thì 2px vẫn đọc được,
- * còn nếu tính theo tỉ lệ nó tụt xuống dưới 1px và viên gạch bẹt ra thành một
- * mảng phẳng không còn khối.
+ * The bevel is a fixed 2px rather than tied to --cell: at a 20px cell, 2px still
+ * reads, whereas a proportional bevel drops below 1px and the block flattens into a
+ * plain patch with no volume.
  */
 .tile--wall {
   background: var(--board-void);
@@ -68,8 +69,8 @@
 }
 
 /*
- * Ô đích là một hốc lõm: nền sẫm hơn sàn, thêm bóng ở mép trên cho ra cảm giác
- * thụt xuống, rồi vòng tròn viền sáng nổi lên trên.
+ * A goal is a recess: a background darker than the floor, a shadow along the top edge
+ * to sell the drop, and a bright ring on top of that.
  */
 .tile--goal {
   background: var(--goal-bg);
@@ -80,7 +81,7 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  box-sizing: border-box;   /* để 44% là đường kính NGOÀI, đã gồm cả nét viền */
+  box-sizing: border-box;   /* so 44% is the OUTER diameter, border included */
   width: 44%;
   height: 44%;
   transform: translate(-50%, -50%);
@@ -89,10 +90,10 @@
 }
 
 /*
- * Khung chứa bàn cờ. Phải có chiều cao THẬT, không phụ thuộc vào bàn cờ: nếu để
- * nó co theo `.board` (cao `rows × --cell`) thì phép đo trong `fitCellSize` thành
- * vòng tự tham chiếu — `chiều cao khung / số hàng` rút gọn về đúng cỡ ô đang có,
- * nên ô không bao giờ lớn ra được.
+ * The frame holding the board. It must have a REAL height that does not depend on the
+ * board: letting it shrink to fit `.board` (height `rows × --cell`) makes the
+ * measurement in `fitCellSize` self-referential — `frame height / row count` reduces
+ * to the cell size already in use, so cells can never grow.
  */
 .stage {
   min-height: 100vh;
@@ -126,13 +127,14 @@
 }
 
 /*
- * Hộp: mặt vàng phẳng, vát cạnh mảnh. KHÔNG đổ gradient chéo qua cả ô — mặt
- * phẳng mới ra đúng chất liệu trong ảnh tham khảo; gradient mạnh làm hộp trông
- * đậm và nặng hơn hẳn dù màu nền y hệt.
+ * The box: a flat yellow face with a thin bevel. NO diagonal gradient across the whole
+ * square — the flat face is what matches the material in the reference art; a strong
+ * gradient makes the box read as darker and heavier despite the identical base colour.
  *
- * Phải có phần tử con `.actor__face` chứ không vẽ thẳng lên `.actor`: cần ba
- * lớp — mặt hộp và hai nét chữ X — mà một phần tử chỉ cho hai pseudo-element.
- * Đặt mặt hộp vào con thì ::before/::after của nó lo hai nét, vừa đủ.
+ * It needs the child element `.actor__face` rather than drawing straight onto
+ * `.actor`: three layers are required — the box face and the two strokes of the X —
+ * and one element only offers two pseudo-elements. Putting the face on a child lets
+ * its ::before/::after carry the two strokes, which is exactly enough.
  */
 .actor__face {
   position: absolute;
@@ -145,12 +147,12 @@
 }
 
 /*
- * Chữ X: hai thanh xoay ±45°, mỗi thanh dài 62% cạnh hộp.
+ * The X: two bars rotated ±45°, each 62% of the box edge.
  *
- * 62% để bốn đầu X chạm đúng bốn góc của khung 44% × 44% mà vòng tròn đang nằm
- * trong (44% × √2 ≈ 62%). Nghĩa là X và vòng tròn choán cùng một khung vuông.
- * Lưu ý đánh đổi: X vươn ra 31% tính từ tâm còn vòng tròn chỉ 22%, nên nhìn X
- * vẫn nhỉnh hơn — đây là lựa chọn có cân nhắc, không phải nhầm.
+ * 62% puts the four tips of the X exactly on the corners of the 44% × 44% square the
+ * circle sits inside (44% × √2 ≈ 62%). So the X and the circle occupy the same square.
+ * Note the trade-off: the X reaches 31% from the centre while the circle reaches only
+ * 22%, so the X still looks slightly larger — a considered choice, not a mistake.
  */
 .actor__face::before,
 .actor__face::after {
@@ -167,8 +169,8 @@
 .actor__face::after { transform: translate(-50%, -50%) rotate(-45deg); }
 
 /*
- * Hộp đã vào đích: giữ nguyên màu vàng, chỉ đổi dấu X thành vòng tròn cho khớp
- * ký hiệu của ô đích. Một thanh biến thành vòng tròn, thanh còn lại tắt đi.
+ * A box on its goal: the yellow stays, only the X becomes a circle to match the goal
+ * tile's symbol. One bar turns into the circle, the other is switched off.
  */
 .actor--on-goal .actor__face::before {
   box-sizing: border-box;
@@ -182,14 +184,15 @@
 .actor--on-goal .actor__face::after { display: none; }
 
 /*
- * Bóng đổ dưới chân người chơi, để nhân vật đứng trên sàn chứ không như dán lên.
+ * A shadow under the player's feet, so the character stands on the floor instead of
+ * looking pasted onto it.
  *
- * Phải là drop-shadow, không phải box-shadow: box-shadow đổ theo khung vuông của
- * phần tử, mà sprite có lề trong suốt bao quanh nên sẽ ra một vệt vuông lơ lửng
- * quanh người. drop-shadow bám đúng viền alpha của hình.
+ * It must be drop-shadow, not box-shadow: box-shadow follows the element's square
+ * frame, and the sprite has transparent margins all round, so that would give a square
+ * smudge floating around the character. drop-shadow follows the image's alpha edge.
  *
- * Buộc theo --cell chứ không đặt cứng px: cỡ ô chạy 20–64px, bóng cố định 2px sẽ
- * nặng nề ở ô nhỏ và mảnh hụt ở ô lớn.
+ * Tied to --cell rather than fixed px: cells run 20–64px, and a fixed 2px shadow looks
+ * heavy on small cells and too faint on large ones.
  */
 .actor--player .actor__sprite {
   filter: drop-shadow(0 calc(var(--cell) * 0.045)
@@ -197,11 +200,13 @@
                         rgba(0, 0, 0, 0.55));
 }
 
-/* Bật khi load màn hoặc restart, để actor không bay từ vị trí màn cũ sang. */
+/* Switched on when loading or restarting a level, so actors do not fly in from the
+   previous level's positions. */
 .board--no-anim .actor { transition: none; }
 
 /*
- * Thiếu sprite thì hiện hồng chói thay vì im lặng bỏ trống. Giờ chỉ còn nhân vật
- * dùng file ảnh — tường, sàn, ô đích và hộp đều vẽ bằng CSS nên không thể thiếu.
+ * A missing sprite shows glaring pink instead of a silent gap. Only the player still
+ * uses an image file — walls, floors, goals and boxes are drawn in CSS, so they cannot
+ * go missing.
  */
 .actor--missing { background: #ff00ff; }

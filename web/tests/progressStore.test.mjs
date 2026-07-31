@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ProgressStore } from '../src/progress/progressStore.js';
 
-/** localStorage giả, đủ dùng cho ProgressStore — không cần trình duyệt. */
+/** A fake localStorage, enough for ProgressStore — no browser needed. */
 function fakeStorage(initial = {}) {
   const data = new Map(Object.entries(initial));
   return {
@@ -13,14 +13,14 @@ function fakeStorage(initial = {}) {
   };
 }
 
-test('màn chưa chơi trả về bản ghi rỗng', () => {
+test('an unplayed level returns an empty record', () => {
   const store = new ProgressStore(fakeStorage());
   assert.deepEqual(store.getRecord('Microban', 3), {
     index: 3, completed: false, bestMoves: 0, bestPushes: 0,
   });
 });
 
-test('hoàn thành lần đầu ghi thẳng kỷ lục', () => {
+test('the first completion writes the best score straight in', () => {
   const store = new ProgressStore(fakeStorage());
   store.recordCompletion('Microban', 0, 33, 9);
 
@@ -30,7 +30,7 @@ test('hoàn thành lần đầu ghi thẳng kỷ lục', () => {
   assert.equal(record.bestPushes, 9);
 });
 
-test('kỷ lục chỉ bị ghi đè khi tốt hơn', () => {
+test('a best score is only overwritten when beaten', () => {
   const store = new ProgressStore(fakeStorage());
   store.recordCompletion('Microban', 0, 33, 9);
   store.recordCompletion('Microban', 0, 40, 12);
@@ -41,7 +41,7 @@ test('kỷ lục chỉ bị ghi đè khi tốt hơn', () => {
   assert.equal(store.getRecord('Microban', 0).bestPushes, 8);
 });
 
-test('số bước và số đẩy được so riêng', () => {
+test('moves and pushes are compared independently', () => {
   const store = new ProgressStore(fakeStorage());
   store.recordCompletion('Microban', 0, 33, 9);
   store.recordCompletion('Microban', 0, 35, 7);
@@ -50,7 +50,7 @@ test('số bước và số đẩy được so riêng', () => {
   assert.equal(store.getRecord('Microban', 0).bestPushes, 7);
 });
 
-test('mở khoá tuần tự: màn đầu luôn mở, màn sau chờ màn trước', () => {
+test('sequential unlocking: the first level is always open, later ones wait for the previous', () => {
   const store = new ProgressStore(fakeStorage());
   assert.equal(store.isUnlocked('Microban', 0), true);
   assert.equal(store.isUnlocked('Microban', 1), false);
@@ -60,7 +60,7 @@ test('mở khoá tuần tự: màn đầu luôn mở, màn sau chờ màn trư�
   assert.equal(store.isUnlocked('Microban', 2), false);
 });
 
-test('lastPlayedIndex ghi và đọc lại được', () => {
+test('lastPlayedIndex can be written and read back', () => {
   const store = new ProgressStore(fakeStorage());
   assert.equal(store.getLastPlayedIndex('Microban'), 0);
 
@@ -68,7 +68,7 @@ test('lastPlayedIndex ghi và đọc lại được', () => {
   assert.equal(store.getLastPlayedIndex('Microban'), 13);
 });
 
-test('tắt tiếng lưu chung với tiến độ', () => {
+test('the mute setting is stored alongside progress', () => {
   const storage = fakeStorage();
   const store = new ProgressStore(storage);
   store.muted = true;
@@ -76,39 +76,39 @@ test('tắt tiếng lưu chung với tiến độ', () => {
   assert.equal(new ProgressStore(storage).muted, true);
 });
 
-test('dữ liệu ghi xuống đọc lại được bằng một store mới', () => {
+test('written data can be read back by a fresh store', () => {
   const storage = fakeStorage();
   new ProgressStore(storage).recordCompletion('Microban', 5, 20, 4);
 
   assert.equal(new ProgressStore(storage).getRecord('Microban', 5).bestMoves, 20);
 });
 
-test('JSON hỏng thì reset về rỗng thay vì ném lỗi', () => {
-  const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{ vỡ toác' }));
+test('corrupt JSON resets to empty instead of throwing', () => {
+  const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{ shattered' }));
   assert.equal(store.getRecord('Microban', 0).completed, false);
   assert.equal(store.muted, false);
 });
 
-test('JSON đúng cú pháp nhưng thiếu trường thì vẫn dùng được', () => {
+test('JSON that parses but lacks fields is still usable', () => {
   const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{"muted":true}' }));
   assert.equal(store.muted, true);
   assert.equal(store.getRecord('Microban', 0).completed, false);
 });
 
-test('storage ném lỗi lúc ghi thì game không chết', () => {
+test('a storage that throws on write does not kill the game', () => {
   const store = new ProgressStore({
     getItem: () => null,
-    setItem: () => { throw new Error('hết chỗ'); },
+    setItem: () => { throw new Error('out of space'); },
     removeItem: () => {},
   });
 
   assert.doesNotThrow(() => store.recordCompletion('Microban', 0, 33, 9));
 });
 
-test('storage ném lỗi lúc đọc thì reset về rỗng, không ném ra ngoài', () => {
-  // Chế độ riêng tư của một số trình duyệt ném lỗi ngay ở getItem, không phải setItem.
+test('a storage that throws on read resets to empty rather than escaping', () => {
+  // Some browsers private mode throws on getItem itself, not on setItem.
   const store = new ProgressStore({
-    getItem: () => { throw new Error('bị chặn'); },
+    getItem: () => { throw new Error('blocked'); },
     setItem: () => {},
     removeItem: () => {},
   });
@@ -118,14 +118,14 @@ test('storage ném lỗi lúc đọc thì reset về rỗng, không ném ra ngo�
   assert.equal(store.muted, false);
 });
 
-test('collections chứa phần tử rác thì bị lọc, không ném lỗi', () => {
+test('junk entries in collections are filtered out rather than throwing', () => {
   const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{"collections":[null,3,"x"]}' }));
 
   assert.doesNotThrow(() => store.getLastPlayedIndex('Microban'));
   assert.equal(store.getRecord('Microban', 0).completed, false);
 });
 
-test('levels chứa phần tử rác thì bị lọc, giữ lại bản ghi thật', () => {
+test('junk entries in levels are filtered out, keeping the real record', () => {
   const store = new ProgressStore(fakeStorage({
     'sokoban.progress':
       '{"collections":[{"name":"Microban","levels":[null,{"index":0,"completed":true,"bestMoves":33,"bestPushes":9}]}]}',
@@ -135,7 +135,7 @@ test('levels chứa phần tử rác thì bị lọc, giữ lại bản ghi th�
   assert.equal(store.getRecord('Microban', 0).bestMoves, 33);
 });
 
-test('clear xoá sạch tiến độ', () => {
+test('clear wipes the progress', () => {
   const storage = fakeStorage();
   const store = new ProgressStore(storage);
   store.recordCompletion('Microban', 0, 33, 9);

@@ -1,36 +1,37 @@
-# Sokoban — bản web
+# Sokoban — web build
 
-HTML + CSS + JavaScript thuần. Không framework, không build step.
+Plain HTML, CSS and JavaScript. No framework, no build step.
 
-## Chạy lúc dev
+## Running it during development
 
 ```bash
 npx serve web
 ```
 
-Phải mở qua http. **Không** double-click `index.html`: `file://` chặn ES module và `fetch`,
-game sẽ trắng trang.
+It has to be served over http. Do **not** double-click `index.html`: `file://` blocks ES
+modules and `fetch`, so the game comes up blank.
 
-## Test
+## Tests
 
 ```bash
 cd web && npm test
 ```
 
-Chạy `node --test` trên phần lõi (`src/core`, `src/levels`, `src/progress`). Lớp hiển thị
-không có test tự động — kiểm bằng mắt trên trình duyệt.
+Runs `node --test` over the core (`src/core`, `src/levels`, `src/progress`). The display layer
+has no automated tests — check it by eye in a browser.
 
-## Đổi bộ màn
+## Changing the level set
 
-`src/levels/microban.json` sinh ra từ `tools/microban.txt`, chạy tay rồi commit:
+`src/levels/microban.json` is generated from `tools/microban.txt`; run it by hand, then commit:
 
 ```bash
 cd web && node tools/import-microban.mjs
 ```
 
-Thay bộ màn khác thì ghi đè `tools/microban.txt` bằng file định dạng Microban rồi chạy lại.
-Script tự kiểm mọi màn và **dừng, không ghi gì** nếu có màn sai định dạng.
+To use a different set, overwrite `tools/microban.txt` with a file in Microban format and run
+the script again. It validates every level and **stops without writing anything** if any level
+is malformed.
 
 ## Level editor
 
-Mở `/editor/` qua local server. Trang này không nằm trong bản deploy.
+Open `/editor/` through a local server. That page is not part of the deployed build.

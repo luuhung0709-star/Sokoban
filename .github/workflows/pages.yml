@@ -1,4 +1,4 @@
-name: Deploy bản web lên GitHub Pages
+name: Deploy the web build to GitHub Pages
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Chạy test lõi
+      - name: Run the core tests
         run: npm test
         working-directory: web
 
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Gom phần tĩnh, bỏ đồ chỉ dùng lúc dev
+      - name: Collect the static files, drop the dev-only ones
         run: |
           mkdir -p dist
           cp -r web/. dist/

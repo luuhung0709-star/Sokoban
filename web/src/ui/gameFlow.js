@@ -1,7 +1,7 @@
 import { GameSession } from '../core/gameSession.js';
 import { LevelPlayer } from '../view/levelPlayer.js';
 
-/** Giữ màn hình hiện tại và điều phối các panel. */
+/** Holds the current screen and coordinates the panels. */
 export class GameFlow {
   #collection;
   #progress;
@@ -71,7 +71,7 @@ export class GameFlow {
       },
     });
 
-    this.#hud.setLevelLabel(`Màn ${level.name}`);
+    this.#hud.setLevelLabel(`Level ${level.name}`);
     this.#unbindHud = this.#hud.bind(this.#session);
     this.#unroute = this.#router.onCommand((command) => this.#player.handle(command));
 
@@ -79,7 +79,7 @@ export class GameFlow {
     this.#player.start();
   }
 
-  /** Đổi kích thước cửa sổ: tính lại cỡ ô cho màn đang chơi. */
+  /** Window resize: recompute the cell size for the level in play. */
   handleResize() {
     if (this.#session) this.#renderer.fitCellSize(this.#session.board);
   }
@@ -108,7 +108,7 @@ export class GameFlow {
     this.playLevel(this.#index);
   }
 
-  /** Gỡ hết listener của màn cũ trước khi rời đi, không thì chúng bám mãi. */
+  /** Drop every listener from the old level before leaving, or they linger forever. */
   #leaveLevel() {
     this.#player?.stop();
     this.#unbindHud?.();

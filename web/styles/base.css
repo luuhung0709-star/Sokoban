@@ -7,27 +7,28 @@
   --accent: #d53b35;
 
   /*
-   * Bảng màu bàn cờ. Sàn chỉ còn MỘT màu — kiểu caro hai tông đã bỏ, nên không
-   * còn cặp biến -a / -b nữa.
+   * Board palette. The floor is a SINGLE colour — the two-tone checkerboard was
+   * dropped, so there is no -a / -b pair any more.
    */
-  --board-void: #08090c;   /* khe hở giữa các viên tường, lộ ra nền tối */
+  --board-void: #08090c;   /* the gap between wall blocks, showing the dark backdrop */
   --floor: #3a3d4c;
 
   --wall-face: #a4a9bc;
-  --wall-hi: #c8ccd7;      /* cạnh vát trên-trái */
-  --wall-lo: #797e93;      /* cạnh vát dưới-phải */
+  --wall-hi: #c8ccd7;      /* top-left bevel */
+  --wall-lo: #797e93;      /* bottom-right bevel */
 
-  --goal-bg: #232635;      /* hốc đích, sẫm hơn sàn để phân biệt */
+  --goal-bg: #232635;      /* the goal recess, darker than the floor to stand out */
   --goal-ring: #7c8194;
 
   --box: #f5d64e;
   --box-hi: #fce889;
   --box-lo: #d9bb38;
-  --box-mark: #8d8878;     /* dấu X và vòng tròn trên nắp hộp */
+  --box-mark: #8d8878;     /* the X and the circle on the box lid */
 
   /*
-   * Thời lượng trượt một ô. Cũng chính là nhịp lặp khi giữ phím, vì nước sau chỉ
-   * bắt đầu khi nước trước chạy xong — 165ms ra khoảng 6 ô mỗi giây.
+   * How long one square of sliding takes. It is also the repeat beat while a key is
+   * held, since the next move only starts once the previous finishes — 165ms works
+   * out to about 6 squares per second.
    */
   --move-duration: 165ms;
 }

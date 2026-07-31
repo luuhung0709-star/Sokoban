@@ -1,9 +1,9 @@
 const FALLBACK_MS = 400;
 
 /**
- * Chạy animation cho một nước đi bằng cách đổi transform rồi đợi transitionend.
- * Có timeout dự phòng vì transitionend không nổ khi tab bị ẩn hoặc khi giá trị
- * transform không thực sự đổi — thiếu nó là kẹt vĩnh viễn.
+ * Animates one move by changing the transform and waiting for transitionend. There is
+ * a fallback timeout because transitionend never fires when the tab is hidden or when
+ * the transform value does not actually change — without it, this hangs forever.
  */
 export class MoveAnimator {
   #renderer;
@@ -37,28 +37,29 @@ export class MoveAnimator {
       this.#renderer.placeActor(this.#renderer.playerEl, playerTo.x, playerTo.y);
       await this.#waitForEnd(this.#renderer.playerEl);
     } finally {
-      // Chỉ nhả cờ bận nếu bàn cờ chưa bị dựng lại giữa chừng — animation của
-      // màn cũ không được phép nhả cờ của màn mới.
+      // Only release the busy flag if the board was not rebuilt meanwhile — an
+      // animation from the old level must not release the new level's flag.
       if (generation === this.#generation) this.#busy = false;
     }
   }
 
   /**
-   * Đặt lại mọi actor về đúng ô, không animation — dùng khi load màn và restart.
-   * `after` chạy TRONG lúc transition còn tắt: đổi cỡ ô là đổi transform của mọi
-   * actor, làm ngoài cửa sổ này thì chúng trượt tới vị trí mới.
+   * Snaps every actor onto its square with no animation — used on level load and
+   * restart. `after` runs WHILE transitions are still off: resizing the cell changes
+   * every actor's transform, and doing it outside this window makes them slide.
    */
   snap(board, after) {
-    // Dựng lại bàn cờ thì animation đang dở hết nghĩa: tăng thế hệ và thả cờ
-    // bận, không thì lượt chơi mới đệm lệnh đầu tiên vào chỗ không ai lấy.
+    // Rebuilding the board makes any in-flight animation meaningless: bump the
+    // generation and drop the busy flag, or the new play-through buffers its first
+    // command somewhere nobody collects it.
     this.#generation++;
     this.#busy = false;
 
     this.#root.classList.add('board--no-anim');
     this.#renderer.build(board);
     after?.();
-    // Ép trình duyệt tính lại layout trước khi bỏ class, nếu không transition
-    // sẽ bắt được lần đổi transform này và actor vẫn bay.
+    // Force the browser to recompute layout before dropping the class, or the
+    // transition catches this transform change and the actors fly anyway.
     void this.#root.offsetHeight;
     this.#root.classList.remove('board--no-anim');
   }

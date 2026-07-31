@@ -1,5 +1,5 @@
-// Sinh web/src/levels/microban.json từ microban.txt nằm cạnh script này.
-// Chạy tay khi đổi bộ màn:  node tools/import-microban.mjs
+// Generates web/src/levels/microban.json from the microban.txt next to this script.
+// Run by hand when changing the level set:  node tools/import-microban.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseMicroban } from '../src/levels/parseMicroban.js';
@@ -10,22 +10,23 @@ const OUTPUT = fileURLToPath(new URL('../src/levels/microban.json', import.meta.
 
 const { levels, errors } = parseMicroban(readFileSync(SOURCE, 'utf8'));
 
-for (const error of errors) console.error(`Lỗi parse: ${error}`);
+for (const error of errors) console.error(`Parse error: ${error}`);
 
 let invalid = 0;
 levels.forEach((level, index) => {
   const issues = validateLevel(level);
   for (const issue of issues) {
-    console.error(`Màn ${index} ("${level.name}"): ${issue}`);
+    console.error(`Level ${index} ("${level.name}"): ${issue}`);
     invalid++;
   }
 });
 
 if (errors.length > 0 || invalid > 0) {
-  // Ghi ra một bộ màn có màn hỏng thì lỗi sẽ nổ lúc chơi, xa chỗ gây ra nó.
-  console.error(`\nDừng lại: ${errors.length} lỗi parse, ${invalid} màn không hợp lệ.`);
+  // Writing out a set with a broken level means the error blows up during play,
+  // far from what caused it.
+  console.error(`\nStopping: ${errors.length} parse error(s), ${invalid} invalid level(s).`);
   process.exit(1);
 }
 
 writeFileSync(OUTPUT, `${JSON.stringify({ collectionName: 'Microban', levels }, null, 1)}\n`, 'utf8');
-console.log(`Đã ghi ${levels.length} màn vào ${OUTPUT}`);
+console.log(`Wrote ${levels.length} levels to ${OUTPUT}`);

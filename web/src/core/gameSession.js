@@ -2,7 +2,7 @@ import { Board } from './board.js';
 import { MoveHistory } from './moveHistory.js';
 import { resolve, apply, revert } from './moveResolver.js';
 
-/** Gói board + lịch sử + bộ đếm cho một lượt chơi một màn. */
+/** Bundles board + history + counters for one play-through of one level. */
 export class GameSession {
   #level;
   #history = new MoveHistory();
@@ -20,7 +20,7 @@ export class GameSession {
   get canRedo() { return this.#history.canRedo; }
   get levelName() { return this.#level.name; }
 
-  /** Trả về hàm huỷ đăng ký, để nơi gọi không phải giữ tham chiếu tới listener. */
+  /** Returns an unsubscribe function, so callers need not keep the listener reference. */
   onChange(listener) {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
@@ -30,7 +30,7 @@ export class GameSession {
     for (const listener of this.#listeners) listener();
   }
 
-  /** Trả về nước đi đã chạy, hoặc null nếu bị chặn. */
+  /** Returns the move that ran, or null if it was blocked. */
   tryMove(dir) {
     const move = resolve(this.board, dir);
     if (move.blocked) return null;

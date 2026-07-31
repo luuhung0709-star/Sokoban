@@ -7,8 +7,8 @@ import { Command } from '../src/input/inputRouter.js';
 import { makeLevel } from './helpers.mjs';
 
 /**
- * Renderer giả: chỉ giữ hướng nhìn và ghi lại lần gọi setPlayerPushing cuối.
- * Đủ để kiểm tra trigger tư thế đẩy mà không cần DOM.
+ * A fake renderer: it only keeps the facing and records the last setPlayerPushing
+ * call. Enough to check what triggers the push pose, with no DOM involved.
  */
 function makeRenderer(facing = Direction.Down) {
   return {
@@ -26,7 +26,7 @@ function makeRenderer(facing = Direction.Down) {
   };
 }
 
-/** Animator giả: chạy callback rồi trả về ngay, không chờ transition nào. */
+/** A fake animator: runs the callback and returns at once, awaiting no transition. */
 function makeAnimator() {
   return {
     isBusy: false,
@@ -47,8 +47,8 @@ function makePlayer(rows, { facing = Direction.Down } = {}) {
   return { session, renderer, player };
 }
 
-test('bắt đầu màn mà đã áp sẵn vào hộp thì vào tư thế đẩy ngay', () => {
-  // Nhân vật nhìn xuống, ngay dưới là hộp.
+test('starting a level already braced against a box enters the push pose immediately', () => {
+  // The character faces down, with a box directly below.
   const { renderer, player } = makePlayer([
     '#####',
     '# @ #',
@@ -62,7 +62,7 @@ test('bắt đầu màn mà đã áp sẵn vào hộp thì vào tư thế đẩy
   assert.equal(renderer.pushing, true);
 });
 
-test('bắt đầu màn không có gì trước mặt thì không vào tư thế đẩy', () => {
+test('starting a level with nothing ahead does not enter the push pose', () => {
   const { renderer, player } = makePlayer([
     '#####',
     '# @ #',
@@ -76,8 +76,8 @@ test('bắt đầu màn không có gì trước mặt thì không vào tư thế
   assert.equal(renderer.pushing, false);
 });
 
-test('quay mặt vào hộp là vào tư thế đẩy, dù chưa đẩy được nước nào', async () => {
-  // Hộp nằm bên phải nhân vật, và ngay sau hộp là tường nên nước đi bị chặn.
+test('turning to face a box enters the push pose, even with no push made yet', async () => {
+  // The box is to the right, with a wall right behind it, so the move is blocked.
   const { renderer, player } = makePlayer([
     '#####',
     '#@$##',
@@ -85,17 +85,17 @@ test('quay mặt vào hộp là vào tư thế đẩy, dù chưa đẩy được
     '#####',
   ]);
   player.start();
-  assert.equal(renderer.pushing, false);   // ban đầu nhìn xuống, dưới là ô trống
+  assert.equal(renderer.pushing, false);   // initially facing down, with empty floor below
 
   player.handle(Command.Right);
   await new Promise((resolve) => setTimeout(resolve, 0));
 
-  // Nước bị chặn nhưng nhân vật vẫn quay sang phải và đang áp vào hộp.
+  // The move is blocked, but the character still turns right and is braced on the box.
   assert.equal(renderer.playerFacing, Direction.Right);
   assert.equal(renderer.pushing, true);
 });
 
-test('đẩy hộp xong vẫn còn áp vào nó nên giữ nguyên tư thế đẩy', async () => {
+test('after a push the character is still braced, so the push pose stays', async () => {
   const { renderer, player } = makePlayer([
     '######',
     '#@$ .#',
@@ -109,7 +109,7 @@ test('đẩy hộp xong vẫn còn áp vào nó nên giữ nguyên tư thế đ�
   assert.equal(renderer.pushing, true);
 });
 
-test('đi ra xa khỏi hộp thì bỏ tư thế đẩy', async () => {
+test('walking away from the box drops the push pose', async () => {
   const { renderer, player } = makePlayer([
     '######',
     '#$@ .#',
@@ -117,7 +117,7 @@ test('đi ra xa khỏi hộp thì bỏ tư thế đẩy', async () => {
   ], { facing: Direction.Left });
 
   player.start();
-  assert.equal(renderer.pushing, true);    // nhìn sang trái, bên trái là hộp
+  assert.equal(renderer.pushing, true);    // facing left, with the box on the left
 
   player.handle(Command.Right);
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -126,7 +126,7 @@ test('đi ra xa khỏi hộp thì bỏ tư thế đẩy', async () => {
   assert.equal(renderer.pushing, false);
 });
 
-test('undo đưa nhân vật về sát hộp thì tư thế đẩy bật lại', async () => {
+test('an undo that puts the character back against the box re-enables the push pose', async () => {
   const { renderer, player } = makePlayer([
     '#######',
     '#@$  .#',
@@ -134,15 +134,15 @@ test('undo đưa nhân vật về sát hộp thì tư thế đẩy bật lại',
   ]);
   player.start();
 
-  player.handle(Command.Right);            // đẩy hộp sang phải
+  player.handle(Command.Right);            // push the box right
   await new Promise((resolve) => setTimeout(resolve, 0));
-  player.handle(Command.Right);            // đẩy tiếp
+  player.handle(Command.Right);            // push again
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(renderer.pushing, true);
 
   player.handle(Command.Undo);
   await new Promise((resolve) => setTimeout(resolve, 0));
 
-  // Lùi lại một nước: hộp và người cùng lùi, nên vẫn dính nhau.
+  // One move back: box and character both step back, so they stay adjacent.
   assert.equal(renderer.pushing, true);
 });

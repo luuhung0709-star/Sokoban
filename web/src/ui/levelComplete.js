@@ -1,4 +1,4 @@
-/** Overlay hiện sau khi giải xong một màn. */
+/** The overlay shown after a level is solved. */
 export class LevelComplete {
   #root;
   #stats;
@@ -17,14 +17,14 @@ export class LevelComplete {
   }
 
   show({ moves, pushes, bestMoves, hasNext }) {
-    this.#stats.textContent = `${moves} bước · ${pushes} lần đẩy`;
+    this.#stats.textContent = `${moves} moves · ${pushes} pushes`;
     this.#best.textContent = bestMoves > 0 && bestMoves <= moves
-      ? `Kỷ lục của bạn: ${bestMoves} bước`
-      : 'Kỷ lục mới!';
+      ? `Your best: ${bestMoves} moves`
+      : 'New best!';
 
-    // Màn cuối bộ thì không có gì để đi tiếp.
+    // The last level of the set has nothing to move on to.
     this.#nextBtn.hidden = !hasNext;
-    if (!hasNext) this.#stats.textContent += ' — hết bộ màn, chúc mừng!';
+    if (!hasNext) this.#stats.textContent += ' — that was the last level, congratulations!';
 
     this.#root.hidden = false;
   }

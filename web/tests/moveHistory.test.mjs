@@ -4,13 +4,13 @@ import { MoveHistory } from '../src/core/moveHistory.js';
 
 const fakeMove = (id) => ({ id });
 
-test('lịch sử rỗng thì không undo cũng không redo được', () => {
+test('an empty history can neither undo nor redo', () => {
   const history = new MoveHistory();
   assert.equal(history.canUndo, false);
   assert.equal(history.canRedo, false);
 });
 
-test('undo trả về nước cuối cùng và mở đường cho redo', () => {
+test('undo returns the last move and opens the way for redo', () => {
   const history = new MoveHistory();
   history.record(fakeMove(1));
   history.record(fakeMove(2));
@@ -21,7 +21,7 @@ test('undo trả về nước cuối cùng và mở đường cho redo', () => {
   assert.equal(history.canRedo, false);
 });
 
-test('ghi nước mới thì xoá sạch nhánh redo', () => {
+test('recording a new move clears the redo branch', () => {
   const history = new MoveHistory();
   history.record(fakeMove(1));
   history.popForUndo();
@@ -31,7 +31,7 @@ test('ghi nước mới thì xoá sạch nhánh redo', () => {
   assert.equal(history.canRedo, false);
 });
 
-test('clear xoá cả hai nhánh', () => {
+test('clear empties both branches', () => {
   const history = new MoveHistory();
   history.record(fakeMove(1));
   history.popForUndo();

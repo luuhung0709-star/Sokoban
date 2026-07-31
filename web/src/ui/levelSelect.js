@@ -1,4 +1,4 @@
-/** Lưới nút chọn màn. Mở khoá tuần tự, màn đã qua hiện số bước tốt nhất. */
+/** The level-picker grid. Unlocks sequentially; cleared levels show their best move count. */
 export class LevelSelect {
   #grid;
   #onPick;
@@ -15,7 +15,7 @@ export class LevelSelect {
     if (levels.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'empty';
-      empty.textContent = 'Bộ màn trống — chưa có màn nào để chơi.';
+      empty.textContent = 'This level set is empty — there is nothing to play yet.';
       this.#grid.append(empty);
       return;
     }
@@ -35,7 +35,7 @@ export class LevelSelect {
 
       const best = document.createElement('span');
       best.className = 'level-btn__best';
-      best.textContent = record.completed ? `${record.bestMoves} bước` : '';
+      best.textContent = record.completed ? `${record.bestMoves} moves` : '';
 
       button.append(num, best);
       button.addEventListener('click', () => this.#onPick(index));

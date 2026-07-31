@@ -1,11 +1,11 @@
 const KEY = 'sokoban.progress';
 
 /**
- * Tiến độ lưu dạng JSON trong localStorage. Giữ nguyên hình dạng của bản Unity
- * để sau này còn đối chiếu được.
+ * Progress is stored as JSON in localStorage. The shape is kept identical to the
+ * Unity build's so the two remain comparable.
  *
- * storage nhận từ ngoài vào để test cắm được localStorage giả — module này là
- * chỗ duy nhất trong game đụng tới localStorage.
+ * storage is injected so tests can plug in a fake localStorage — this module is the
+ * only place in the game that touches localStorage.
  */
 export class ProgressStore {
   #storage;
@@ -20,8 +20,8 @@ export class ProgressStore {
 
     this.#root = { muted: false, collections: [] };
 
-    // getItem nằm TRONG try: chế độ riêng tư của một số trình duyệt ném lỗi ngay
-    // ở bước đọc, và lỗi đó thoát ra ngoài là chết game ngay lúc load.
+    // getItem sits INSIDE the try: some browsers' private mode throws on the read
+    // itself, and letting that escape kills the game at load time.
     try {
       const raw = this.#storage.getItem(KEY);
       if (!raw) return this.#root;
@@ -29,9 +29,9 @@ export class ProgressStore {
       const parsed = JSON.parse(raw);
       this.#root = {
         muted: Boolean(parsed?.muted),
-        // Lọc rác một lần ngay ở cửa: JSON đúng cú pháp nhưng sai hình dạng
-        // (mảng chứa null, chuỗi, số) vẫn phải cho ra tiến độ dùng được chứ
-        // không được ném lỗi làm chết game lúc load.
+        // Filter junk once at the door: JSON that parses but has the wrong shape
+        // (arrays holding null, strings, numbers) must still yield usable progress
+        // rather than throwing and killing the game at load.
         collections: Array.isArray(parsed?.collections)
           ? parsed.collections
               .filter((c) => c && typeof c === 'object')
@@ -44,8 +44,8 @@ export class ProgressStore {
           : [],
       };
     } catch (error) {
-      // Hỏng hoặc bị chặn thì bắt đầu lại — không được ném lỗi làm chết game.
-      console.warn(`ProgressStore: không đọc được tiến độ, đặt lại từ đầu (${error.message})`);
+      // Corrupt or blocked: start over — never throw and kill the game.
+      console.warn(`ProgressStore: could not read progress, starting fresh (${error.message})`);
       this.#root = { muted: false, collections: [] };
     }
 
@@ -56,8 +56,8 @@ export class ProgressStore {
     try {
       this.#storage.setItem(KEY, JSON.stringify(this.#data));
     } catch (error) {
-      // Chế độ riêng tư hoặc hết chỗ: chơi tiếp được, chỉ là không nhớ gì.
-      console.warn(`ProgressStore: không lưu được tiến độ (${error.message})`);
+      // Private mode or out of space: play carries on, it just remembers nothing.
+      console.warn(`ProgressStore: could not save progress (${error.message})`);
     }
   }
 
@@ -96,7 +96,7 @@ export class ProgressStore {
     this.#save();
   }
 
-  /** Mở khoá tuần tự: màn 0 luôn mở, màn n mở khi màn n-1 đã xong. */
+  /** Sequential unlocking: level 0 is always open, level n opens once n-1 is done. */
   isUnlocked(collection, index) {
     if (index <= 0) return true;
     return this.getRecord(collection, index - 1).completed;
@@ -119,13 +119,13 @@ export class ProgressStore {
   }
 
   clear() {
-    // Đặt null chứ không phải object rỗng: lần đọc sau phải đi qua nhánh
-    // đọc-và-bắt-lỗi, nếu không test JSON hỏng sẽ xanh vì lý do sai.
+    // Set null rather than an empty object: the next read must go through the
+    // read-and-catch branch, or the corrupt-JSON test passes for the wrong reason.
     this.#root = null;
     try {
       this.#storage.removeItem(KEY);
     } catch (error) {
-      console.warn(`ProgressStore: không xoá được tiến độ (${error.message})`);
+      console.warn(`ProgressStore: could not clear progress (${error.message})`);
     }
   }
 }

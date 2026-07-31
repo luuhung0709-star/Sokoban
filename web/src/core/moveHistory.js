@@ -1,4 +1,4 @@
-/** Hai stack: nước đã đi và nhánh đã undo. Đi nước mới thì xoá nhánh redo. */
+/** Two stacks: moves played and the undone branch. A new move clears the redo branch. */
 export class MoveHistory {
   #done = [];
   #undone = [];

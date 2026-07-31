@@ -5,11 +5,12 @@ import { BoardRenderer } from '../src/view/boardRenderer.js';
 import { makeBoard } from './helpers.mjs';
 
 /**
- * DOM giả tối thiểu — vừa đủ cho BoardRenderer dựng cây và tìm lại phần tử.
+ * A minimal fake DOM — just enough for BoardRenderer to build its tree and find
+ * elements again.
  *
- * Lý do có file này: toàn bộ phần chọn sprite theo hướng nhìn và theo trạng thái
- * đẩy trước nay không có test nào phủ, nên mỗi lần nghi ngờ "sao không thấy quay
- * người" đều phải đoán. Test này trả lời dứt điểm bằng cách chạy code thật.
+ * Why this file exists: sprite selection by facing and by push state had no test
+ * coverage at all, so every "why is the character not turning?" doubt was guesswork.
+ * These tests answer it for good by running the real code.
  */
 function makeElement(tag) {
   return {
@@ -55,12 +56,12 @@ function build(rows = ['#####', '#@$.#', '#####']) {
 
 const spriteOf = (renderer) => renderer.playerEl.querySelector('.actor__sprite').src;
 
-test('mặc định nhìn xuống', () => {
+test('faces down by default', () => {
   const { renderer } = build();
   assert.match(spriteOf(renderer), /player_down\.png$/);
 });
 
-test('quay lên thì đổi sang sprite nhìn từ sau lưng', () => {
+test('turning up switches to the from-behind sprite', () => {
   const { renderer } = build();
 
   renderer.setPlayerFacing(Direction.Up);
@@ -68,7 +69,7 @@ test('quay lên thì đổi sang sprite nhìn từ sau lưng', () => {
   assert.match(spriteOf(renderer), /player_up\.png$/);
 });
 
-test('đổi đủ bốn hướng', () => {
+test('switches through all four directions', () => {
   const { renderer } = build();
   for (const [dir, file] of [
     [Direction.Left, 'player_left'],
@@ -77,11 +78,11 @@ test('đổi đủ bốn hướng', () => {
     [Direction.Down, 'player_down'],
   ]) {
     renderer.setPlayerFacing(dir);
-    assert.match(spriteOf(renderer), new RegExp(`${file}\\.png$`), `hướng ${dir}`);
+    assert.match(spriteOf(renderer), new RegExp(`${file}\\.png$`), `facing ${dir}`);
   }
 });
 
-test('đang áp vào hộp thì dùng sprite tư thế đẩy của đúng hướng đó', () => {
+test('braced against a box uses the push sprite for that same direction', () => {
   const { renderer } = build();
 
   renderer.setPlayerFacing(Direction.Up);
@@ -90,7 +91,7 @@ test('đang áp vào hộp thì dùng sprite tư thế đẩy của đúng hư�
   assert.match(spriteOf(renderer), /player_push_up\.png$/);
 });
 
-test('rời khỏi hộp thì quay lại sprite thường, vẫn đúng hướng', () => {
+test('leaving the box returns to the normal sprite, still facing correctly', () => {
   const { renderer } = build();
   renderer.setPlayerFacing(Direction.Up);
   renderer.setPlayerPushing(true);
@@ -100,7 +101,7 @@ test('rời khỏi hộp thì quay lại sprite thường, vẫn đúng hướng
   assert.match(spriteOf(renderer), /player_up\.png$/);
 });
 
-test('đang đẩy mà quay hướng khác thì đổi sang sprite đẩy của hướng mới', () => {
+test('turning while pushing switches to the new direction push sprite', () => {
   const { renderer } = build();
   renderer.setPlayerPushing(true);
   renderer.setPlayerFacing(Direction.Left);
@@ -108,13 +109,13 @@ test('đang đẩy mà quay hướng khác thì đổi sang sprite đẩy của 
   assert.match(spriteOf(renderer), /player_push_left\.png$/);
 });
 
-test('playerFacing báo đúng hướng hiện tại', () => {
+test('playerFacing reports the current direction', () => {
   const { renderer } = build();
   renderer.setPlayerFacing(Direction.Right);
   assert.equal(renderer.playerFacing, Direction.Right);
 });
 
-test('dựng lại bàn cờ thì hướng nhìn về mặc định, không giữ hướng màn cũ', () => {
+test('rebuilding the board resets facing to the default rather than keeping the old level facing', () => {
   const { renderer, board } = build();
   renderer.setPlayerFacing(Direction.Up);
 

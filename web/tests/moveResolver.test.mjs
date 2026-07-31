@@ -4,7 +4,7 @@ import { Direction } from '../src/core/direction.js';
 import { resolve, apply, revert } from '../src/core/moveResolver.js';
 import { makeBoard } from './helpers.mjs';
 
-test('đi vào ô trống là nước đi thường', () => {
+test('walking onto an empty square is an ordinary move', () => {
   const board = makeBoard(['#####', '#@  #', '#####']);
   const move = resolve(board, Direction.Right);
 
@@ -15,7 +15,7 @@ test('đi vào ô trống là nước đi thường', () => {
   assert.equal(move.boxFrom, null);
 });
 
-test('đi vào tường thì bị chặn và không nhúc nhích', () => {
+test('walking into a wall is blocked and moves nothing', () => {
   const board = makeBoard(['#####', '#@  #', '#####']);
   const move = resolve(board, Direction.Left);
 
@@ -23,7 +23,7 @@ test('đi vào tường thì bị chặn và không nhúc nhích', () => {
   assert.deepEqual(move.to, move.from);
 });
 
-test('đẩy hộp vào ô trống là nước đẩy', () => {
+test('pushing a box onto an empty square is a push move', () => {
   const board = makeBoard(['#####', '#@$ #', '#####']);
   const move = resolve(board, Direction.Right);
 
@@ -34,17 +34,17 @@ test('đẩy hộp vào ô trống là nước đẩy', () => {
   assert.deepEqual(move.boxTo, { x: 3, y: 1 });
 });
 
-test('đẩy hộp vào tường thì bị chặn', () => {
+test('pushing a box into a wall is blocked', () => {
   const board = makeBoard(['####', '#@$#', '####']);
   assert.equal(resolve(board, Direction.Right).blocked, true);
 });
 
-test('không đẩy được hai hộp liền nhau', () => {
+test('two boxes in a row cannot be pushed', () => {
   const board = makeBoard(['######', '#@$$ #', '######']);
   assert.equal(resolve(board, Direction.Right).blocked, true);
 });
 
-test('đẩy được hộp lên ô đích', () => {
+test('a box can be pushed onto a goal', () => {
   const board = makeBoard(['#####', '#@$.#', '#####']);
   const move = resolve(board, Direction.Right);
 
@@ -53,7 +53,7 @@ test('đẩy được hộp lên ô đích', () => {
   assert.equal(board.isSolved, true);
 });
 
-test('resolve không đổi board', () => {
+test('resolve does not modify the board', () => {
   const board = makeBoard(['#####', '#@$ #', '#####']);
   resolve(board, Direction.Right);
 
@@ -61,7 +61,7 @@ test('resolve không đổi board', () => {
   assert.equal(board.hasBox(2, 1), true);
 });
 
-test('apply rồi revert quay về đúng trạng thái cũ', () => {
+test('apply then revert returns the exact previous state', () => {
   const board = makeBoard(['#####', '#@$ #', '#####']);
   const move = resolve(board, Direction.Right);
 
@@ -76,7 +76,7 @@ test('apply rồi revert quay về đúng trạng thái cũ', () => {
   assert.equal(board.hasBox(3, 1), false);
 });
 
-test('apply và revert bỏ qua nước bị chặn', () => {
+test('apply and revert ignore a blocked move', () => {
   const board = makeBoard(['#####', '#@  #', '#####']);
   const move = resolve(board, Direction.Left);
 
@@ -86,14 +86,14 @@ test('apply và revert bỏ qua nước bị chặn', () => {
   assert.deepEqual(board.player, { x: 1, y: 1 });
 });
 
-test('đẩy hộp đang đúng đích ra ngoài thì mất trạng thái thắng', () => {
+test('pushing a box off its goal loses the solved state', () => {
   const board = makeBoard(['######', '#@*  #', '######']);
-  assert.equal(board.isSolved, true);   // hộp duy nhất đang nằm trên đích
+  assert.equal(board.isSolved, true);   // the only box currently sits on a goal
 
   const move = resolve(board, Direction.Right);
   apply(board, move);
 
   assert.equal(board.hasBox(3, 1), true);
-  // Trạng thái thắng tính lại từ bàn cờ chứ không đếm tăng giảm, nên nó mất ngay.
+  // Solved state is recomputed from the board rather than counted up and down, so it drops at once.
   assert.equal(board.isSolved, false);
 });

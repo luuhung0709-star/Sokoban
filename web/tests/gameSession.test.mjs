@@ -4,22 +4,22 @@ import { Direction } from '../src/core/direction.js';
 import { GameSession } from '../src/core/gameSession.js';
 import { makeLevel } from './helpers.mjs';
 
-const level = () => makeLevel(['#######', '#@$ . #', '#######'], 'thử');
+const level = () => makeLevel(['#######', '#@$ . #', '#######'], 'test');
 
-test('đi một nước thì tăng bộ đếm bước', () => {
+test('one move increments the move counter', () => {
   const session = new GameSession(level());
   assert.equal(session.tryMove(Direction.Right).push, true);
   assert.equal(session.moves, 1);
   assert.equal(session.pushes, 1);
 });
 
-test('nước bị chặn không tính vào bộ đếm và trả về null', () => {
+test('a blocked move does not count and returns null', () => {
   const session = new GameSession(level());
   assert.equal(session.tryMove(Direction.Left), null);
   assert.equal(session.moves, 0);
 });
 
-test('undo trả bộ đếm và bàn cờ về đúng trạng thái trước đó', () => {
+test('undo restores the counters and the board to the previous state', () => {
   const session = new GameSession(level());
   session.tryMove(Direction.Right);
 
@@ -30,7 +30,7 @@ test('undo trả bộ đếm và bàn cờ về đúng trạng thái trước đ
   assert.equal(session.board.hasBox(2, 1), true);
 });
 
-test('undo hết thì trùng khớp trạng thái đầu màn', () => {
+test('undoing everything matches the level start state', () => {
   const session = new GameSession(level());
   const start = new GameSession(level());
 
@@ -43,7 +43,7 @@ test('undo hết thì trùng khớp trạng thái đầu màn', () => {
   assert.equal(session.moves, 0);
 });
 
-test('redo lặp lại đúng nước vừa undo', () => {
+test('redo replays exactly the move just undone', () => {
   const session = new GameSession(level());
   session.tryMove(Direction.Right);
   session.tryUndo();
@@ -53,7 +53,7 @@ test('redo lặp lại đúng nước vừa undo', () => {
   assert.deepEqual(session.board.player, { x: 2, y: 1 });
 });
 
-test('đi nước mới thì xoá nhánh redo', () => {
+test('a new move clears the redo branch', () => {
   const session = new GameSession(level());
   session.tryMove(Direction.Right);
   session.tryUndo();
@@ -63,7 +63,7 @@ test('đi nước mới thì xoá nhánh redo', () => {
   assert.equal(session.canRedo, false);
 });
 
-test('restart dựng lại bàn cờ và xoá lịch sử', () => {
+test('restart rebuilds the board and clears the history', () => {
   const session = new GameSession(level());
   session.tryMove(Direction.Right);
   session.restart();
@@ -74,7 +74,7 @@ test('restart dựng lại bàn cờ và xoá lịch sử', () => {
   assert.equal(session.board.hasBox(2, 1), true);
 });
 
-test('onChange báo mỗi lần trạng thái đổi và huỷ được', () => {
+test('onChange fires on every state change and can be unsubscribed', () => {
   const session = new GameSession(level());
   let count = 0;
   const off = session.onChange(() => { count++; });
@@ -88,7 +88,7 @@ test('onChange báo mỗi lần trạng thái đổi và huỷ được', () => 
   assert.equal(count, 2);
 });
 
-test('nước bị chặn không phát sự kiện', () => {
+test('a blocked move fires no event', () => {
   const session = new GameSession(level());
   let count = 0;
   session.onChange(() => { count++; });

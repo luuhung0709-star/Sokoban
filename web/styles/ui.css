@@ -20,10 +20,10 @@
 .hud__spacer { flex: 1; }
 
 /*
- * `.stage` đã có rule trong board.css (display:flex, canh giữa, padding, min-height
- * 100vh). Trong màn chơi nó là ô flex nằm giữa HUD và hàng nút, nên chiều cao do
- * flex quyết định chứ không phải 100vh. Chỉ ghi đè đúng hai thuộc tính đó — ui.css
- * nạp sau board.css nên thắng.
+ * `.stage` already has a rule in board.css (display:flex, centring, padding,
+ * min-height 100vh). On the play screen it is a flex item between the HUD and the
+ * button row, so flex decides its height, not 100vh. Override exactly those two
+ * properties — ui.css loads after board.css, so it wins.
  */
 .stage {
   flex: 1;
@@ -64,7 +64,7 @@
   box-shadow: none;
 }
 
-/* Chỉ panel khớp với data-screen trên body mới hiện. */
+/* Only the panel matching data-screen on the body is shown. */
 .screen { display: none; }
 body[data-screen="menu"] .screen[data-name="menu"],
 body[data-screen="levels"] .screen[data-name="levels"],

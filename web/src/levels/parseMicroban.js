@@ -3,8 +3,8 @@ import { isGrid, isContent, countPieces } from './sokobanChars.js';
 const TITLE_PREFIX = 'Title:';
 
 /**
- * Đọc file Microban dạng text. Trả về cả màn đọc được lẫn danh sách lỗi:
- * một màn hỏng không được làm hỏng cả bộ.
+ * Reads a Microban text file. Returns both the levels it could read and a list of
+ * errors: one broken level must not break the whole collection.
  */
 export function parseMicroban(text) {
   const result = { levels: [], errors: [] };
@@ -17,7 +17,7 @@ export function parseMicroban(text) {
     while (i < lines.length && lines[i].trim() === '') i++;
     if (i >= lines.length) break;
 
-    const blockStartLine = i + 1;         // số dòng 1-based cho thông báo lỗi
+    const blockStartLine = i + 1;         // 1-based line number for error messages
     const block = [];
     while (i < lines.length && lines[i].trim() !== '') block.push(lines[i++]);
 
@@ -39,21 +39,21 @@ function tryAddLevel(block, blockStartLine, result) {
     if (isGridLine(line)) rows.push(line);
   }
 
-  // Khối header không có hàng lưới nào — bỏ qua, đây không phải lỗi.
+  // A header block has no grid rows at all — skip it, this is not an error.
   if (rows.length === 0) return;
 
   const { players, boxes, goals } = countPieces(rows);
 
   if (players !== 1) {
-    result.errors.push(`Dòng ${blockStartLine}: phải có đúng 1 người chơi, đang có ${players}`);
+    result.errors.push(`Line ${blockStartLine}: must have exactly 1 player, found ${players}`);
     return;
   }
   if (boxes === 0) {
-    result.errors.push(`Dòng ${blockStartLine}: màn không có hộp nào`);
+    result.errors.push(`Line ${blockStartLine}: level has no boxes`);
     return;
   }
   if (boxes !== goals) {
-    result.errors.push(`Dòng ${blockStartLine}: ${boxes} hộp nhưng ${goals} đích`);
+    result.errors.push(`Line ${blockStartLine}: ${boxes} box(es) but ${goals} goal(s)`);
     return;
   }
 
@@ -67,7 +67,7 @@ function tryAddLevel(block, blockStartLine, result) {
   });
 }
 
-/** Hàng lưới = chỉ gồm 7 ký tự hợp lệ và có ít nhất một ký tự khác dấu cách. */
+/** A grid row = only the 7 valid characters, and at least one that is not a space. */
 function isGridLine(line) {
   let hasContent = false;
   for (const c of line) {
