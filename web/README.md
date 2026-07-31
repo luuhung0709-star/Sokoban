@@ -17,8 +17,15 @@ modules and `fetch`, so the game comes up blank.
 cd web && npm test
 ```
 
-Runs `node --test` over the core (`src/core`, `src/levels`, `src/progress`). The display layer
-has no automated tests — check it by eye in a browser.
+Runs `node --test` over the core (`src/core`, `src/levels`, `src/progress`) and the view layer
+(`src/view`, `src/ui`).
+
+The view tests drive the real modules against the hand-rolled fake DOM in
+[tests/fakeDom.mjs](tests/fakeDom.mjs) — the project takes no dependencies, so jsdom is not an
+option. That fake models only what the view code touches: element trees, simple `.class`/`#id`
+lookups, classes, dataset and event dispatch. It models no layout, no CSS and no event
+bubbling, so anything resting on those — cell sizing, the look of the board, real transitions —
+is still checked by eye in a browser.
 
 ## Changing the level set
 
