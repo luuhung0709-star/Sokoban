@@ -3635,7 +3635,12 @@ document.getElementById('btn-resize').addEventListener('click', () => {
 });
 
 document.getElementById('btn-clear').addEventListener('click', () => {
-  rows = makeEmpty(rows[0].length, rows.length);
+  // Giữ đúng kích thước lưới đang vẽ chứ không lấy theo ô nhập — người dùng có
+  // thể đã gõ số mới mà chưa bấm Đổi kích thước. Lưới rỗng thì lùi về ô nhập,
+  // vì rows[0].length khi đó ném lỗi.
+  const width = rows[0]?.length ?? Number(widthEl.value);
+  const height = rows.length || Number(heightEl.value);
+  rows = makeEmpty(width, height);
   drawGrid();
 });
 
@@ -3651,19 +3656,23 @@ document.getElementById('btn-export').addEventListener('click', () => {
 
 document.getElementById('btn-import').addEventListener('click', () => {
   const { levels, errors } = parseMicroban(ioEl.value);
-  if (errors.length > 0) issuesEl.textContent = errors.join('\n');
+  const lines = [...errors];
 
   if (levels.length === 0) {
-    issuesEl.textContent = `${issuesEl.textContent}\nKhông đọc được màn nào.`.trim();
-    return;
+    lines.push('Không đọc được màn nào.');
+  } else {
+    // Import nhiều màn thì lấy màn đầu — editor này sửa từng màn một.
+    rows = [...levels[0].rows];
+    widthEl.value = String(levels[0].width);
+    heightEl.value = String(levels[0].height);
+    drawGrid();
+    lines.push(`Đã nạp màn "${levels[0].name}" (${levels.length} màn trong nguồn).`);
   }
 
-  // Import nhiều màn thì lấy màn đầu — editor này sửa từng màn một.
-  rows = [...levels[0].rows];
-  widthEl.value = String(levels[0].width);
-  heightEl.value = String(levels[0].height);
-  drawGrid();
-  issuesEl.textContent = `Đã nạp màn "${levels[0].name}" (${levels.length} màn trong nguồn).`;
+  // Gom lỗi và kết quả rồi ghi một lần. Ghi đè từng bước thì lỗi parse biến mất
+  // ngay khi có ít nhất một màn đọc được — mà đó chính là lúc cần thấy lỗi nhất.
+  // Ghi một lần cũng xoá luôn thông báo cũ của lần bấm trước.
+  issuesEl.textContent = lines.join('\n');
 });
 
 buildBrushes();
