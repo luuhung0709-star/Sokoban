@@ -207,6 +207,15 @@ tư thế về sau không phải sửa code.
 Sprite đứng thì căn giữa và chân chạm y=57. Căn giữa cho cả sprite đẩy là hỏng: nhân vật đứng cách
 thùng cả chục pixel, nhìn ra ngay là đang lơ lửng chứ không đẩy.
 
+**`player_push_down` tối hơn `player_down` nhiều — có chủ ý, đừng "sửa".** Đo tỉ lệ pixel sáng: tư thế
+đứng quay xuống 19,5%, tư thế cúi đẩy xuống chỉ 4,2%. Người cúi gập thì ngực úp xuống đất nên mảng sơ
+mi trắng bị chính thân che mất — đúng giải phẫu. Ba hướng kia không rơi như vậy: trái/phải giữ 9,7% ở
+cả hai tư thế, hướng lên vốn đã tối sẵn (0,6% → 2,7%). Chỉ hướng xuống rơi mạnh vì đó là hướng duy
+nhất mà tư thế đứng phô ra nhiều áo trắng nhất.
+
+Đã cân nhắc sinh lại tư thế cúi nông hơn cho giữ được mảng trắng, và quyết định **không**: lúc đó nhân
+vật đã cúi gập với hai bàn tay chống lên thùng, và đó là tín hiệu mạnh hơn màu áo nhiều.
+
 **Tư thế phải có bàn tay vươn tới mép khung — đây là ràng buộc lên chính bức tranh, không phải lên
 cách lắp.** Bộ art đầu tiên vẽ hai tư thế lên/xuống với tay giơ ngang ngực kiểu ra hiệu "dừng lại";
 đo ra bàn tay cách mép 18–20px, tức gần một phần ba ô, và không cách căn chỉnh nào cứu được — dịch
