@@ -3858,3 +3858,28 @@ Việc này làm trên giao diện GitHub, không làm bằng lệnh được: *
 **Placeholder scan** — không có "TBD", "TODO", "tương tự task N", hay bước nào chỉ mô tả mà không có code.
 
 **Type consistency** — các tên đã đối chiếu chéo: `countPieces` khai báo ở Task 1, dùng ở Task 5 và Task 6 (trả thêm `playerPos` vì validator cần điểm bắt đầu để loang); `boxKey` (Task 2) dùng lại ở Task 3 và 8; `Move` có đúng các trường `dir/blocked/push/from/to/boxFrom/boxTo` ở Task 3, 9; `renderer.placeActor` / `boxElAt` / `rekeyBox` / `refreshBoxLook` / `fitCellSize` / `playerEl` khai báo ở Task 8 và gọi ở Task 9; `session.onChange` trả hàm gỡ (Task 4) và được dùng đúng kiểu đó ở Task 10; `Command` và `commandToDirection` khai báo ở Task 9, dùng ở Task 10; `progress.getRecord/isUnlocked/recordCompletion/setLastPlayedIndex/muted` khai báo Task 11, dùng ở Task 12; `audio.play(name)` nhận đúng 5 tên `step`/`push`/`boxOnGoal`/`win`/`undo` ở Task 9 và Task 13.
+
+---
+
+## Sai sót của chính kế hoạch này (ghi lại sau khi thi công)
+
+Review từng task và review cuối nhánh bắt được sáu lỗi nằm trong **văn bản kế hoạch**, không phải do
+người thi công chép sai. Ghi lại để lần sau viết kế hoạch không lặp lại:
+
+1. **`fitCellSize` đo một khung không có kích thước riêng.** `#stage` co theo bàn cờ, nên phép đo chiều
+   cao rút gọn thành chính cỡ ô đang có. Bài học: khi code đo một phần tử, kế hoạch phải nói rõ phần tử
+   đó lấy kích thước từ đâu.
+2. **`ProgressStore` đọc `localStorage` ngoài `try`.** Chế độ riêng tư ném lỗi ngay ở `getItem`, không
+   phải `setItem`.
+3. **`ProgressStore` chỉ kiểm hai tầng.** JSON đúng cú pháp nhưng sai hình dạng (`{"collections":[null]}`)
+   vẫn làm chết game lúc load — trái đúng điều mục 9 và 13 hứa.
+4. **`MainMenu` suy số màn từ chỉ số cộng một** trong khi Global Constraints của chính kế hoạch cấm điều
+   đó, và `refresh` còn không được truyền `levels` để tra tên. Kế hoạch tự mâu thuẫn với ràng buộc của nó.
+5. **`LevelPlayer` không có cách dừng.** Kế hoạch định nghĩa một object sở hữu vòng lặp async mà chỉ cho
+   nó `start()`, nên `GameFlow` không có gì để gọi lúc rời màn. Bài học: object nào giữ vòng lặp async thì
+   phần Interfaces phải bắt buộc có `stop()` đi kèm `start()`.
+6. **Cửa sổ tắt transition đóng sớm một nhịp.** `snap()` gỡ lớp `board--no-anim` rồi mới tới `fitCellSize`,
+   mà đổi cỡ ô là đổi transform của mọi actor — nên actor trượt đúng vào lúc mục 6.4 bảo là không được trượt.
+
+Ba lỗi cuối chỉ lộ ra ở review toàn nhánh: review từng task nhìn một diff nên không thấy được đường nối
+giữa các task. Đó là lý do bước review cuối tồn tại.
