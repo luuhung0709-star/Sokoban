@@ -20,7 +20,7 @@ const levels = (count) =>
 
 function setup() {
   const root = makeElement('body');
-  for (const id of ['btn-continue', 'btn-levels', 'btn-menu-mute']) {
+  for (const id of ['btn-continue', 'btn-levels', 'btn-menu-settings']) {
     root.append(withId(id, 'button'));
   }
 
@@ -28,7 +28,7 @@ function setup() {
   const menu = new MainMenu(root, {
     onContinue: () => fired.push('continue'),
     onSelect: () => fired.push('select'),
-    onToggleMute: () => fired.push('mute'),
+    onSettings: () => fired.push('settings'),
   });
 
   return { root, menu, fired, el: (id) => root.querySelector(`#${id}`) };
@@ -76,27 +76,13 @@ test('progress pointing past the end of a shrunken set is clamped, not shown raw
     'clamps to the last real level instead of naming one that does not exist');
 });
 
-test('the mute button reflects the stored setting', () => {
-  const { menu, el } = setup();
-  const progress = makeProgress();
-
-  menu.refresh(progress, COLLECTION, levels(3));
-  assert.equal(el('btn-menu-mute').textContent, 'Sound: on');
-  assert.equal(el('btn-menu-mute').getAttribute('aria-pressed'), 'false');
-
-  progress.muted = true;
-  menu.refresh(progress, COLLECTION, levels(3));
-  assert.equal(el('btn-menu-mute').textContent, 'Sound: off');
-  assert.equal(el('btn-menu-mute').getAttribute('aria-pressed'), 'true');
-});
-
 test('each button fires its own callback', () => {
   const { menu, fired, el } = setup();
   menu.refresh(makeProgress(), COLLECTION, levels(3));
 
   el('btn-continue').dispatch('click');
   el('btn-levels').dispatch('click');
-  el('btn-menu-mute').dispatch('click');
+  el('btn-menu-settings').dispatch('click');
 
-  assert.deepEqual(fired, ['continue', 'select', 'mute']);
+  assert.deepEqual(fired, ['continue', 'select', 'settings']);
 });

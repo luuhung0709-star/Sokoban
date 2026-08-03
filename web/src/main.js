@@ -7,6 +7,7 @@ import { MainMenu } from './ui/mainMenu.js';
 import { LevelSelect } from './ui/levelSelect.js';
 import { LevelComplete } from './ui/levelComplete.js';
 import { GameFlow } from './ui/gameFlow.js';
+import { SettingsPanel } from './ui/settingsPanel.js';
 import { AudioService } from './audio/audioService.js';
 import { HintService } from './core/hintService.js';
 
@@ -52,11 +53,7 @@ const panels = {
       flow.playLevel(Math.min(Math.max(last, 0), collection.levels.length - 1));
     },
     onSelect: () => flow.showLevelSelect(),
-    onToggleMute: () => {
-      audio.muted = !audio.muted;
-      panels.menu.refresh(progress, collection.collectionName, collection.levels);
-      refreshMuteButton();
-    },
+    onSettings: () => panels.settings.show(),
   }),
   levelSelect: new LevelSelect(document.body, {
     onPick: (index) => flow.playLevel(index),
@@ -67,18 +64,14 @@ const panels = {
     onRetry: () => flow.retryLevel(),
     onSelect: () => flow.showLevelSelect(),
   }),
+  settings: new SettingsPanel(document.getElementById('settings'), {
+    onToggleMusic: () => { audio.musicOn = !audio.musicOn; },
+    onToggleSfx: () => { audio.sfxOn = !audio.sfxOn; },
+    getState: () => ({ musicOn: audio.musicOn, sfxOn: audio.sfxOn }),
+  }),
 };
 
-const hudMute = document.getElementById('btn-mute');
-const refreshMuteButton = () => {
-  hudMute.textContent = audio.muted ? '🔇' : '🔊';
-  hudMute.setAttribute('aria-pressed', String(audio.muted));
-};
-hudMute.addEventListener('click', () => {
-  audio.muted = !audio.muted;
-  refreshMuteButton();
-});
-refreshMuteButton();
+document.getElementById('btn-settings').addEventListener('click', () => panels.settings.show());
 
 const flow = new GameFlow({
   collection, progress, router, renderer, animator, hud, panels, audio, hintService,

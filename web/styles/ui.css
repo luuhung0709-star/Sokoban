@@ -33,6 +33,7 @@
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;      /* five buttons now — they must be able to drop a line */
   gap: 8px;
   justify-content: center;
   padding: 12px;
@@ -133,6 +134,16 @@ body[data-screen="play"] .screen[data-name="play"] { display: flex; }
 }
 
 .overlay[hidden] { display: none; }
+
+/*
+ * The settings overlay sits outside every `.screen`, so it cannot be positioned against
+ * `.stage` the way the level-complete overlay is. Fixed to the viewport instead, and
+ * above everything, because it opens from the menu and from the board alike.
+ */
+.overlay--modal {
+  position: fixed;
+  z-index: 10;
+}
 
 .empty {
   grid-column: 1 / -1;

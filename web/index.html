@@ -16,7 +16,7 @@
       <div class="panel__actions">
         <button class="btn btn--big" id="btn-continue" type="button">Continue</button>
         <button class="btn btn--big" id="btn-levels" type="button">Select level</button>
-        <button class="btn btn--big" id="btn-menu-mute" type="button" aria-pressed="false">Sound: on</button>
+        <button class="btn btn--big" id="btn-menu-settings" type="button">⚙ Settings</button>
       </div>
     </div>
   </section>
@@ -36,7 +36,6 @@
       <span class="hud__stat">Moves <b id="hud-moves">0</b></span>
       <span class="hud__stat">Pushes <b id="hud-pushes">0</b></span>
       <span class="hud__spacer"></span>
-      <button class="btn btn--ghost" id="btn-mute" type="button" aria-pressed="false">🔊</button>
     </header>
 
     <div class="stage" id="stage">
@@ -60,9 +59,21 @@
       <button class="btn" id="btn-undo" type="button">↶ Undo</button>
       <button class="btn" id="btn-hint" type="button">💡 Hint</button>
       <button class="btn" id="btn-restart" type="button">⟳ Restart</button>
+      <button class="btn" id="btn-settings" type="button">⚙ Settings</button>
       <button class="btn" id="btn-exit" type="button">← Select level</button>
     </footer>
   </main>
+
+  <div class="overlay overlay--modal" id="settings" hidden>
+    <div class="panel">
+      <h2 class="panel__title">Settings</h2>
+      <div class="panel__actions">
+        <button class="btn btn--big" id="btn-music" type="button" aria-pressed="true">Music: on</button>
+        <button class="btn btn--big" id="btn-sfx" type="button" aria-pressed="true">Sound effects: on</button>
+        <button class="btn btn--big" id="btn-settings-close" type="button">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="src/main.js"></script>
 </body>
