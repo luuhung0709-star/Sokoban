@@ -6,19 +6,28 @@ import { makeElement, withId } from './fakeDom.mjs';
 /**
  * Stands in for `window`. The fake DOM has no real propagation, so the target records
  * whether stopPropagation was called and the assertions read that.
+ *
+ * The capture flag is part of a listener's identity: removing with the wrong flag
+ * silently fails in the real DOM. This fake models that to catch leaks a real browser would expose.
  */
 function makeKeyTarget() {
   const handlers = [];
   return {
-    addEventListener(type, fn) { if (type === 'keydown') handlers.push(fn); },
-    removeEventListener(type, fn) {
-      const i = handlers.indexOf(fn);
+    addEventListener(type, fn, capture) {
+      if (type === 'keydown') handlers.push({ fn, capture });
+    },
+    removeEventListener(type, fn, capture) {
+      // The real DOM treats the capture flag as part of a listener's identity: remove
+      // with the wrong flag and the listener silently stays registered. Model that, or
+      // the fake would certify a leak-free hide() that leaks in a browser.
+      const i = handlers.findIndex((h) => h.fn === fn && h.capture === capture);
       if (i >= 0) handlers.splice(i, 1);
     },
     get handlerCount() { return handlers.length; },
+    get captureFlags() { return handlers.map((h) => h.capture); },
     press(code) {
       const event = { code, stopped: false, stopPropagation() { this.stopped = true; } };
-      for (const fn of [...handlers]) fn(event);
+      for (const h of [...handlers]) h.fn(event);
       return event;
     },
   };
@@ -132,4 +141,13 @@ test('showing twice leaves one listener, not two', () => {
   panel.show();
 
   assert.equal(keyTarget.handlerCount, 1);
+});
+
+test('the key listener goes on in the capture phase, ahead of the game router', () => {
+  const { panel, keyTarget } = setup();
+
+  panel.show();
+
+  assert.deepEqual(keyTarget.captureFlags, [true],
+    'InputRouter listens on window in the bubble phase, so only a capture listener runs first');
 });
