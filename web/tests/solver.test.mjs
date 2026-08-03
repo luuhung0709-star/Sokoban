@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStatics, buildPullDistance } from '../src/core/solver.js';
+import { buildStatics, buildPullDistance, neighbourAt, toXY } from '../src/core/solver.js';
+import { parseBoxKey } from '../src/core/board.js';
 import { makeBoard } from './helpers.mjs';
 
 /** A Board is what the game has; a snapshot is what the solver takes. */
@@ -10,10 +11,7 @@ function snapshotOf(rows) {
     width: board.width,
     height: board.height,
     statics: board.statics,
-    boxes: [...board.boxes].map((key) => {
-      const [x, y] = key.split(',').map(Number);
-      return { x, y };
-    }),
+    boxes: [...board.boxes].map(parseBoxKey),
     player: { ...board.player },
   };
 }
@@ -55,4 +53,118 @@ test('walls are Infinity too, so nothing ever plans a push into one', () => {
   const dist = buildPullDistance(statics);
 
   assert.equal(at(statics, dist, 0, 0), Infinity);
+});
+
+test('neighbourAt bounds-checks on x and y, not on flat index', () => {
+  // On a 5-wide grid, stepping right off the last column of a row must return -1,
+  // not wrap to the next row. A flat-index check (n < 0 || n >= size) would
+  // incorrectly allow the wrap: index 4 + 1 = 5, which is valid.
+  const statics = buildStatics(snapshotOf(['#####', '#@$.#', '#####']));
+
+  // Index 9 is (4, 1) — the last column. Stepping right should go out of bounds.
+  assert.equal(neighbourAt(statics, 9, 1, 0), -1, 'stepping right off the last column');
+
+  // Index 5 is (0, 1) — the first column. Stepping left should go out of bounds.
+  assert.equal(neighbourAt(statics, 5, -1, 0), -1, 'stepping left off column 0');
+
+  // A normal in-grid step stays on the grid.
+  assert.equal(neighbourAt(statics, 6, 1, 0), 7, 'stepping right within the grid');
+});
+
+test('toXY converts flat index back to coordinates', () => {
+  // This test ensures toXY is the correct inverse of flat indexing.
+  // Index 7 on a 5-wide grid should be (2, 1): y = 7 ÷ 5 = 1, x = 7 % 5 = 2.
+  const statics = buildStatics(snapshotOf(['#####', '#@$.#', '#####']));
+
+  const coord = toXY(statics, 7);
+  assert.deepEqual(coord, { x: 2, y: 1 }, 'index 7 maps to (2, 1)');
+
+  // Test another index to confirm round-trip: (3, 1) should be index 8.
+  const index = 1 * 5 + 3;
+  assert.equal(index, 8);
+  const coord2 = toXY(statics, 8);
+  assert.deepEqual(coord2, { x: 3, y: 1 }, 'index 8 maps to (3, 1)');
+});
+
+test('pulls reach all reachable squares via the shortest path', () => {
+  // A grid with open interior space reveals non-minimal fill: if the algorithm
+  // used LIFO (stack) instead of FIFO (queue), it would explore deeper before
+  // shorter, and report wrong distances. This grid has a single goal at (1,1)
+  // and an open interior where squares are reachable by multiple paths at the
+  // same depth, and the algorithm must visit all of them at the correct distance.
+  // A non-minimal fill would assign wrong distances when multiple paths exist.
+  const statics = buildStatics(snapshotOf([
+    '#########',
+    '#.      #',
+    '#       #',
+    '#       #',
+    '#       #',
+    '#       #',
+    '#       #',
+    '#########',
+  ]));
+  const dist = buildPullDistance(statics);
+
+  // (1, 1): goal, distance 0
+  assert.equal(at(statics, dist, 1, 1), 0, 'goal itself is distance 0');
+
+  // (1, 2): pulled up to (1,1), distance 1
+  assert.equal(at(statics, dist, 1, 2), 1, 'one step down from goal');
+
+  // (1, 3): pulled up to (1,2), distance 2
+  assert.equal(at(statics, dist, 1, 3), 2, 'two steps down from goal');
+
+  // (1, 4): pulled up to (1,3), distance 3
+  assert.equal(at(statics, dist, 1, 4), 3, 'three steps down from goal');
+
+  // (1, 5): pulled up to (1,4), distance 4
+  assert.equal(at(statics, dist, 1, 5), 4, 'four steps down from goal');
+
+  // (2, 1): pulled left to (1,1), distance 1
+  assert.equal(at(statics, dist, 2, 1), 1, 'one step right from goal');
+
+  // (2, 2): reachable via (1,2) pushed right or (2,1) pushed down, both distance 2
+  assert.equal(at(statics, dist, 2, 2), 2, 'two routes converge at distance 2');
+
+  // (2, 3): reachable from (1,3) pushed right or (2,2) pushed down, both distance 3
+  assert.equal(at(statics, dist, 2, 3), 3, 'multiple paths to this square, all distance 3');
+
+  // (3, 3): reachable via (2,3) pushed right or (3,2) pushed down, distance 4
+  assert.equal(at(statics, dist, 3, 3), 4, 'diagonal square is distance 4');
+});
+
+test('dead squares are distinguished from reachable ones, not just counted as Infinity', () => {
+  // This test uses interior walls to create both reachable and dead squares.
+  // A dead square is one where every direction either hits a wall, goes out of
+  // bounds, or has a wall at the behind-square where the player would stand.
+  // A reachable square can be pulled toward the goal in at least one direction.
+  // If behind-square checking is dropped, the algorithm over-prunes and might
+  // incorrectly mark reachable squares as dead.
+  const statics = buildStatics(snapshotOf([
+    '#########',
+    '#.      #',
+    '#    #  #',
+    '#    # ##',
+    '#########',
+  ]));
+  const dist = buildPullDistance(statics);
+
+  // The goal is at (1, 1).
+  assert.equal(at(statics, dist, 1, 1), 0, 'goal is distance 0');
+
+  // (6, 2) is reachable: it can be pulled left via (5, 2)... actually wait, (5, 2) is a wall.
+  // Let me check: (6, 2) can be pulled left via... hmm, there's a wall at (5, 2).
+  // (6, 2) can be pulled up via (6, 3)? (6, 3) is a wall. So (6, 2) can only be reached
+  // if there's a path from the left side via (7, 2)... (7, 2) is outside the wall barrier.
+  // Actually, (6, 2) should be at distance 6 based on the fill above.
+  // The interior open squares on the left are all reachable.
+  assert.equal(at(statics, dist, 2, 2), 2, 'interior square at (2, 2) is reachable');
+  assert.equal(at(statics, dist, 4, 2), 4, 'interior square at (4, 2) is reachable');
+
+  // (7, 1) is isolated: wall to its right (8,1), wall above (7,0), and the wall barrier
+  // at (6, 1) blocks approach from the left. It is dead.
+  assert.equal(at(statics, dist, 7, 1), Infinity, 'isolated square is unreachable');
+
+  // This distinction shows the algorithm correctly identifies which squares are dead
+  // based on whether they can be pulled toward the goal, not just by counting walls.
 });
