@@ -33,22 +33,33 @@ export class AudioService {
     this.#music.volume = 0.35;
   }
 
-  get muted() { return this.#progress.muted; }
+  get musicOn() { return this.#progress.musicOn; }
 
-  set muted(value) {
-    this.#progress.muted = value;
-    if (value) this.#music.pause();
-    else if (this.#unlocked) void this.#music.play().catch(() => {});
+  set musicOn(value) {
+    this.#progress.musicOn = value;
+    if (value) {
+      // Nothing may play before the first interaction, so a switch flipped earlier than
+      // that just records the choice; unlock() starts the loop when the time comes.
+      if (this.#unlocked) void this.#music.play().catch(() => {});
+    } else {
+      this.#music.pause();
+    }
+  }
+
+  get sfxOn() { return this.#progress.sfxOn; }
+
+  set sfxOn(value) {
+    this.#progress.sfxOn = value;
   }
 
   unlock() {
     if (this.#unlocked) return;
     this.#unlocked = true;
-    if (!this.muted) void this.#music.play().catch(() => {});
+    if (this.musicOn) void this.#music.play().catch(() => {});
   }
 
   play(name) {
-    if (this.muted) return;
+    if (!this.sfxOn) return;
 
     const source = this.#buffers.get(name);
     if (!source) return;
