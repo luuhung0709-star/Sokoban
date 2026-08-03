@@ -100,7 +100,10 @@ test('an undone move is gone for good — there is no redo branch', () => {
   history.popForUndo();
 
   assert.equal(history.canUndo, false);
-  assert.equal(Object.hasOwn(history, 'canRedo'), false, 'no redo surface should remain');
+  // `in` walks the prototype chain, so this catches a leftover getter. Object.hasOwn
+  // would not: getters live on the prototype, so it reads false either way and the
+  // assertion would pass against the old class too.
+  assert.equal('canRedo' in history, false, 'no redo surface should remain');
 });
 
 test('clear empties the history', () => {
@@ -116,7 +119,7 @@ test('clear empties the history', () => {
 - [ ] **Step 2: Chạy test, phải thấy nó đỏ**
 
 Run: `cd web && node --test tests/moveHistory.test.mjs`
-Expected: FAIL — `Object.hasOwn(history, 'canRedo')` chưa đúng hoặc test cũ còn sót. Ghi lại thông báo lỗi.
+Expected: FAIL ở test `'an undone move is gone for good'` — `MoveHistory` hiện vẫn còn getter `canRedo`. Ghi lại thông báo lỗi.
 
 - [ ] **Step 3: Rút gọn MoveHistory**
 
@@ -2148,15 +2151,15 @@ test('switching the music off pauses the loop, on resumes it', () => {
 });
 
 test('the two switches are independent — no music, still footsteps', () => {
-  const { audio, progress } = setup();
+  const { audio, music } = setup();
   audio.unlock();
   audio.musicOn = false;
 
   const before = FakeAudio.made.length;
   audio.play('step');
 
-  assert.equal(progress.sfxOn, true);
-  assert.equal(FakeAudio.made.length, before + 1, 'a clip was cloned and played');
+  assert.equal(music.pauses, 1, 'the music really did stop');
+  assert.equal(FakeAudio.made.length, before + 1, 'and a step clip was still cloned and played');
 });
 
 test('switching effects off silences play but leaves the music alone', () => {
