@@ -210,3 +210,38 @@
  * go missing.
  */
 .actor--missing { background: #ff00ff; }
+
+/*
+ * The hint: a pulsing ring on the box to push next, plus an arrow for the direction.
+ *
+ * The ring is animated through box-shadow rather than opacity — fading the face would
+ * dim the box itself, and the box has to stay readable while the hint is up.
+ *
+ * Fixed px rather than tied to --cell like the strokes above: this is an overlay calling
+ * for attention, not part of the board's material, and 2–5px reads at every cell size.
+ */
+.actor--hint .actor__face {
+  animation: hint-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--accent); }
+  50%      { box-shadow: 0 0 0 5px var(--accent); }
+}
+
+/*
+ * The push direction. Drawn pointing up and turned by --hint-rot, so all four
+ * directions come from one shape. `.actor` is already absolutely positioned, so `inset`
+ * here resolves against the box.
+ */
+.actor__hint-arrow {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: calc(var(--cell) * 0.42);
+  height: calc(var(--cell) * 0.42);
+  background: var(--accent);
+  clip-path: polygon(50% 0%, 100% 100%, 50% 72%, 0% 100%);
+  transform: rotate(var(--hint-rot, 0deg));
+  pointer-events: none;
+}

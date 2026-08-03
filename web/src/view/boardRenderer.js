@@ -29,6 +29,17 @@ const CELL_MIN = 20;
 const CELL_MAX = 64;
 
 /**
+ * The hint arrow is drawn pointing up, so each direction is just a quarter turn from
+ * there. Keeping the art at one angle means one clip-path instead of four.
+ */
+const HINT_ROTATION = {
+  [Direction.Up]: 0,
+  [Direction.Right]: 90,
+  [Direction.Down]: 180,
+  [Direction.Left]: 270,
+};
+
+/**
  * Builds the static part of a level once and leaves it alone, while the player and
  * boxes are absolutely-positioned elements moved by transform. The same static
  * Tilemap + dynamic GameObject split the Unity build used.
@@ -44,6 +55,7 @@ export class BoardRenderer {
   // Push sprites that failed to load land here and are not retried. Deliberately NOT
   // cleared when building a new level: a file missing here is missing there too.
   #missingPush = new Set();
+  #hintEl = null;
 
   constructor(rootEl) {
     this.#root = rootEl;
@@ -53,6 +65,9 @@ export class BoardRenderer {
   build(board) {
     this.#root.textContent = '';
     this.#boxes.clear();
+    // The whole tree is about to be replaced, so the old hint element is already gone.
+    // Drop the reference too, or clearHint would poke at a detached node.
+    this.#hintEl = null;
     // Match the sprite #makePlayer builds, or the first turn to Down gets skipped
     // because it looks like it is already correct.
     this.#facing = Direction.Down;
@@ -137,6 +152,35 @@ export class BoardRenderer {
       const { x, y } = parseBoxKey(key);
       el.classList.toggle('actor--on-goal', board.cellAt(x, y) === CellType.Goal);
     }
+  }
+
+  /**
+   * Marks the box the solver says to push next, and which way. Only the box is shown,
+   * not the walk to it: working out how to get behind the box is the easy half of
+   * Sokoban, and doing it for the player would give the whole level away.
+   */
+  showHint({ x, y }, dir) {
+    this.clearHint();
+
+    const el = this.boxElAt(x, y);
+    // The hint may arrive after the board moved on. Nothing to point at is not a fault.
+    if (!el) return;
+
+    const arrow = document.createElement('i');
+    arrow.className = 'actor__hint-arrow';
+    arrow.style.setProperty('--hint-rot', `${HINT_ROTATION[dir] ?? 0}deg`);
+
+    el.classList.add('actor--hint');
+    el.append(arrow);
+    this.#hintEl = el;
+  }
+
+  clearHint() {
+    if (!this.#hintEl) return;
+
+    this.#hintEl.classList.remove('actor--hint');
+    this.#hintEl.querySelector('.actor__hint-arrow')?.remove();
+    this.#hintEl = null;
   }
 
   setPlayerFacing(dir) {

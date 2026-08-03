@@ -69,6 +69,13 @@ export function makeElement(tag = 'div') {
       }
     },
 
+    remove() {
+      const parent = this.parentElement;
+      if (!parent) return;
+      parent.children = parent.children.filter((kid) => kid !== this);
+      this.parentElement = null;
+    },
+
     addEventListener(type, fn) {
       if (!listeners.has(type)) listeners.set(type, []);
       listeners.get(type).push(fn);
