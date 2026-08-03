@@ -6,6 +6,21 @@
 # Superpowers SDD scratch (ledger, briefs, review packages)
 /.superpowers/
 
+# Worktree biệt lập cho từng nhánh feature. Chứa nguyên một bản checkout —
+# không ignore là một lần `git add -A` nhân đôi toàn bộ repo vào chính nó.
+/.claude/worktrees/
+
 # node_modules không bao giờ xuất hiện — web/ không có dependency nào — nhưng
 # giữ dòng này để một lần lỡ tay `npm i` không đẩy nghìn file lên repo.
 node_modules/
+
+# Rác còn lại của project Unity đã xoá ở 26f993f. Repo không còn dùng Unity,
+# nhưng mấy thư mục này vẫn nằm trên ổ đĩa của máy đã từng mở project —
+# riêng Library/ là 178 MB cache, một lần `git add -A` là đẩy hết lên repo.
+/Assets/
+/Library/
+/Logs/
+/Packages/
+/ProjectSettings/
+/UserSettings/
+/Sokoban.sln
