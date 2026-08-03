@@ -152,19 +152,25 @@ test('dead squares are distinguished from reachable ones, not just counted as In
   // The goal is at (1, 1).
   assert.equal(at(statics, dist, 1, 1), 0, 'goal is distance 0');
 
-  // (6, 2) is reachable: it can be pulled left via (5, 2)... actually wait, (5, 2) is a wall.
-  // Let me check: (6, 2) can be pulled left via... hmm, there's a wall at (5, 2).
-  // (6, 2) can be pulled up via (6, 3)? (6, 3) is a wall. So (6, 2) can only be reached
-  // if there's a path from the left side via (7, 2)... (7, 2) is outside the wall barrier.
-  // Actually, (6, 2) should be at distance 6 based on the fill above.
-  // The interior open squares on the left are all reachable.
+  // Interior left chamber: all reachable.
   assert.equal(at(statics, dist, 2, 2), 2, 'interior square at (2, 2) is reachable');
   assert.equal(at(statics, dist, 4, 2), 4, 'interior square at (4, 2) is reachable');
 
-  // (7, 1) is isolated: wall to its right (8,1), wall above (7,0), and the wall barrier
-  // at (6, 1) blocks approach from the left. It is dead.
-  assert.equal(at(statics, dist, 7, 1), Infinity, 'isolated square is unreachable');
+  // Right side: one column of live squares, one column of dead.
+  // (6, 1) is alive: reachable from (5,1) pushed right, with player standing at (7,1).
+  assert.equal(at(statics, dist, 6, 1), 5, 'live column: (6,1) is reachable');
 
-  // This distinction shows the algorithm correctly identifies which squares are dead
-  // based on whether they can be pulled toward the goal, not just by counting walls.
+  // (6, 2) is alive: reachable from (6,1) pushed down, with player at (6,3).
+  assert.equal(at(statics, dist, 6, 2), 6, 'live column: (6,2) is reachable');
+
+  // (7, 1) is dead: the only direction it could be pulled from is right, which would
+  // require the player standing at (8,1). But (8,1) is a wall, so the pull is impossible.
+  assert.equal(at(statics, dist, 7, 1), Infinity, 'dead column: (7,1) unreachable');
+
+  // (7, 2) is dead: cannot be pulled up (player at (7,0) is wall) or left (since (7,1) is dead).
+  assert.equal(at(statics, dist, 7, 2), Infinity, 'dead column: (7,2) unreachable');
+
+  // This test pins the contrast: an over-pruning bug that wrongly marks the live column
+  // (6,1) and (6,2) as dead would fail these new assertions, while the original test
+  // would still pass (it only checked the dead side).
 });
