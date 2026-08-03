@@ -90,6 +90,47 @@ test('a browser that cannot build the worker still answers, on the main thread',
   });
 });
 
+test('the main-thread fallback passes the small budget to the solver, not the default', async () => {
+  let receivedBudget;
+  const service = new HintService({
+    createWorker: () => { throw new Error('module workers not supported'); },
+    solve: (snapshot, budget) => { receivedBudget = budget; return null; },
+  });
+
+  await service.requestHint(board());
+
+  // Catches the regression a dropped second argument would cause: solveNextPush would
+  // silently fall back to its own 150 000-node default, which is exactly what would
+  // freeze a player's tab when there is no worker to absorb it.
+  assert.deepEqual(receivedBudget, { maxNodes: 20_000, maxMs: 1_500 });
+});
+
+test('a solver that throws on the main thread resolves to null instead of crashing the caller', async () => {
+  const service = new HintService({
+    createWorker: () => { throw new Error('module workers not supported'); },
+    solve: () => { throw new Error('boom'); },
+  });
+
+  // Must not throw synchronously here: `Promise.resolve(this.#solve(...))` evaluates
+  // its argument before Promise.resolve is even called, so an unguarded throw would
+  // escape requestHint() itself rather than merely rejecting the returned promise.
+  const pending = service.requestHint(board());
+
+  assert.equal(await pending, null);
+});
+
+test('a worker whose postMessage throws resolves to null rather than an auto-rejected promise', async () => {
+  const worker = makeFakeWorker();
+  worker.postMessage = () => { throw new Error('DataCloneError'); };
+  const service = new HintService({ createWorker: () => worker });
+
+  // A plain assert.doesNotReject would not tell an unfixed promise apart from one that
+  // resolves to the wrong value, so assert the actual resolution.
+  const result = await service.requestHint(board());
+
+  assert.equal(result, null);
+});
+
 test('dispose shuts the worker down', () => {
   const worker = makeFakeWorker();
   const service = new HintService({ createWorker: () => worker });

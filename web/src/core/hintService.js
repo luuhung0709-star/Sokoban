@@ -17,13 +17,15 @@ const defaultCreateWorker = () =>
  */
 export class HintService {
   #createWorker;
+  #solve;
   #worker = null;
   #brokenWorker = false;
   #nextId = 1;
   #pending = null;      // { id, resolve }
 
-  constructor({ createWorker = defaultCreateWorker } = {}) {
+  constructor({ createWorker = defaultCreateWorker, solve = solveNextPush } = {}) {
     this.#createWorker = createWorker;
+    this.#solve = solve;
   }
 
   /** Resolves with the push to make, or null — never rejects. The caller has no repair to do. */
@@ -32,16 +34,33 @@ export class HintService {
     // they asked about, so answer them null rather than leaving the promise hanging.
     this.#settle(null);
 
-    const snapshot = snapshotOf(board);
-    const worker = this.#ensureWorker();
+    try {
+      const snapshot = snapshotOf(board);
+      const worker = this.#ensureWorker();
 
-    if (!worker) return Promise.resolve(solveNextPush(snapshot, MAIN_THREAD_BUDGET));
+      if (!worker) return Promise.resolve(this.#solve(snapshot, MAIN_THREAD_BUDGET));
 
-    const id = this.#nextId++;
-    return new Promise((resolve) => {
-      this.#pending = { id, resolve };
-      worker.postMessage({ id, snapshot });
-    });
+      const id = this.#nextId++;
+      return new Promise((resolve) => {
+        this.#pending = { id, resolve };
+        try {
+          worker.postMessage({ id, snapshot });
+        } catch (error) {
+          // e.g. a DataCloneError from a malformed snapshot. A throw inside a Promise
+          // executor auto-rejects it, which would break the "never rejects" contract
+          // just as surely as a throw escaping this method outright.
+          console.error(`HintService: could not hand the board to the worker (${error.message})`);
+          this.#pending = null;
+          resolve(null);
+        }
+      });
+    } catch (error) {
+      // Guards snapshotOf and the synchronous main-thread solve. Without this, a caller
+      // doing `void hintService.requestHint(board)` would crash on the spot rather than
+      // merely receiving no hint.
+      console.error(`HintService: could not compute a hint (${error.message})`);
+      return Promise.resolve(null);
+    }
   }
 
   dispose() {
@@ -71,7 +90,11 @@ export class HintService {
     return this.#worker;
   }
 
-  #onMessage({ id, hint, error }) {
+  #onMessage(data) {
+    // Guard against a malformed message: throwing here would leave #pending set and the
+    // promise hanging forever, which is worse than the null we would otherwise resolve.
+    const { id, hint, error } = data ?? {};
+
     // A reply to a request that has already been superseded. Dropping it matters: it
     // describes a board the player has since changed.
     if (this.#pending?.id !== id) return;
