@@ -68,12 +68,20 @@ test('lastPlayedIndex can be written and read back', () => {
   assert.equal(store.getLastPlayedIndex('Microban'), 13);
 });
 
-test('the mute setting is stored alongside progress', () => {
+test('the two sound settings are stored alongside progress', () => {
   const storage = fakeStorage();
   const store = new ProgressStore(storage);
-  store.muted = true;
+  store.musicOn = false;
 
-  assert.equal(new ProgressStore(storage).muted, true);
+  const reloaded = new ProgressStore(storage);
+  assert.equal(reloaded.musicOn, false);
+  assert.equal(reloaded.sfxOn, true, 'the two switches are independent');
+});
+
+test('sound is on by default', () => {
+  const store = new ProgressStore(fakeStorage());
+  assert.equal(store.musicOn, true);
+  assert.equal(store.sfxOn, true);
 });
 
 test('written data can be read back by a fresh store', () => {
@@ -86,13 +94,50 @@ test('written data can be read back by a fresh store', () => {
 test('corrupt JSON resets to empty instead of throwing', () => {
   const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{ shattered' }));
   assert.equal(store.getRecord('Microban', 0).completed, false);
-  assert.equal(store.muted, false);
+  assert.equal(store.musicOn, true);
+  assert.equal(store.sfxOn, true);
 });
 
 test('JSON that parses but lacks fields is still usable', () => {
-  const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{"muted":true}' }));
-  assert.equal(store.muted, true);
+  const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{}' }));
+  assert.equal(store.musicOn, true);
   assert.equal(store.getRecord('Microban', 0).completed, false);
+});
+
+test('a save from the days of a single mute switch turns both switches off', () => {
+  const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{"muted":true}' }));
+
+  assert.equal(store.musicOn, false);
+  assert.equal(store.sfxOn, false, 'the old switch silenced everything, so both must follow');
+});
+
+test('an old save with sound left on comes through with both switches on', () => {
+  const store = new ProgressStore(fakeStorage({ 'sokoban.progress': '{"muted":false}' }));
+
+  assert.equal(store.musicOn, true);
+  assert.equal(store.sfxOn, true);
+});
+
+test('a migrated save stops carrying the old mute flag', () => {
+  const storage = fakeStorage({ 'sokoban.progress': '{"muted":true}' });
+  const store = new ProgressStore(storage);
+
+  store.sfxOn = true;   // any write re-serialises the whole root
+
+  const raw = storage.getItem('sokoban.progress');
+  assert.equal(JSON.parse(raw).muted, undefined,
+    'one save format is enough to reason about; the old flag must not be carried forward');
+  assert.equal(JSON.parse(raw).musicOn, false, 'and the migrated value must survive the write');
+});
+
+test('sfxOn is stored and retrieved independently', () => {
+  const storage = fakeStorage();
+  const store = new ProgressStore(storage);
+  store.sfxOn = false;
+
+  const reloaded = new ProgressStore(storage);
+  assert.equal(reloaded.sfxOn, false);
+  assert.equal(reloaded.musicOn, true, 'the two switches are independent');
 });
 
 test('a storage that throws on write does not kill the game', () => {
@@ -115,7 +160,8 @@ test('a storage that throws on read resets to empty rather than escaping', () =>
 
   assert.doesNotThrow(() => store.getRecord('Microban', 0));
   assert.equal(store.getRecord('Microban', 0).completed, false);
-  assert.equal(store.muted, false);
+  assert.equal(store.musicOn, true);
+  assert.equal(store.sfxOn, true);
 });
 
 test('junk entries in collections are filtered out rather than throwing', () => {

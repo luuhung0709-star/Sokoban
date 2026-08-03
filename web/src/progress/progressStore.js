@@ -1,8 +1,7 @@
 const KEY = 'sokoban.progress';
 
 /**
- * Progress is stored as JSON in localStorage. The shape is kept identical to the
- * Unity build's so the two remain comparable.
+ * Progress is stored as JSON in localStorage.
  *
  * storage is injected so tests can plug in a fake localStorage — this module is the
  * only place in the game that touches localStorage.
@@ -18,7 +17,7 @@ export class ProgressStore {
   get #data() {
     if (this.#root) return this.#root;
 
-    this.#root = { muted: false, collections: [] };
+    this.#root = { musicOn: true, sfxOn: true, collections: [] };
 
     // getItem sits INSIDE the try: some browsers' private mode throws on the read
     // itself, and letting that escape kills the game at load time.
@@ -28,7 +27,7 @@ export class ProgressStore {
 
       const parsed = JSON.parse(raw);
       this.#root = {
-        muted: Boolean(parsed?.muted),
+        ...readSound(parsed),
         // Filter junk once at the door: JSON that parses but has the wrong shape
         // (arrays holding null, strings, numbers) must still yield usable progress
         // rather than throwing and killing the game at load.
@@ -46,7 +45,7 @@ export class ProgressStore {
     } catch (error) {
       // Corrupt or blocked: start over — never throw and kill the game.
       console.warn(`ProgressStore: could not read progress, starting fresh (${error.message})`);
-      this.#root = { muted: false, collections: [] };
+      this.#root = { musicOn: true, sfxOn: true, collections: [] };
     }
 
     return this.#root;
@@ -111,10 +110,17 @@ export class ProgressStore {
     this.#save();
   }
 
-  get muted() { return this.#data.muted; }
+  get musicOn() { return this.#data.musicOn; }
 
-  set muted(value) {
-    this.#data.muted = Boolean(value);
+  set musicOn(value) {
+    this.#data.musicOn = Boolean(value);
+    this.#save();
+  }
+
+  get sfxOn() { return this.#data.sfxOn; }
+
+  set sfxOn(value) {
+    this.#data.sfxOn = Boolean(value);
     this.#save();
   }
 
@@ -128,4 +134,20 @@ export class ProgressStore {
       console.warn(`ProgressStore: could not clear progress (${error.message})`);
     }
   }
+}
+
+/**
+ * Reads the two sound switches, migrating saves written before they were split.
+ *
+ * Those saves have a single `muted` flag. `muted: true` silenced the lot, so it becomes
+ * both switches off. The old field is read but never written back — one save format is
+ * enough to reason about.
+ */
+function readSound(parsed) {
+  if (typeof parsed?.musicOn === 'boolean' || typeof parsed?.sfxOn === 'boolean') {
+    return { musicOn: parsed.musicOn !== false, sfxOn: parsed.sfxOn !== false };
+  }
+
+  const on = !parsed?.muted;
+  return { musicOn: on, sfxOn: on };
 }
