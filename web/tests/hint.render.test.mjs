@@ -29,9 +29,20 @@ test('showHint marks the named box and hangs an arrow on it', () => {
 test('the arrow carries the rotation for its direction', () => {
   const { renderer } = setup();
 
-  renderer.showHint({ x: 2, y: 1 }, Direction.Left);
+  renderer.showHint({ x: 2, y: 1 }, Direction.Up);
+  let arrow = renderer.boxElAt(2, 1).querySelector('.actor__hint-arrow');
+  assert.equal(arrow.style['--hint-rot'], '0deg');
 
-  const arrow = renderer.boxElAt(2, 1).querySelector('.actor__hint-arrow');
+  renderer.showHint({ x: 2, y: 1 }, Direction.Right);
+  arrow = renderer.boxElAt(2, 1).querySelector('.actor__hint-arrow');
+  assert.equal(arrow.style['--hint-rot'], '90deg');
+
+  renderer.showHint({ x: 2, y: 1 }, Direction.Down);
+  arrow = renderer.boxElAt(2, 1).querySelector('.actor__hint-arrow');
+  assert.equal(arrow.style['--hint-rot'], '180deg');
+
+  renderer.showHint({ x: 2, y: 1 }, Direction.Left);
+  arrow = renderer.boxElAt(2, 1).querySelector('.actor__hint-arrow');
   assert.equal(arrow.style['--hint-rot'], '270deg');
 });
 
@@ -71,10 +82,15 @@ test('a hint aimed at a square with no box is ignored, not crashed on', () => {
 test('rebuilding for a new level forgets the old hint', () => {
   const { renderer } = setup();
   renderer.showHint({ x: 2, y: 1 }, Direction.Right);
+  const stale = renderer.boxElAt(2, 1);
 
   renderer.build(makeBoard(['#####', '#@$.#', '#####']));
+  renderer.clearHint();
 
-  // The old element is gone; clearHint must not reach back into it.
-  assert.doesNotThrow(() => renderer.clearHint());
+  // build() drops the reference, so clearHint has nothing to do and never reaches
+  // back into the detached element. If the reference survived, clearHint would strip
+  // the class off this node — which is how a stale pointer would show itself.
+  assert.equal(stale.classList.contains('actor--hint'), true,
+    'clearHint must not touch an element from the previous level');
   assert.equal(renderer.boxElAt(2, 1).classList.contains('actor--hint'), false);
 });
