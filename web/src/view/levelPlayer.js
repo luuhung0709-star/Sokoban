@@ -142,7 +142,7 @@ export class LevelPlayer {
     const acted = await this.#dispatch(command);
     // Sync the pose in EXACTLY ONE place, after every command — including blocked
     // moves, because the player still turns that way and may have just turned into a
-    // box. Scattering this call across the move/undo/redo/restart branches would
+    // box. Scattering this call across the move/undo/restart branches would
     // sooner or later miss one.
     if (!this.#stopped) this.#syncPushPose();
     return acted;
@@ -163,8 +163,7 @@ export class LevelPlayer {
     const dir = commandToDirection(command);
 
     if (dir) return this.#step(dir);
-    if (command === Command.Undo) return this.#stepHistory(this.#session.tryUndo(), true);
-    if (command === Command.Redo) return this.#stepHistory(this.#session.tryRedo(), false);
+    if (command === Command.Undo) return this.#stepHistory(this.#session.tryUndo());
     if (command === Command.Restart) {
       this.#restart();
       return true;
@@ -188,11 +187,11 @@ export class LevelPlayer {
     return true;
   }
 
-  async #stepHistory(move, reverse) {
+  async #stepHistory(move) {
     if (!move) return false;
 
     this.#hooks.onSound?.('undo');
-    await this.#animator.play(move, { reverse });
+    await this.#animator.play(move, { reverse: true });
     // The renderer may have been rebuilt for a different level during the wait.
     if (this.#stopped) return false;
 

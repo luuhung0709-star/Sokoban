@@ -2,7 +2,7 @@ import { Direction } from '../core/direction.js';
 
 export const Command = Object.freeze({
   Up: 'Up', Down: 'Down', Left: 'Left', Right: 'Right',
-  Undo: 'Undo', Redo: 'Redo', Restart: 'Restart', Exit: 'Exit',
+  Undo: 'Undo', Restart: 'Restart', Exit: 'Exit',
 });
 
 const KEY_TO_COMMAND = {
@@ -11,7 +11,6 @@ const KEY_TO_COMMAND = {
   ArrowLeft: Command.Left, KeyA: Command.Left,
   ArrowRight: Command.Right, KeyD: Command.Right,
   KeyU: Command.Undo,
-  KeyY: Command.Redo,
   KeyR: Command.Restart,
   Escape: Command.Exit,
 };

@@ -6,7 +6,6 @@ export class Hud {
   #moves;
   #pushes;
   #undo;
-  #redo;
   #restartBtn;
 
   constructor(rootEl, router) {
@@ -14,11 +13,9 @@ export class Hud {
     this.#moves = rootEl.querySelector('#hud-moves');
     this.#pushes = rootEl.querySelector('#hud-pushes');
     this.#undo = rootEl.querySelector('#btn-undo');
-    this.#redo = rootEl.querySelector('#btn-redo');
     this.#restartBtn = rootEl.querySelector('#btn-restart');
 
     router.bindButton(this.#undo, Command.Undo);
-    router.bindButton(this.#redo, Command.Redo);
     router.bindButton(this.#restartBtn, Command.Restart);
     router.bindButton(rootEl.querySelector('#btn-exit'), Command.Exit);
   }
@@ -30,13 +27,12 @@ export class Hud {
   /** Returns an unbind function, so changing level leaves no listener on the old session. */
   bind(session) {
     const refresh = () => {
-      // Once solved these three buttons do nothing — grey them out, or they look
+      // Once solved these two buttons do nothing — grey them out, or they look
       // clickable while clicking them achieves nothing.
       const solved = session.isSolved;
       this.#moves.textContent = String(session.moves);
       this.#pushes.textContent = String(session.pushes);
       this.#undo.disabled = solved || !session.canUndo;
-      this.#redo.disabled = solved || !session.canRedo;
       this.#restartBtn.disabled = solved;
     };
 

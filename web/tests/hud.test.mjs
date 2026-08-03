@@ -7,10 +7,10 @@ import { Command } from '../src/input/inputRouter.js';
 import { makeLevel } from './helpers.mjs';
 import { makeElement, withId } from './fakeDom.mjs';
 
-/** The seven ids Hud looks up in its constructor. Missing one throws, which is the point. */
+/** The six ids Hud looks up in its constructor. Missing one throws, which is the point. */
 const HUD_IDS = [
   'hud-name', 'hud-moves', 'hud-pushes',
-  'btn-undo', 'btn-redo', 'btn-restart', 'btn-exit',
+  'btn-undo', 'btn-restart', 'btn-exit',
 ];
 
 function makeRoot() {
@@ -38,12 +38,11 @@ function setup() {
   return { root, router, hud, session, el: (id) => root.querySelector(`#${id}`) };
 }
 
-test('the constructor wires all four buttons to their commands', () => {
+test('the constructor wires all three buttons to their commands', () => {
   const { router } = setup();
 
   assert.deepEqual(router.bound, [
     { id: 'btn-undo', command: Command.Undo },
-    { id: 'btn-redo', command: Command.Redo },
     { id: 'btn-restart', command: Command.Restart },
     { id: 'btn-exit', command: Command.Exit },
   ]);
@@ -76,34 +75,30 @@ test('the counters follow the session as it changes', () => {
   assert.equal(el('hud-pushes').textContent, '1');
 });
 
-test('undo and redo are disabled exactly when the history is empty', () => {
+test('undo is disabled exactly when the history is empty', () => {
   const { hud, session, el } = setup();
   hud.bind(session);
 
   assert.equal(el('btn-undo').disabled, true, 'nothing to undo yet');
-  assert.equal(el('btn-redo').disabled, true, 'nothing to redo yet');
 
   session.tryMove(Direction.Right);
   assert.equal(el('btn-undo').disabled, false);
-  assert.equal(el('btn-redo').disabled, true, 'a fresh move leaves no redo branch');
 
   session.tryUndo();
   assert.equal(el('btn-undo').disabled, true);
-  assert.equal(el('btn-redo').disabled, false);
 });
 
-test('solving the level greys out undo, redo and restart together', () => {
+test('solving the level greys out undo and restart together', () => {
   const { hud, session, el } = setup();
   hud.bind(session);
 
-  // Two pushes put the only box onto the goal.
+  // Three pushes put the only box onto the goal.
   session.tryMove(Direction.Right);
   session.tryMove(Direction.Right);
   session.tryMove(Direction.Right);
   assert.equal(session.isSolved, true, 'guard: the level really is solved');
 
   assert.equal(el('btn-undo').disabled, true, 'undo must not work behind the win overlay');
-  assert.equal(el('btn-redo').disabled, true);
   assert.equal(el('btn-restart').disabled, true);
 });
 
