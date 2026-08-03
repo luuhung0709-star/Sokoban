@@ -64,6 +64,19 @@ test('switching the music off pauses the loop, on resumes it', () => {
   assert.equal(music.plays, 2);
 });
 
+test('a switch flipped before unlock records the choice without starting audio', () => {
+  const { audio, progress, music } = setup();
+
+  audio.musicOn = false;
+  audio.musicOn = true;      // back on, but nobody has interacted with the page yet
+
+  assert.equal(music.plays, 0, 'nothing may play before the first user interaction');
+  assert.equal(progress.musicOn, true, 'but the choice must still be remembered');
+
+  audio.unlock();
+  assert.equal(music.plays, 1, 'and unlock honours it when the time comes');
+});
+
 test('the two switches are independent — no music, still footsteps', () => {
   const { audio, music } = setup();
   audio.unlock();
@@ -85,6 +98,7 @@ test('switching effects off silences play but leaves the music alone', () => {
   audio.play('step');
 
   assert.equal(FakeAudio.made.length, before, 'no clip should have been made');
+  assert.equal(music.plays, 1, 'the music should still be playing');
   assert.equal(music.pauses, 0, 'the music switch was not touched');
 });
 
