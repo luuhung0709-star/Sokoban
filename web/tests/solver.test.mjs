@@ -157,17 +157,21 @@ test('dead squares are distinguished from reachable ones, not just counted as In
   assert.equal(at(statics, dist, 4, 2), 4, 'interior square at (4, 2) is reachable');
 
   // Right side: one column of live squares, one column of dead.
-  // (6, 1) is alive: reachable from (5,1) pushed right, with player standing at (7,1).
+  // (6, 1) is alive: a box there is pushed LEFT onto (5, 1), one step nearer the goal,
+  // with the player standing at (7, 1).
   assert.equal(at(statics, dist, 6, 1), 5, 'live column: (6,1) is reachable');
 
-  // (6, 2) is alive: reachable from (6,1) pushed down, with player at (6,3).
+  // (6, 2) is alive: a box there is pushed UP onto (6, 1), with the player standing at
+  // (6, 3) — floor, though the row string makes it easy to misread as wall.
   assert.equal(at(statics, dist, 6, 2), 6, 'live column: (6,2) is reachable');
 
   // (7, 1) is dead: the only direction it could be pulled from is right, which would
   // require the player standing at (8,1). But (8,1) is a wall, so the pull is impossible.
   assert.equal(at(statics, dist, 7, 1), Infinity, 'dead column: (7,1) unreachable');
 
-  // (7, 2) is dead: cannot be pulled up (player at (7,0) is wall) or left (since (7,1) is dead).
+  // (7, 2) is dead. Its only live neighbour is (6, 2) to the LEFT, and a box on (7, 2)
+  // could only reach it by being pushed left — which needs the player standing on (8, 2),
+  // a wall. Nothing else helps: (7, 1) above is itself dead, and (7, 3) below is wall.
   assert.equal(at(statics, dist, 7, 2), Infinity, 'dead column: (7,2) unreachable');
 
   // This test pins the contrast: an over-pruning bug that wrongly marks the live column
