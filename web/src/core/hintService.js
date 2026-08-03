@@ -1,0 +1,106 @@
+import { solveNextPush } from './solver.js';
+
+/**
+ * The budget used when the search has to run on the page itself. Much smaller than the
+ * worker's, because every millisecond of it is a millisecond the tab is frozen.
+ */
+const MAIN_THREAD_BUDGET = { maxNodes: 20_000, maxMs: 1_500 };
+
+const defaultCreateWorker = () =>
+  new Worker(new URL('./solverWorker.js', import.meta.url), { type: 'module' });
+
+/**
+ * Asks the solver for the next push, off the main thread.
+ *
+ * `createWorker` is injected so tests can hand in a fake — there is no Worker in
+ * `node --test`, and the real one would need a build step to be reachable from there.
+ */
+export class HintService {
+  #createWorker;
+  #worker = null;
+  #brokenWorker = false;
+  #nextId = 1;
+  #pending = null;      // { id, resolve }
+
+  constructor({ createWorker = defaultCreateWorker } = {}) {
+    this.#createWorker = createWorker;
+  }
+
+  /** Resolves with the push to make, or null — never rejects. The caller has no repair to do. */
+  requestHint(board) {
+    // Only one search at a time. Whoever asked first is no longer looking at the board
+    // they asked about, so answer them null rather than leaving the promise hanging.
+    this.#settle(null);
+
+    const snapshot = snapshotOf(board);
+    const worker = this.#ensureWorker();
+
+    if (!worker) return Promise.resolve(solveNextPush(snapshot, MAIN_THREAD_BUDGET));
+
+    const id = this.#nextId++;
+    return new Promise((resolve) => {
+      this.#pending = { id, resolve };
+      worker.postMessage({ id, snapshot });
+    });
+  }
+
+  dispose() {
+    this.#settle(null);
+    this.#worker?.terminate();
+    this.#worker = null;
+  }
+
+  /**
+   * Returns null when this browser cannot give us a worker — Firefox had no module
+   * workers before 114, and a sandboxed page may refuse outright. The hint still works
+   * from the main thread; it just thinks for less time. Same choice BoardRenderer makes
+   * for missing sprites and ProgressStore for a blocked localStorage: degrade, never die.
+   */
+  #ensureWorker() {
+    if (this.#worker || this.#brokenWorker) return this.#worker;
+
+    try {
+      this.#worker = this.#createWorker();
+      this.#worker.onmessage = ({ data }) => this.#onMessage(data);
+    } catch (error) {
+      console.warn(`HintService: no worker available, solving on the page (${error.message})`);
+      this.#brokenWorker = true;
+      this.#worker = null;
+    }
+
+    return this.#worker;
+  }
+
+  #onMessage({ id, hint, error }) {
+    // A reply to a request that has already been superseded. Dropping it matters: it
+    // describes a board the player has since changed.
+    if (this.#pending?.id !== id) return;
+
+    if (error) console.error(`HintService: the solver failed (${error})`);
+    this.#settle(error ? null : hint ?? null);
+  }
+
+  #settle(value) {
+    const pending = this.#pending;
+    this.#pending = null;
+    pending?.resolve(value);
+  }
+}
+
+/**
+ * A Board flattened to data `structuredClone` can carry: its methods would be lost
+ * crossing into the worker, and `boxes` is a Set of "x,y" strings that the solver would
+ * rather have as coordinates anyway.
+ */
+function snapshotOf(board) {
+  return {
+    width: board.width,
+    height: board.height,
+    statics: board.statics.map((row) => [...row]),
+    boxes: [...board.boxes].map((key) => {
+      const [x, y] = key.split(',').map(Number);
+      return { x, y };
+    }),
+    player: { ...board.player },
+  };
+}
