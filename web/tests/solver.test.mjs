@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStatics, buildPullDistance, neighbourAt, toXY } from '../src/core/solver.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { buildStatics, buildPullDistance, neighbourAt, toXY, solveNextPush } from '../src/core/solver.js';
+import { Direction } from '../src/core/direction.js';
 import { parseBoxKey } from '../src/core/board.js';
 import { makeBoard } from './helpers.mjs';
 
@@ -177,4 +180,69 @@ test('dead squares are distinguished from reachable ones, not just counted as In
   // This test pins the contrast: an over-pruning bug that wrongly marks the live column
   // (6,1) and (6,2) as dead would fail these new assertions, while the original test
   // would still pass (it only checked the dead side).
+});
+
+/** Node budget is deterministic; a wall-clock budget is not, so tests never use one. */
+const NO_CLOCK = { maxMs: Infinity };
+
+test('a one-push level names the box and the direction', () => {
+  const hint = solveNextPush(snapshotOf(['#####', '#@$.#', '#####']), NO_CLOCK);
+
+  assert.deepEqual(hint, { box: { x: 2, y: 1 }, dir: Direction.Right });
+});
+
+test('the hint names the push, and says nothing about the walk to reach it', () => {
+  // The player is four squares away and has to walk round to get below the box. The
+  // answer is still only "push this box up" — finding the way there is the player's job.
+  const hint = solveNextPush(snapshotOf([
+    '#######',
+    '# .   #',
+    '# $   #',
+    '#    @#',
+    '#######',
+  ]), NO_CLOCK);
+
+  assert.deepEqual(hint, { box: { x: 2, y: 2 }, dir: Direction.Up });
+});
+
+test('an already solved board has nothing to hint', () => {
+  assert.equal(solveNextPush(snapshotOf(['####', '#@*#', '####']), NO_CLOCK), null);
+});
+
+test('a box pushed into a dead corner gives up rather than guessing', () => {
+  assert.equal(solveNextPush(snapshotOf(['#####', '#$ @#', '#  .#', '#####']), NO_CLOCK), null);
+});
+
+test('running out of nodes returns null instead of throwing', () => {
+  const hint = solveNextPush(
+    snapshotOf(['#######', '#@$  .#', '#######']),
+    { maxNodes: 1, maxMs: Infinity },
+  );
+
+  assert.equal(hint, null);
+});
+
+test('boxes standing side by side do not read as frozen', () => {
+  // Two boxes touching, and the solution moves one of them past the other. A prune that
+  // treated "a box beside me" as a permanent block would throw this position away.
+  const hint = solveNextPush(snapshotOf([
+    '#######',
+    '#..   #',
+    '# $$@ #',
+    '#     #',
+    '#######',
+  ]), NO_CLOCK);
+
+  assert.notEqual(hint, null, 'this position has a solution and the solver must find it');
+});
+
+test('the solver clears the opening position of the first 20 Microban levels', () => {
+  const collection = JSON.parse(
+    readFileSync(fileURLToPath(new URL('../src/levels/microban.json', import.meta.url)), 'utf8'),
+  );
+
+  for (const level of collection.levels.slice(0, 20)) {
+    const hint = solveNextPush(snapshotOf(level.rows), { maxNodes: 50_000, maxMs: Infinity });
+    assert.notEqual(hint, null, `level ${level.name} has a solution but the solver found none`);
+  }
 });
