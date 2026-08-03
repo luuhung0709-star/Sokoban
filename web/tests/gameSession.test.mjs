@@ -43,26 +43,6 @@ test('undoing everything matches the level start state', () => {
   assert.equal(session.moves, 0);
 });
 
-test('redo replays exactly the move just undone', () => {
-  const session = new GameSession(level());
-  session.tryMove(Direction.Right);
-  session.tryUndo();
-
-  assert.ok(session.tryRedo());
-  assert.equal(session.moves, 1);
-  assert.deepEqual(session.board.player, { x: 2, y: 1 });
-});
-
-test('a new move clears the redo branch', () => {
-  const session = new GameSession(level());
-  session.tryMove(Direction.Right);
-  session.tryUndo();
-  assert.equal(session.canRedo, true);
-
-  session.tryMove(Direction.Right);
-  assert.equal(session.canRedo, false);
-});
-
 test('restart rebuilds the board and clears the history', () => {
   const session = new GameSession(level());
   session.tryMove(Direction.Right);
@@ -95,4 +75,13 @@ test('a blocked move fires no event', () => {
 
   session.tryMove(Direction.Left);
   assert.equal(count, 0);
+});
+
+test('an undone move cannot be replayed', () => {
+  const session = new GameSession(makeLevel(['#####', '#@$.#', '#####']));
+  session.tryMove(Direction.Right);
+  session.tryUndo();
+
+  assert.equal(session.tryRedo, undefined, 'redo must be gone from the session, not just unused');
+  assert.equal(session.moves, 0);
 });

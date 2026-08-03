@@ -17,7 +17,6 @@ export class GameSession {
 
   get isSolved() { return this.board.isSolved; }
   get canUndo() { return this.#history.canUndo; }
-  get canRedo() { return this.#history.canRedo; }
   get levelName() { return this.#level.name; }
 
   /** Returns an unsubscribe function, so callers need not keep the listener reference. */
@@ -51,18 +50,6 @@ export class GameSession {
     revert(this.board, move);
     this.moves--;
     if (move.push) this.pushes--;
-
-    this.#emit();
-    return move;
-  }
-
-  tryRedo() {
-    if (!this.#history.canRedo) return null;
-
-    const move = this.#history.popForRedo();
-    apply(this.board, move);
-    this.moves++;
-    if (move.push) this.pushes++;
 
     this.#emit();
     return move;
