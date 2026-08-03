@@ -19,6 +19,7 @@ export class LevelPlayer {
   #wake = null;         // wakes the loop while it waits out the key-repeat delay
   #hintService;
   #hintBusy = false;
+  #commandSeq = 0;       // bumped once per command in #runOne; stands in for board identity
 
   constructor({ session, renderer, animator, router, hintService = null, hooks = {} }) {
     this.#session = session;
@@ -62,7 +63,10 @@ export class LevelPlayer {
     // into the loop would queue it behind a move, so the highlight would appear one step
     // too late — and it has no animation to sequence with in the first place.
     if (command === Command.Hint) {
-      void this.#showHint();
+      // Same defensive .catch as the play loop below: onHintStart/onHintDone/showHint run
+      // outside the try/catch inside #showHint, so a throw from any of them would
+      // otherwise be an unhandled rejection with nothing to trace it back to.
+      this.#showHint().catch((error) => console.error('LevelPlayer: hint failed', error));
       return;
     }
 
@@ -88,13 +92,15 @@ export class LevelPlayer {
    * Asks the solver about the position on screen right now.
    *
    * The answer can take seconds, so everything is re-checked when it lands: the player
-   * may have moved on, or left the level entirely, and a hint drawn onto a board that has
-   * changed points at the wrong square.
+   * may have moved on, restarted, or left the level entirely, and a hint drawn onto a
+   * board that has changed points at the wrong square. Staleness is judged by
+   * `#commandSeq`, not `session.moves` — `moves` resets to 0 on restart, so two
+   * genuinely different boards can otherwise share the same count and look unchanged.
    */
   async #showHint() {
     if (!this.#hintService || this.#hintBusy || this.#session.isSolved) return;
 
-    const askedAt = this.#session.moves;
+    const askedAt = this.#commandSeq;
     this.#hintBusy = true;
     this.#hooks.onHintStart?.();
 
@@ -102,15 +108,21 @@ export class LevelPlayer {
     try {
       hint = await this.#hintService.requestHint(this.#session.board);
     } catch (error) {
-      // requestHint is built never to reject, but this call is fired with `void`, so a
-      // broken promise would surface as an unhandled rejection with nothing to trace it
-      // back to. Swallow it here and the button still comes out of its thinking state.
+      // requestHint is built never to reject, but a slip here must still reach the
+      // finally below — otherwise #hintBusy would stay stuck true and the button would
+      // never leave its "Thinking…" state.
       console.error('LevelPlayer: asking for a hint failed', error);
     } finally {
       this.#hintBusy = false;
     }
 
-    const stale = this.#stopped || this.#session.moves !== askedAt;
+    // A stopped player's hud has already moved on: GameFlow rebinds it to the next
+    // level's session before or shortly after calling stop(), so calling the hooks
+    // here would stomp on state that bind() has since reset, not merely repeat news
+    // nobody is around to read.
+    if (this.#stopped) return;
+
+    const stale = this.#commandSeq !== askedAt;
     // `found` is forced true when stale: the button must come out of its thinking state
     // either way, but a board nobody is looking at any more has no bad news to report.
     this.#hooks.onHintDone?.(stale || Boolean(hint));
@@ -188,8 +200,11 @@ export class LevelPlayer {
   /** Returns true if something actually ran (and its animation has been awaited). */
   async #runOne(command) {
     // Any command at all invalidates the hint on screen — including a blocked move,
-    // where the player has at least turned and the arrow no longer reads right.
+    // where the player has at least turned and the arrow no longer reads right. Bump
+    // the sequence number for the same reason: it is what #showHint checks to tell an
+    // answered-but-outdated search apart from one still worth drawing.
     this.#renderer.clearHint();
+    this.#commandSeq++;
 
     const acted = await this.#dispatch(command);
     // Sync the pose in EXACTLY ONE place, after every command — including blocked

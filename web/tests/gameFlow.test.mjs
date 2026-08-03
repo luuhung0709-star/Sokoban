@@ -54,7 +54,8 @@ function setup() {
     rekeyBox() {},
     placeActor() {},
     playerEl: {},
-    showHint() {},
+    hints: [],
+    showHint(box, dir) { this.hints.push({ box, dir }); },
     clearHint() {},
   };
 
@@ -93,7 +94,7 @@ function setup() {
   });
 
   return {
-    flow, router, hud, panels, audio, progress, coll, hintService,
+    flow, router, hud, panels, audio, progress, coll, hintService, renderer,
     screen: () => document.body.dataset.screen,
   };
 }
@@ -263,4 +264,49 @@ test('a search that found nothing flashes the message', async () => {
   await tick();
 
   assert.equal(hud.noHintFlashes, 1);
+});
+
+test('a found hint is drawn using the exact box and direction the solver returned', async () => {
+  const { flow, router, renderer, hintService } = setup();
+  hintService.hint = { box: { x: 2, y: 1 }, dir: Direction.Right };
+  flow.playLevel(0);
+
+  router.send(Command.Hint);
+  await tick();
+
+  assert.deepEqual(renderer.hints, [{ box: { x: 2, y: 1 }, dir: Direction.Right }],
+    'a deleted showHint call or swapped arguments must fail this');
+});
+
+test('a move made while the search is still running throws the answer away', async () => {
+  const { flow, router, renderer, hud, hintService } = setup();
+  let resolveHint;
+  hintService.requestHint = () => new Promise((resolve) => { resolveHint = resolve; });
+  flow.playLevel(0);
+
+  router.send(Command.Hint);
+  router.send(Command.Right);   // the board the search was asked about no longer exists
+  await tick();
+  resolveHint({ box: { x: 2, y: 1 }, dir: Direction.Right });
+  await tick();
+
+  assert.equal(renderer.hints.length, 0, 'a hint for an outdated board must not be drawn');
+  assert.equal(hud.noHintFlashes, 0, 'stale is not the same as "the solver found nothing"');
+});
+
+test('a restart while the search is still running also throws the answer away', async () => {
+  const { flow, router, renderer, hintService } = setup();
+  let resolveHint;
+  hintService.requestHint = () => new Promise((resolve) => { resolveHint = resolve; });
+  flow.playLevel(0);
+
+  router.send(Command.Hint);
+  router.send(Command.Restart);
+  await tick();
+  resolveHint({ box: { x: 2, y: 1 }, dir: Direction.Right });
+  await tick();
+
+  // Restart puts `moves` back to 0 — the same value it started at — so a guard keyed
+  // on the move count alone sees no change here and would draw the stale hint anyway.
+  assert.equal(renderer.hints.length, 0);
 });

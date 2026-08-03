@@ -190,3 +190,25 @@ test('an unbound hud keeps the hint button disabled', () => {
 
   assert.equal(el('btn-hint').disabled, true, 'no session means nothing to solve');
 });
+
+test('a new search cancels the message left by the last one', (t) => {
+  // Mock timers so a leftover 2-second delay cannot leave a real OS timer pending —
+  // that would just make node --test sit for 2 seconds rather than fail outright.
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { hud, session, el } = setup();
+  hud.bind(session);
+
+  hud.flashNoHint();          // first search: found nothing, its timer is now running
+  hud.setHintBusy(true);      // a second search starts before that timer expires
+  hud.setHintBusy(false);     // ...and finds something, well before the old timer fires
+
+  // If the old timer was left running, #noHintTimer is still non-null here, which
+  // blocks setHintBusy(false) from ever writing "Hint" back — the button would be
+  // stuck reading "Thinking…" despite no longer being busy.
+  assert.equal(el('btn-hint').textContent, '💡 Hint',
+    'an uncancelled timer from the first search must not block the second one from reporting done');
+
+  // The leftover timer eventually fires regardless; it must find nothing left to undo.
+  t.mock.timers.tick(2000);
+  assert.equal(el('btn-hint').textContent, '💡 Hint');
+});
