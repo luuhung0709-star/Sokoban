@@ -23,6 +23,7 @@ function makeRenderer(facing = Direction.Down) {
     rekeyBox() {},
     placeActor() {},
     playerEl: {},
+    clearHint() {},
   };
 }
 

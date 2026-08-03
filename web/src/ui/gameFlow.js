@@ -11,6 +11,7 @@ export class GameFlow {
   #hud;
   #panels;
   #audio;
+  #hintService;
 
   #session = null;
   #player = null;
@@ -18,7 +19,7 @@ export class GameFlow {
   #unbindHud = null;
   #unroute = null;
 
-  constructor({ collection, progress, router, renderer, animator, hud, panels, audio }) {
+  constructor({ collection, progress, router, renderer, animator, hud, panels, audio, hintService }) {
     this.#collection = collection;
     this.#progress = progress;
     this.#router = router;
@@ -27,6 +28,7 @@ export class GameFlow {
     this.#hud = hud;
     this.#panels = panels;
     this.#audio = audio;
+    this.#hintService = hintService;
   }
 
   get #collectionName() { return this.#collection.collectionName; }
@@ -64,10 +66,16 @@ export class GameFlow {
       renderer: this.#renderer,
       animator: this.#animator,
       router: this.#router,
+      hintService: this.#hintService,
       hooks: {
         onExit: () => this.showLevelSelect(),
         onSolved: () => this.#onSolved(),
         onSound: (name) => this.#audio.play(name),
+        onHintStart: () => this.#hud.setHintBusy(true),
+        onHintDone: (found) => {
+          this.#hud.setHintBusy(false);
+          if (!found) this.#hud.flashNoHint();
+        },
       },
     });
 

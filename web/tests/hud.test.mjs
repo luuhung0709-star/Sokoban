@@ -7,10 +7,10 @@ import { Command } from '../src/input/inputRouter.js';
 import { makeLevel } from './helpers.mjs';
 import { makeElement, withId } from './fakeDom.mjs';
 
-/** The six ids Hud looks up in its constructor. Missing one throws, which is the point. */
+/** The seven ids Hud looks up in its constructor. Missing one throws, which is the point. */
 const HUD_IDS = [
   'hud-name', 'hud-moves', 'hud-pushes',
-  'btn-undo', 'btn-restart', 'btn-exit',
+  'btn-undo', 'btn-hint', 'btn-restart', 'btn-exit',
 ];
 
 function makeRoot() {
@@ -38,11 +38,12 @@ function setup() {
   return { root, router, hud, session, el: (id) => root.querySelector(`#${id}`) };
 }
 
-test('the constructor wires all three buttons to their commands', () => {
+test('the constructor wires all four buttons to their commands', () => {
   const { router } = setup();
 
   assert.deepEqual(router.bound, [
     { id: 'btn-undo', command: Command.Undo },
+    { id: 'btn-hint', command: Command.Hint },
     { id: 'btn-restart', command: Command.Restart },
     { id: 'btn-exit', command: Command.Exit },
   ]);
@@ -133,4 +134,59 @@ test('binding a second session leaves the first one no longer driving the hud', 
   session.tryMove(Direction.Right);   // the old one must be inert now
 
   assert.equal(el('hud-moves').textContent, '1');
+});
+
+test('the hint button is live while the level is unsolved', () => {
+  const { hud, session, el } = setup();
+  hud.bind(session);
+
+  assert.equal(el('btn-hint').disabled, false);
+  assert.equal(el('btn-hint').textContent, '💡 Hint');
+});
+
+test('solving the level greys the hint button out with the rest', () => {
+  const { hud, session, el } = setup();
+  hud.bind(session);
+
+  session.tryMove(Direction.Right);
+  session.tryMove(Direction.Right);
+  session.tryMove(Direction.Right);
+
+  assert.equal(el('btn-hint').disabled, true, 'there is nothing left to hint at');
+});
+
+test('while the solver runs the button says so and cannot be pressed again', () => {
+  const { hud, session, el } = setup();
+  hud.bind(session);
+
+  hud.setHintBusy(true);
+  assert.equal(el('btn-hint').textContent, '💡 Thinking…');
+  assert.equal(el('btn-hint').disabled, true);
+
+  hud.setHintBusy(false);
+  assert.equal(el('btn-hint').textContent, '💡 Hint');
+  assert.equal(el('btn-hint').disabled, false);
+});
+
+test('a search that found nothing says so on the button itself', () => {
+  const { hud, session, el } = setup();
+  hud.bind(session);
+
+  hud.flashNoHint();
+  assert.equal(el('btn-hint').textContent, '💡 No hint');
+
+  // Also cancels the pending timer, so node --test does not sit waiting for it.
+  hud.setHintBusy(true);
+  assert.equal(el('btn-hint').textContent, '💡 Thinking…',
+    'a new search must win over the message left from the last one');
+});
+
+test('an unbound hud keeps the hint button disabled', () => {
+  const { hud, session, el } = setup();
+  const unbind = hud.bind(session);
+
+  unbind();
+  hud.setHintBusy(false);
+
+  assert.equal(el('btn-hint').disabled, true, 'no session means nothing to solve');
 });

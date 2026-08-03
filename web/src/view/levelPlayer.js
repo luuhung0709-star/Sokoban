@@ -17,16 +17,20 @@ export class LevelPlayer {
   #stopped = false;
   #looping = false;
   #wake = null;         // wakes the loop while it waits out the key-repeat delay
+  #hintService;
+  #hintBusy = false;
 
-  constructor({ session, renderer, animator, router, hooks = {} }) {
+  constructor({ session, renderer, animator, router, hintService = null, hooks = {} }) {
     this.#session = session;
     this.#renderer = renderer;
     this.#animator = animator;
     this.#router = router;
+    this.#hintService = hintService;
     this.#hooks = hooks;
   }
 
   start() {
+    this.#renderer.clearHint();
     this.#animator.snap(this.#session.board, () => {
       this.#renderer.fitCellSize(this.#session.board);
     });
@@ -42,6 +46,7 @@ export class LevelPlayer {
   stop() {
     this.#stopped = true;
     this.#buffered = null;
+    this.#renderer.clearHint();
     this.#wake?.();     // if asleep on the repeat delay, wake now to exit the loop
   }
 
@@ -50,6 +55,14 @@ export class LevelPlayer {
 
     if (command === Command.Exit) {
       this.#hooks.onExit?.();
+      return;
+    }
+
+    // Hint is answered here, OUTSIDE the play loop and before the busy check. Letting it
+    // into the loop would queue it behind a move, so the highlight would appear one step
+    // too late — and it has no animation to sequence with in the first place.
+    if (command === Command.Hint) {
+      void this.#showHint();
       return;
     }
 
@@ -69,6 +82,41 @@ export class LevelPlayer {
       return;
     }
     this.#loop(command).catch((error) => console.error('LevelPlayer: play loop failed', error));
+  }
+
+  /**
+   * Asks the solver about the position on screen right now.
+   *
+   * The answer can take seconds, so everything is re-checked when it lands: the player
+   * may have moved on, or left the level entirely, and a hint drawn onto a board that has
+   * changed points at the wrong square.
+   */
+  async #showHint() {
+    if (!this.#hintService || this.#hintBusy || this.#session.isSolved) return;
+
+    const askedAt = this.#session.moves;
+    this.#hintBusy = true;
+    this.#hooks.onHintStart?.();
+
+    let hint = null;
+    try {
+      hint = await this.#hintService.requestHint(this.#session.board);
+    } catch (error) {
+      // requestHint is built never to reject, but this call is fired with `void`, so a
+      // broken promise would surface as an unhandled rejection with nothing to trace it
+      // back to. Swallow it here and the button still comes out of its thinking state.
+      console.error('LevelPlayer: asking for a hint failed', error);
+    } finally {
+      this.#hintBusy = false;
+    }
+
+    const stale = this.#stopped || this.#session.moves !== askedAt;
+    // `found` is forced true when stale: the button must come out of its thinking state
+    // either way, but a board nobody is looking at any more has no bad news to report.
+    this.#hooks.onHintDone?.(stale || Boolean(hint));
+    if (stale || !hint) return;
+
+    this.#renderer.showHint(hint.box, hint.dir);
   }
 
   /**
@@ -139,6 +187,10 @@ export class LevelPlayer {
 
   /** Returns true if something actually ran (and its animation has been awaited). */
   async #runOne(command) {
+    // Any command at all invalidates the hint on screen — including a blocked move,
+    // where the player has at least turned and the arrow no longer reads right.
+    this.#renderer.clearHint();
+
     const acted = await this.#dispatch(command);
     // Sync the pose in EXACTLY ONE place, after every command — including blocked
     // moves, because the player still turns that way and may have just turned into a

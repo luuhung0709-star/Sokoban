@@ -54,6 +54,8 @@ function setup() {
     rekeyBox() {},
     placeActor() {},
     playerEl: {},
+    showHint() {},
+    clearHint() {},
   };
 
   const animator = { isBusy: false, async play() {}, snap(_b, after) { after?.(); } };
@@ -61,7 +63,11 @@ function setup() {
   let bound = 0;
   const hud = {
     label: null,
+    hintBusy: [],
+    noHintFlashes: 0,
     setLevelLabel(text) { this.label = text; },
+    setHintBusy(on) { this.hintBusy.push(on); },
+    flashNoHint() { this.noHintFlashes++; },
     bind() { bound++; return () => { bound--; }; },
     get boundCount() { return bound; },
   };
@@ -76,11 +82,20 @@ function setup() {
   const progress = makeProgress();
   const coll = collection();
 
+  const hintService = {
+    asked: 0,
+    hint: null,
+    requestHint() { this.asked++; return Promise.resolve(this.hint); },
+  };
+
   const flow = new GameFlow({
-    collection: coll, progress, router, renderer, animator, hud, panels, audio,
+    collection: coll, progress, router, renderer, animator, hud, panels, audio, hintService,
   });
 
-  return { flow, router, hud, panels, audio, progress, coll, screen: () => document.body.dataset.screen };
+  return {
+    flow, router, hud, panels, audio, progress, coll, hintService,
+    screen: () => document.body.dataset.screen,
+  };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -224,4 +239,28 @@ test('handleResize is a no-op when no level is loaded', () => {
   const { flow } = setup();
 
   assert.doesNotThrow(() => flow.handleResize());
+});
+
+test('the hint button drives the hud through its thinking state', async () => {
+  const { flow, router, hud, hintService } = setup();
+  hintService.hint = { box: { x: 2, y: 1 }, dir: Direction.Right };
+  flow.playLevel(0);
+
+  router.send(Command.Hint);
+  await tick();
+
+  assert.equal(hintService.asked, 1);
+  assert.deepEqual(hud.hintBusy, [true, false], 'busy must be switched off again');
+  assert.equal(hud.noHintFlashes, 0);
+});
+
+test('a search that found nothing flashes the message', async () => {
+  const { flow, router, hud, hintService } = setup();
+  hintService.hint = null;
+  flow.playLevel(0);
+
+  router.send(Command.Hint);
+  await tick();
+
+  assert.equal(hud.noHintFlashes, 1);
 });
