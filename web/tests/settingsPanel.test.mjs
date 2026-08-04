@@ -33,20 +33,31 @@ function makeKeyTarget() {
   };
 }
 
-function setup() {
+/**
+ * The whole sheet in one go, including the parts Task 2 and Task 3 wire up. Ids the
+ * constructor does not look up yet are inert, and building this once beats rewriting it
+ * three times.
+ */
+function setup({ playing = true } = {}) {
   const root = makeElement('div');
-  for (const id of ['btn-music', 'btn-sfx', 'btn-settings-close']) {
+  for (const id of ['btn-music', 'btn-sfx', 'btn-tutorial', 'btn-settings-back',
+                    'btn-settings-close', 'btn-settings-restart']) {
     root.append(withId(id, 'button'));
   }
+  for (const id of ['settings-list', 'settings-tutorial', 'row-restart']) {
+    root.append(withId(id, 'div'));
+  }
+  root.append(withId('settings-title', 'h2'));
   root.hidden = true;
 
-  const state = { musicOn: true, sfxOn: true };
+  const state = { musicOn: true, sfxOn: true, playing };
   const fired = [];
   const keyTarget = makeKeyTarget();
 
   const panel = new SettingsPanel(root, {
     onToggleMusic: () => { state.musicOn = !state.musicOn; fired.push('music'); },
     onToggleSfx: () => { state.sfxOn = !state.sfxOn; fired.push('sfx'); },
+    onRestart: () => { fired.push('restart'); },
     getState: () => state,
     keyTarget,
   });
@@ -64,27 +75,36 @@ test('show reveals the panel and hide puts it away', () => {
   assert.equal(root.hidden, true);
 });
 
-test('the labels report the stored settings', () => {
+test('the switches report the stored settings through aria-pressed', () => {
   const { panel, state, el } = setup();
 
   panel.show();
-  assert.equal(el('btn-music').textContent, 'Music: on');
   assert.equal(el('btn-music').getAttribute('aria-pressed'), 'true');
 
   state.musicOn = false;
   panel.refresh();
-  assert.equal(el('btn-music').textContent, 'Music: off');
   assert.equal(el('btn-music').getAttribute('aria-pressed'), 'false');
 });
 
-test('the effects switch has its own label', () => {
+test('the full name goes to screen readers, since the visible label is shortened', () => {
   const { panel, state, el } = setup();
   state.sfxOn = false;
 
   panel.show();
 
-  assert.equal(el('btn-sfx').textContent, 'Sound effects: off');
-  assert.equal(el('btn-music').textContent, 'Music: on', 'one switch must not follow the other');
+  assert.equal(el('btn-sfx').getAttribute('aria-label'), 'Sound effects: off');
+  assert.equal(el('btn-music').getAttribute('aria-label'), 'Music: on',
+    'one switch must not follow the other');
+});
+
+test('the visible label is static markup, so refresh must leave it alone', () => {
+  const { panel, el } = setup();
+  el('btn-music').textContent = 'Music';
+
+  panel.show();
+
+  assert.equal(el('btn-music').textContent, 'Music',
+    'the icon and label live in index.html now; rewriting them here would wipe the icon');
 });
 
 test('pressing a switch fires its callback and redraws', () => {
@@ -94,7 +114,8 @@ test('pressing a switch fires its callback and redraws', () => {
   el('btn-music').dispatch('click');
 
   assert.deepEqual(fired, ['music']);
-  assert.equal(el('btn-music').textContent, 'Music: off', 'the label follows immediately');
+  assert.equal(el('btn-music').getAttribute('aria-pressed'), 'false',
+    'the state follows immediately');
 });
 
 test('Close puts the panel away', () => {

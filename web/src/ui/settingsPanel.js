@@ -55,8 +55,8 @@ export class SettingsPanel {
 
   refresh() {
     const { musicOn, sfxOn } = this.#getState();
-    label(this.#musicBtn, 'Music', musicOn);
-    label(this.#sfxBtn, 'Sound effects', sfxOn);
+    setSwitch(this.#musicBtn, 'Music', musicOn);
+    setSwitch(this.#sfxBtn, 'Sound effects', sfxOn);
   }
 
   /**
@@ -70,7 +70,15 @@ export class SettingsPanel {
   }
 }
 
-function label(button, name, on) {
-  button.textContent = `${name}: ${on ? 'on' : 'off'}`;
+/**
+ * State goes on `aria-pressed` alone, and the CSS draws the switch from that attribute.
+ * One source of truth: a separate class for the look could drift out of step with what a
+ * screen reader announces.
+ *
+ * The visible label is static markup — it carries an icon, and it is shortened to fit
+ * half a row — so the full name is spelled out here instead.
+ */
+function setSwitch(button, name, on) {
   button.setAttribute('aria-pressed', String(on));
+  button.setAttribute('aria-label', `${name}: ${on ? 'on' : 'off'}`);
 }
