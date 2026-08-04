@@ -42,3 +42,23 @@ is malformed.
 ## Level editor
 
 Open `/editor/` through a local server. That page is not part of the deployed build.
+
+## Verifying the music-pause wiring
+
+`src/main.js` is the composition root, and it is the one file the unit tests cannot
+reach: it does a top-level `await fetch` for the level set and touches `document`,
+`window`, `localStorage` and `Worker`, so importing it under `node --test` would need a
+fake browser — jsdom, which this project deliberately does not depend on.
+
+`tools/verify-music-pause.mjs` covers the gap that leaves: it drives the real game in
+headless Chrome over the DevTools Protocol and asserts on real state (does blur really
+pause the music, does the Settings switch really win over a system pause, and so on).
+
+```bash
+cd web && node tools/verify-music-pause.mjs
+```
+
+It needs Chrome (or Chromium) installed. It looks in the common install locations for
+your platform; if yours isn't found, point at it with `CHROME=/path/to/chrome`. It is
+deliberately **not** part of `npm test` — it needs a real browser and a couple of
+seconds to start one, which does not belong in the fast unit-test loop.
