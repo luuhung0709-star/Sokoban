@@ -151,3 +151,196 @@ body[data-screen="play"] .screen[data-name="play"] { display: flex; }
   color: var(--text-dim);
   text-align: center;
 }
+
+/*
+ * The settings sheet. Rows run edge to edge with a hairline between them, so `.panel`'s
+ * side padding and centred text both have to go — but only here: the main menu and the
+ * level-complete overlay share `.panel` and still need them. This block sits at the end
+ * of the file so a single class selector is enough to win over `.panel` above.
+ */
+.panel--sheet {
+  width: min(360px, 92vw);
+  max-width: none;
+  padding: 0;
+  text-align: left;
+  overflow: hidden;      /* so the rounded corners clip the first and last row */
+}
+
+/*
+ * Three fixed columns rather than flex with a spacer: the title stays centred on the
+ * sheet whether or not the back button is showing. With flex it would slide sideways
+ * every time the view changed.
+ */
+.sheet__head {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--panel-line);
+}
+
+.sheet__title { margin: 0; font-size: 18px; text-align: center; }
+
+.sheet__nav {
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sheet__nav:hover { color: var(--text); }
+
+/*
+ * The tutorial view is taller than the list, and on a phone held sideways it would run
+ * off the bottom of the sheet with no way to reach the rest.
+ */
+.sheet__view {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/*
+ * `hidden` only means `display: none` while nothing else sets `display`. Every rule here
+ * that does is listed, so a view or a row toggled from JS really disappears.
+ */
+.sheet__view[hidden], .sheet__nav[hidden], .sheet__foot[hidden] { display: none; }
+
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-top: 1px solid var(--panel-line);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:first-child { border-top: 0; }
+.row--nav:hover { background: rgba(255, 255, 255, 0.04); }
+.row__icon { font-size: 20px; }
+.row__chevron { color: var(--text-dim); font-size: 18px; }
+
+/* Two switches sharing one row, split down the middle. */
+.row--pair {
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 0;
+  cursor: default;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.switch + .switch { border-left: 1px solid var(--panel-line); }
+
+/*
+ * Off state, keyed off the same attribute a screen reader reads.
+ *
+ * `opacity` rather than `color` for the dimming: the icon is an emoji, and emoji glyphs
+ * carry their own colours and ignore `color` entirely. Opacity is the one property that
+ * fades both the emoji and the word beside it.
+ */
+.switch[aria-pressed="false"] {
+  opacity: 0.45;
+  color: var(--text);
+}
+
+.switch__icon { position: relative; font-size: 20px; line-height: 1; }
+
+/*
+ * The slash. Drawn here rather than swapping in 🔇: that glyph looks different on every
+ * system, and being a colour emoji it could not be dimmed to match the label.
+ */
+.switch[aria-pressed="false"] .switch__icon::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 50%;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: rotate(-45deg);
+}
+
+.sheet__foot {
+  padding: 14px 16px;
+  border-top: 1px solid var(--panel-line);
+}
+
+.sheet__foot .btn { width: 100%; }
+
+.sheet__text { margin: 0; padding: 16px; color: var(--text-dim); font-size: 14px; }
+
+.legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0;
+  padding: 0 16px 16px;
+  list-style: none;
+}
+
+.legend__item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+
+/*
+ * One board square, borrowed whole from the game so the key can never drift from what
+ * the player actually sees. Two things have to be re-established out here:
+ *
+ * `--cell` and `--stroke`, because they are declared on `.board`, not on `:root` — the
+ * formula is copied from board.css and must stay in step with it.
+ *
+ * A positioned parent, because `.actor` is `position: absolute` and normally sits inside
+ * `.board__actors`. Without this the box would escape to the nearest positioned ancestor
+ * and land somewhere across the sheet.
+ */
+.legend__cell {
+  --cell: 30px;
+  --stroke: calc(var(--cell) * 0.06);
+  position: relative;
+  flex: none;
+  width: var(--cell);
+  height: var(--cell);
+}
+
+/*
+ * `.tile` is an <i>, and it never declares a `display` of its own — on the board it is a
+ * grid item, which blockifies it. Out here there is no grid, so an inline <i> would
+ * ignore the width and height entirely and the sample would collapse to nothing.
+ */
+.legend__cell .tile { display: block; }
+
+/* A sample must not inherit the slide of a box in play. */
+.legend__cell .actor { transition: none; }
+
+.keys {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0 16px 16px;
+  font-size: 13px;
+}
+
+.keys dt { font-weight: 600; }
+.keys dd { margin: 0; color: var(--text-dim); }
