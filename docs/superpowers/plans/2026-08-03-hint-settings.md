@@ -2746,7 +2746,43 @@ git commit -m "Nối Settings vào menu và thanh nút, bỏ hai nút mute cũ"
 
 ## Kiểm tra cuối
 
-- [ ] `cd web && npm test` — xanh toàn bộ.
-- [ ] `grep -rn "redo\|Redo\|muted\|btn-mute" web/src web/index.html` — không còn kết quả nào ngoài hàm `readSound` trong `progressStore.js` (chỗ đó đọc `muted` để migrate, đúng theo thiết kế).
-- [ ] Chơi thử màn 1 tới màn 5 trong trình duyệt: undo, restart, hint, settings, giải xong màn đều hoạt động.
-- [ ] Bấm Hint ở một màn cao (ví dụ 120): hoặc ra gợi ý, hoặc hiện `No hint` rồi tự trả về `💡 Hint`. Không được treo và không được đơ tab.
+Tự động — đã xong:
+
+- [x] `cd web && npm test` — 231/231 xanh, output không cảnh báo.
+- [x] `grep -rn "redo\|Redo\|muted\|btn-mute" web/src web/index.html` — chỉ còn hai chỗ, đều trong
+      `readSound` của `progressStore.js` (đọc `muted` để migrate), cộng một comment mô tả trong
+      `moveHistory.js`. Đúng theo thiết kế.
+
+## Kiểm tay trên trình duyệt
+
+**Chưa ai chạy phần này.** Môi trường thi công không có trình duyệt, nên mọi thứ dưới đây chưa
+có gì xác nhận. Xếp theo mức độ dễ hỏng, cao xuống thấp — làm từ trên xuống.
+
+Chạy `cd web && python -m http.server 8000` rồi mở `http://localhost:8000`.
+
+1. **Worker có nạp thật không.** DevTools → Network, xác nhận `solverWorker.js` được tải dưới
+   dạng module worker; xem Console có lỗi `Worker` không. Đây là thứ chưa xác minh có hậu quả
+   tệ nhất: nếu hỏng, nút Hint kẹt ở `💡 Thinking…` vĩnh viễn. Thử thêm với hard reload +
+   disable cache.
+2. **Phím `H`.** Không test nào chạm tới bảng phím. Xác nhận H có tác dụng trong màn chơi, và
+   **không** có tác dụng ở menu hay màn chọn level.
+3. **Settings mở từ cả hai lối.** Mở từ menu chính và từ thanh nút. Xác nhận overlay phủ được
+   thanh nút (thanh này giờ có 5 nút và có thể xuống dòng nên cao hơn trước), Esc đóng panel
+   chứ không thoát màn, và phím mũi tên không điều khiển nhân vật phía sau overlay.
+4. **Tắt Music thì nhạc có tắt thật không.** Đây là mắt xích duy nhất không có test tự động
+   (`SettingsPanel` → `main.js` → `AudioService`). Thử thêm thứ tự này: mở Settings làm thao
+   tác **đầu tiên**, tắt Music, đóng, rồi vào chơi — nhạc không được phép kêu.
+5. **Vòng nhấp nháy so với viền nổi của thùng, ở cả hai cỡ ô (20px và 64px).** Vòng lan ra 5px
+   ngoài `.actor__face` (vốn đã thụt vào 2px) — ở ô 20px, chỗ đó chiếm một phần tư ô và có thể
+   tràn sang ô bên cạnh.
+6. **Mũi tên đọc được không, và bốn hướng có đúng không.** `0.42 × 20px ≈ 8px` ở cỡ ô nhỏ nhất.
+   Xác nhận Right/Down/Left đúng là 90/180/270 độ theo chiều kim đồng hồ tính từ mũi tên chỉ lên.
+7. **Màu `--accent` (#d53b35) trên nền thùng vàng**, và trên thùng đang nằm trên ô đích — solver
+   có thể gợi ý đẩy một thùng **ra khỏi** ô đích, nên `.actor--hint` và `.actor--on-goal` sẽ
+   xuất hiện cùng lúc.
+8. **Tiêu điểm bàn phím sau lưng overlay.** Mở Settings, bấm Tab rồi Enter — xác nhận anh không
+   vừa restart màn đang chơi ở phía sau. (Panel nuốt `keydown` nhưng không giam tiêu điểm; đây
+   là một minor đã được ghi nhận và cố ý để lại.)
+9. Chơi trọn màn 1 → 5: undo, restart, hint, settings, và màn hình thắng đều hoạt động.
+10. Bấm Hint ở một màn cao (ví dụ 120): hoặc ra gợi ý, hoặc hiện `💡 No hint` rồi tự trả về
+    `💡 Hint` sau 2 giây. Không được treo, không được đơ tab.
