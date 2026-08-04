@@ -430,8 +430,8 @@ Lớp hiển thị không có test tự động — kiểm bằng mắt trên tr
 GitHub Actions build Pages từ thư mục `web/`, **loại `editor/`, `tests/`, `tools/`, `package.json`**
 khỏi bản deploy. Không có bước build — workflow chỉ copy file tĩnh.
 
-Chạy lúc dev: bất kỳ static server nào (`npx serve web`), không double-click `index.html` vì `file://`
-chặn ES module và `fetch`.
+Chạy lúc dev: `cd web && npm start` (server tĩnh riêng của repo, không cần Python hay mạng —
+xem `web/README.md`), không double-click `index.html` vì `file://` chặn ES module và `fetch`.
 
 ## 15. Ngoài phạm vi
 

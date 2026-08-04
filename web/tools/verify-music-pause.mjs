@@ -24,7 +24,7 @@ import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
-import { join, dirname, extname, normalize } from 'node:path';
+import { join, dirname, extname, normalize, relative, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { once } from 'node:events';
@@ -79,9 +79,21 @@ const MIME = {
 };
 
 const server = createServer(async (req, res) => {
-  const path = decodeURIComponent(req.url.split('?')[0]);
+  let path;
+  try {
+    // Decoded before anything else so a malformed escape fails here with a clean 400,
+    // rather than throwing inside this async handler with nothing there to catch it.
+    path = decodeURIComponent(req.url.split('?')[0]);
+  } catch {
+    res.writeHead(400).end('bad request');
+    return;
+  }
   const file = normalize(join(WEB_ROOT, path === '/' ? '/index.html' : path));
-  if (!file.startsWith(normalize(WEB_ROOT))) { res.writeHead(403).end(); return; }
+  // path.relative, not startsWith: a bare prefix check also accepts a sibling directory
+  // whose name merely begins with WEB_ROOT's own name. See tools/serve.mjs for the fuller
+  // version of this same guard, which this harness intentionally mirrors.
+  const rel = relative(WEB_ROOT, file);
+  if (isAbsolute(rel) || rel.split(sep)[0] === '..') { res.writeHead(403).end(); return; }
   try {
     const body = await readFile(file);
     res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' });
