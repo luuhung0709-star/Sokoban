@@ -70,10 +70,15 @@ export class HintService {
   }
 
   /**
-   * Returns null when this browser cannot give us a worker — Firefox had no module
-   * workers before 114, and a sandboxed page may refuse outright. The hint still works
-   * from the main thread; it just thinks for less time. Same choice BoardRenderer makes
-   * for missing sprites and ProgressStore for a blocked localStorage: degrade, never die.
+   * Returns null when this browser cannot give us a worker. Two ways that happens: the
+   * constructor throws outright (a sandboxed page refusing Worker entirely), or the
+   * worker starts but then fails to load — Firefox had no module workers before 114, so
+   * it fetches solverWorker.js as a classic script, hits the `import` statement as a
+   * parse error, and reports that asynchronously via `error`, never by throwing here.
+   * Same for a CSP `worker-src` rejection or a 404 on the script. The hint still works
+   * from the main thread either way; it just thinks for less time. Same choice
+   * BoardRenderer makes for missing sprites and ProgressStore for a blocked
+   * localStorage: degrade, never die.
    */
   #ensureWorker() {
     if (this.#worker || this.#brokenWorker) return this.#worker;
@@ -81,6 +86,15 @@ export class HintService {
     try {
       this.#worker = this.#createWorker();
       this.#worker.onmessage = ({ data }) => this.#onMessage(data);
+      this.#worker.onerror = (event) => {
+        console.warn(`HintService: the worker failed, solving on the page from now on (${event.message ?? 'unknown error'})`);
+        event.preventDefault?.();
+        this.#brokenWorker = true;
+        this.#worker?.terminate();
+        this.#worker = null;
+        this.#settle(null);
+      };
+      this.#worker.onmessageerror = this.#worker.onerror;
     } catch (error) {
       console.warn(`HintService: no worker available, solving on the page (${error.message})`);
       this.#brokenWorker = true;

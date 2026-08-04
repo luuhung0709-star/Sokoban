@@ -10,9 +10,13 @@ function makeFakeWorker() {
     posted: [],
     terminated: 0,
     onmessage: null,
+    onerror: null,
     postMessage(data) { this.posted.push(data); },
     terminate() { this.terminated++; },
     reply(message) { this.onmessage({ data: message }); },
+    // Stands in for the browser firing an asynchronous ErrorEvent on the worker
+    // object — e.g. Firefox <114 failing to parse solverWorker.js as a classic script.
+    fail(message) { this.onerror?.({ message }); },
   };
   return worker;
 }
@@ -129,6 +133,36 @@ test('a worker whose postMessage throws resolves to null rather than an auto-rej
   const result = await service.requestHint(board());
 
   assert.equal(result, null);
+});
+
+test('a worker that fails asynchronously (e.g. a parse error loading the script) resolves the in-flight request to null instead of hanging forever', { timeout: 1000 }, async () => {
+  const worker = makeFakeWorker();
+  const service = new HintService({ createWorker: () => worker });
+
+  const pending = service.requestHint(board());
+  worker.fail('SyntaxError: import declarations may only appear at top level of a module');
+
+  assert.equal(await pending, null);
+});
+
+test('after the worker fails, the next hint falls back to the main thread rather than posting to the dead worker', { timeout: 1000 }, async () => {
+  const worker = makeFakeWorker();
+  let solveCalls = 0;
+  const solve = (snapshot, budget) => {
+    solveCalls++;
+    return { box: { x: 2, y: 1 }, dir: Direction.Right };
+  };
+  const service = new HintService({ createWorker: () => worker, solve });
+
+  const first = service.requestHint(board());
+  worker.fail('boom');
+  assert.equal(await first, null);
+
+  const second = await service.requestHint(board());
+
+  assert.equal(worker.posted.length, 1, 'the second request must not post to the broken worker');
+  assert.equal(solveCalls, 1, 'this is the proof #brokenWorker actually took effect');
+  assert.deepEqual(second, { box: { x: 2, y: 1 }, dir: Direction.Right });
 });
 
 test('dispose shuts the worker down', () => {

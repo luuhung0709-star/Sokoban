@@ -170,7 +170,9 @@ function reachable(statics, boxAt, from) {
 }
 
 /**
- * True when the box just pushed onto `at` is stuck there for good and `at` is not a goal.
+ * True when the push onto `at` seals a 2×2 block of wall-or-box that traps at least one
+ * box off a goal. `at` itself may sit on a goal and this can still fire — it is whichever
+ * box in the sealed block is off a goal that condemns the position, not `at` specifically.
  *
  * The test is a full 2×2 block of wall-or-box. That is sound: inside a sealed 2×2 every
  * box has a blocked square on both axes drawn from the block itself, so it can be pushed

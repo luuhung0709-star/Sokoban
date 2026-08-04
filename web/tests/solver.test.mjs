@@ -52,10 +52,22 @@ test('a square no box can ever be pushed out of is Infinity', () => {
 });
 
 test('walls are Infinity too, so nothing ever plans a push into one', () => {
-  const statics = buildStatics(snapshotOf(['#####', '#@$.#', '#####']));
+  // The 9x5 grid from the dead-square test below: (5,2) is an interior wall with an
+  // open neighbour at (4,2), which already has a finite distance. If buildPullDistance
+  // forgot to check statics.wall[prev] before assigning one, the fill would flow
+  // straight through the wall and give it a finite distance too. A corner square like
+  // (0,0) would not catch that: the off-grid guard stops the fill before it ever gets
+  // there, wall check or not.
+  const statics = buildStatics(snapshotOf([
+    '#########',
+    '#.      #',
+    '#    #  #',
+    '#    # ##',
+    '#########',
+  ]));
   const dist = buildPullDistance(statics);
 
-  assert.equal(at(statics, dist, 0, 0), Infinity);
+  assert.equal(at(statics, dist, 5, 2), Infinity, 'an interior wall must never get a distance');
 });
 
 test('neighbourAt bounds-checks on x and y, not on flat index', () => {

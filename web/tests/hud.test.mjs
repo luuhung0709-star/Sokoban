@@ -212,3 +212,16 @@ test('a new search cancels the message left by the last one', (t) => {
   t.mock.timers.tick(2000);
   assert.equal(el('btn-hint').textContent, '💡 Hint');
 });
+
+test('the "No hint" message reverts to the invite on its own after two seconds', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { hud, session, el } = setup();
+  hud.bind(session);
+
+  hud.flashNoHint();
+  assert.equal(el('btn-hint').textContent, '💡 No hint');
+
+  t.mock.timers.tick(2000);
+  assert.equal(el('btn-hint').textContent, '💡 Hint',
+    'the timer set by flashNoHint must put the invite back up, unprompted');
+});
