@@ -12,7 +12,7 @@
   <section class="screen screen--menu" data-name="menu">
     <div class="panel">
       <h1 class="panel__title">Sokoban</h1>
-      <p class="panel__hint">Arrows or WASD to move · U undo · H hint · R restart level · Esc exit</p>
+      <p class="panel__hint">Push every box onto a goal · Settings → Tutorial for the keys</p>
       <div class="panel__actions">
         <button class="btn btn--big" id="btn-continue" type="button">Continue</button>
         <button class="btn btn--big" id="btn-levels" type="button">Select level</button>
@@ -65,12 +65,71 @@
   </main>
 
   <div class="overlay overlay--modal" id="settings" hidden>
-    <div class="panel">
-      <h2 class="panel__title">Settings</h2>
-      <div class="panel__actions">
-        <button class="btn btn--big" id="btn-music" type="button" aria-pressed="true">Music: on</button>
-        <button class="btn btn--big" id="btn-sfx" type="button" aria-pressed="true">Sound effects: on</button>
-        <button class="btn btn--big" id="btn-settings-close" type="button">Close</button>
+    <div class="panel panel--sheet">
+      <header class="sheet__head">
+        <button class="sheet__nav" id="btn-settings-back" type="button" aria-label="Back" hidden>‹</button>
+        <h2 class="sheet__title" id="settings-title">Settings</h2>
+        <button class="sheet__nav" id="btn-settings-close" type="button" aria-label="Close">✕</button>
+      </header>
+
+      <div class="sheet__view" id="settings-list">
+        <div class="row row--pair">
+          <button class="switch" id="btn-sfx" type="button" aria-pressed="true">
+            <span class="switch__icon" aria-hidden="true">🔊</span>
+            <span>Sounds</span>
+          </button>
+          <button class="switch" id="btn-music" type="button" aria-pressed="true">
+            <span class="switch__icon" aria-hidden="true">🎵</span>
+            <span>Music</span>
+          </button>
+        </div>
+
+        <button class="row row--nav" id="btn-tutorial" type="button">
+          <span class="row__icon" aria-hidden="true">📖</span>
+          <span>Tutorial</span>
+          <span class="row__chevron" aria-hidden="true">›</span>
+        </button>
+
+        <div class="sheet__foot" id="row-restart">
+          <button class="btn btn--big" id="btn-settings-restart" type="button">Restart</button>
+        </div>
+      </div>
+
+      <div class="sheet__view" id="settings-tutorial" hidden>
+        <p class="sheet__text">Push every box onto a goal. You can only push a box — never pull it.</p>
+
+        <ul class="legend">
+          <li class="legend__item">
+            <i class="legend__cell"><i class="tile tile--wall"></i></i>
+            <span>Wall</span>
+          </li>
+          <li class="legend__item">
+            <i class="legend__cell"><i class="tile tile--floor tile--goal"></i></i>
+            <span>Goal</span>
+          </li>
+          <li class="legend__item">
+            <i class="legend__cell">
+              <i class="tile tile--floor"></i>
+              <span class="actor actor--box"><i class="actor__face"></i></span>
+            </i>
+            <span>Box</span>
+          </li>
+          <li class="legend__item">
+            <i class="legend__cell">
+              <i class="tile tile--floor tile--goal"></i>
+              <span class="actor actor--box actor--on-goal"><i class="actor__face"></i></span>
+            </i>
+            <span>Box on a goal</span>
+          </li>
+        </ul>
+
+        <dl class="keys">
+          <dt>← ↑ → ↓ / WASD</dt><dd>move</dd>
+          <dt>U</dt><dd>undo</dd>
+          <dt>H</dt><dd>hint</dd>
+          <dt>R</dt><dd>restart level</dd>
+          <dt>Esc</dt><dd>exit</dd>
+        </dl>
       </div>
     </div>
   </div>

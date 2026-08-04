@@ -67,7 +67,15 @@ const panels = {
   settings: new SettingsPanel(document.getElementById('settings'), {
     onToggleMusic: () => { audio.musicOn = !audio.musicOn; },
     onToggleSfx: () => { audio.sfxOn = !audio.sfxOn; },
-    getState: () => ({ musicOn: audio.musicOn, sfxOn: audio.sfxOn }),
+    onRestart: () => flow.retryLevel(),
+    // `dataset.screen` is what GameFlow already writes on every screen change, so the
+    // panel reads the same source of truth rather than keeping a flag of its own to
+    // fall out of step.
+    getState: () => ({
+      musicOn: audio.musicOn,
+      sfxOn: audio.sfxOn,
+      playing: document.body.dataset.screen === 'play',
+    }),
   }),
 };
 
