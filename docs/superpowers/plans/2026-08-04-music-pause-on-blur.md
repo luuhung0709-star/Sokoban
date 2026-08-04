@@ -20,7 +20,7 @@ Spec: [2026-08-04-music-pause-on-blur-design.md](../specs/2026-08-04-music-pause
 - Không dùng jsdom. Test của `AudioService` dùng `FakeAudio` đã có sẵn trong chính file test của nó.
 - Commit sau mỗi task, message tiếng Việt, một dòng tiêu đề dưới 72 ký tự.
 - Nhánh làm việc: `hint-settings`. Thư mục gốc: `d:/Hung/Sokoban`.
-- **Cây làm việc đang có 3 file sửa dở từ trước** (`web/src/ui/gameFlow.js`, `web/src/view/levelPlayer.js`, `web/tests/gameFlow.test.mjs`). Chúng **không** thuộc việc này. Mọi lệnh `git add` trong plan đều liệt kê đường dẫn cụ thể — không bao giờ dùng `git add -A` hay `git commit -a`.
+- **Có thể có session khác làm việc song song trên cùng nhánh này.** Lúc viết plan, 3 file sửa dở (`gameFlow.js`, `levelPlayer.js`, `gameFlow.test.mjs`) đã bị một tiến trình khác commit mất giữa chừng (`8c07edd`). Vì vậy mọi lệnh `git add` trong plan đều liệt kê đường dẫn cụ thể — **không bao giờ** dùng `git add -A` hay `git commit -a`, kẻo nuốt phải việc của người khác. Chạy `git status` trước mỗi commit để biết mình đang đứng ở đâu.
 
 ---
 
