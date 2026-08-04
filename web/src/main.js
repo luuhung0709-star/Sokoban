@@ -43,6 +43,14 @@ const unlockAudio = () => audio.unlock();
 window.addEventListener('pointerdown', unlockAudio, { once: true });
 window.addEventListener('keydown', unlockAudio, { once: true });
 
+// The loop never ends on its own, so a forgotten tab plays for ever. `blur` is needed
+// alongside `visibilitychange`: switching to another application leaves the tab itself
+// visible, so visibilitychange alone never fires and the music carries on.
+window.addEventListener('blur', () => audio.suspend());
+window.addEventListener('focus', () => audio.resume());
+document.addEventListener('visibilitychange', () =>
+  (document.hidden ? audio.suspend() : audio.resume()));
+
 const panels = {
   menu: new MainMenu(document.body, {
     onContinue: () => {
