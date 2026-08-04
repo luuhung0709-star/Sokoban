@@ -209,7 +209,7 @@ Expected: PASS, đúng những test đã xanh ở Task 1. `main.js` không đư�
 Dựng server tĩnh (game dùng `fetch` cho `microban.json` nên mở file trực tiếp bằng `file://` sẽ hỏng):
 
 ```bash
-cd d:/Hung/Sokoban/web && python -m http.server 8000
+cd d:/Hung/Sokoban/web && npm start
 ```
 
 Mở `http://localhost:8000`, bấm chuột một cái để mở khoá âm thanh, rồi kiểm bốn ca:

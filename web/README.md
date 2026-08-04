@@ -5,11 +5,16 @@ Plain HTML, CSS and JavaScript. No framework, no build step.
 ## Running it during development
 
 ```bash
-npx serve web
+cd web && npm start
 ```
 
 It has to be served over http. Do **not** double-click `index.html`: `file://` blocks ES
 modules and `fetch`, so the game comes up blank.
+
+`npm start` runs `tools/serve.mjs`, a static file server built only from Node's own `http`
+module — no dependency, no `npx`, no network. It listens on `http://127.0.0.1:8000/` by
+default; if 8000 is taken, override it with `PORT=8100 npm start` (or `node tools/serve.mjs
+8100`).
 
 ## Tests
 

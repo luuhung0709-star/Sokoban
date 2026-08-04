@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Sokoban in the browser, plain HTML, CSS and JavaScript",
   "scripts": {
+    "start": "node tools/serve.mjs",
     "test": "node --test"
   },
   "engines": {
