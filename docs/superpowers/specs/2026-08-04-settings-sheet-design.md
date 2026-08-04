@@ -29,6 +29,7 @@ Chữ trên giao diện **giữ tiếng Anh**. Spec này viết tiếng Việt, 
 | Ý nghĩa Restart | Chơi lại **màn hiện tại** | Trùng nghĩa với `⟳ Restart` trên thanh nút và phím `R` đang có. Đổi nó thành "xoá toàn bộ tiến trình" là đặt hai nghĩa khác nhau lên cùng một chữ trong cùng một game. |
 | Nút `⟳ Restart` trên thanh nút | Giữ nguyên | Sokoban chơi lại rất nhiều. Chôn thao tác đó sau hai lần bấm là bước lùi. Cả hai gọi cùng một đường. |
 | Cách vẽ trạng thái công tắc | Bật = sáng màu accent; tắt = mờ + vạch chéo | Ảnh mẫu dùng vòng tròn gạch chéo xanh lá, nghĩa hoàn toàn dựa vào màu — người mù màu đỏ-lục không đọc được, và vòng gạch chéo màu xanh lá vẫn dễ đọc nhầm thành "cấm". Vạch chéo = "không" là quy ước phổ thông, và còn đọc được cả khi đã mù màu. |
+| Dòng phím tắt ở menu chính | Rút ngắn thành một câu trỏ sang Tutorial | Bảng phím đầy đủ giờ nằm trong Tutorial. Để nguyên cả hai chỗ là hai bản sao sẽ lệch nhau khi đổi phím. Xoá hẳn thì người chơi lần đầu không còn manh mối nào. |
 | Nội dung Tutorial | Một trang chữ tĩnh | Không có trạng thái nào để quản, nên không có gì để hỏng. Nhiều trang lật hay màn tập tương tác đều đã cân nhắc và loại: cái đầu thêm state chỉ để chia nhỏ vài câu, cái sau phải đụng vào `LevelPlayer` và vòng đời màn chơi. |
 | Vẽ vạch chéo | `::after` xoay bằng CSS | Không phụ thuộc vào font emoji của máy. `🔇` render khác nhau trên mỗi hệ, và trên Windows nó là emoji màu không nhuộm theo `color` được. |
 
