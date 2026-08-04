@@ -6,5 +6,8 @@
   "description": "Sokoban in the browser, plain HTML, CSS and JavaScript",
   "scripts": {
     "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.4.0"
   }
 }

@@ -59,6 +59,7 @@ cd web && node tools/verify-music-pause.mjs
 ```
 
 It needs Chrome (or Chromium) installed. It looks in the common install locations for
-your platform; if yours isn't found, point at it with `CHROME=/path/to/chrome`. It is
-deliberately **not** part of `npm test` — it needs a real browser and a couple of
-seconds to start one, which does not belong in the fast unit-test loop.
+your platform; if yours isn't found, point at it with `CHROME=/path/to/chrome`. It also
+needs Node 22.4 or newer — it uses the global `WebSocket`, which is unflagged only from
+that version. It is deliberately **not** part of `npm test` — it needs a real browser and
+a couple of seconds to start one, which does not belong in the fast unit-test loop.

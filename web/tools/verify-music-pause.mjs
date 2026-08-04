@@ -27,22 +27,27 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import { once } from 'node:events';
 
 // Resolved from this file's own location so the script works from any checkout, on any
 // machine, regardless of the current working directory it is run from.
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 8123;
+// Ephemeral — the static server's port only needs to be known to this process, so there is
+// nothing to hardcode and nothing to collide with. The debug port stays fixed below: Chrome
+// needs it as a launch flag before it exists, so it cannot be discovered after the fact.
 const DEBUG_PORT = 9333;
+const CDP_TIMEOUT_MS = 10_000;
 
 /**
  * Finds a Chrome (or Chromium) executable without hardcoding one machine's install path.
  * `CHROME` always wins if set, so anyone with a nonstandard install can point at it
- * directly. Otherwise we probe the handful of locations the common installers actually
- * use, per platform. Returns null rather than throwing so the caller can fail with a
- * clear message instead of a raw spawn error.
+ * directly — but it still goes through the same existence check as every other
+ * candidate, so a typo in `CHROME` fails here with a clear message rather than surfacing
+ * 15 seconds later as an unrelated "debugging port" timeout. Returns null rather than
+ * throwing so the caller can fail with a clear message instead of a raw spawn error.
  */
 function findChrome() {
-  if (process.env.CHROME) return process.env.CHROME;
+  if (process.env.CHROME) return existsSync(process.env.CHROME) ? process.env.CHROME : null;
 
   const candidates = {
     win32: [
@@ -86,18 +91,13 @@ const server = createServer(async (req, res) => {
   }
 });
 
-// Wraps server.listen so a busy port fails with a readable message instead of an
-// uncaught 'error' event crashing the process with no obvious cause.
+// Wraps server.listen so a bind failure rejects clearly instead of an uncaught 'error'
+// event crashing the process with no obvious cause. Called with port 0 (ephemeral), so
+// there is no EADDRINUSE case left to special-case — any rejection here is something
+// else entirely (e.g. no loopback interface), and deserves to surface as-is.
 function listen(srv, port) {
   return new Promise((resolve, reject) => {
-    const onError = (err) => {
-      srv.off('error', onError);
-      if (err.code === 'EADDRINUSE') {
-        reject(new Error(`Port ${port} is already in use — stop whatever is using it, or edit PORT in this script.`));
-      } else {
-        reject(err);
-      }
-    };
+    const onError = (err) => { srv.off('error', onError); reject(err); };
     srv.once('error', onError);
     srv.listen(port, '127.0.0.1', () => { srv.off('error', onError); resolve(); });
   });
@@ -111,25 +111,40 @@ class CDP {
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.id && this.#pending.has(msg.id)) {
-        const { resolve, reject } = this.#pending.get(msg.id);
+        const { resolve, reject, timer } = this.#pending.get(msg.id);
+        clearTimeout(timer);
         this.#pending.delete(msg.id);
         msg.error ? reject(new Error(JSON.stringify(msg.error))) : resolve(msg.result);
       } else if (msg.method) {
-        this.#handlers.get(msg.method)?.(msg.params);
+        this.#handlers.get(msg.method)?.resolve(msg.params);
       }
+    };
+    // Without this, a Chrome crash or kill mid-run leaves every outstanding send()/once()
+    // promise unsettled for ever — the one failure mode a headless-browser harness must
+    // never have, since there is no human watching a window to notice it hung.
+    ws.onclose = () => {
+      const err = new Error('CDP WebSocket closed before Chrome replied — Chrome likely crashed or was killed mid-run.');
+      for (const { reject, timer } of this.#pending.values()) { clearTimeout(timer); reject(err); }
+      this.#pending.clear();
+      for (const { reject } of this.#handlers.values()) reject(err);
+      this.#handlers.clear();
     };
   }
 
-  send(method, params = {}) {
+  send(method, params = {}, timeoutMs = CDP_TIMEOUT_MS) {
     const id = ++this.#id;
     return new Promise((resolve, reject) => {
-      this.#pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        this.#pending.delete(id);
+        reject(new Error(`CDP call '${method}' timed out after ${timeoutMs}ms — Chrome is unresponsive or has died.`));
+      }, timeoutMs);
+      this.#pending.set(id, { resolve, reject, timer });
       this.#ws.send(JSON.stringify({ id, method, params }));
     });
   }
 
   once(method) {
-    return new Promise((resolve) => this.#handlers.set(method, resolve));
+    return new Promise((resolve, reject) => this.#handlers.set(method, { resolve, reject }));
   }
 }
 
@@ -138,7 +153,7 @@ const check = (name, actual, expected) => {
   const ok = JSON.stringify(actual) === JSON.stringify(expected);
   results.push({ ok, name, actual, expected });
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`);
-  if (!ok) console.log(`        mong doi ${JSON.stringify(expected)}, nhan duoc ${JSON.stringify(actual)}`);
+  if (!ok) console.log(`        expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
 };
 
 // Resolved before anything is started, so a missing Chrome fails fast with nothing
@@ -146,17 +161,22 @@ const check = (name, actual, expected) => {
 // about the ordering of.
 const chromePath = findChrome();
 if (!chromePath) {
-  console.error(
-    'Khong tim thay Chrome o cac vi tri thuong gap.\n' +
-    'Dat bien moi truong CHROME tro toi file thuc thi roi chay lai, vi du:\n' +
-    '  CHROME="C:/path/to/chrome.exe" node tools/verify-music-pause.mjs'
-  );
+  if (process.env.CHROME) {
+    console.error(`CHROME is set to '${process.env.CHROME}', but that path does not exist.`);
+  } else {
+    console.error(
+      'Could not find Chrome in the usual install locations.\n' +
+      'Set the CHROME environment variable to point at the executable and try again, for example:\n' +
+      '  CHROME="C:/path/to/chrome.exe" node tools/verify-music-pause.mjs'
+    );
+  }
   process.exit(1);
 }
 
 let chrome, profile;
 try {
-  await listen(server, PORT);
+  await listen(server, 0);
+  const port = server.address().port;
 
   // A previous run that did not shut down cleanly, or an unrelated process, could
   // already be sitting on the debug port. Failing here is far clearer than waiting out
@@ -193,6 +213,10 @@ try {
   const ws = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
   const cdp = new CDP(ws);
+  // Past the handshake above, no separate 'error' handling is needed: killing Chrome at
+  // the end of a run closes this socket abruptly (an expected "error"), and CDP's onclose
+  // already turns any close — expected or not — into a clear rejection for every pending
+  // call, so there is nothing an 'error' listener here would add.
 
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
@@ -205,7 +229,10 @@ try {
   await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
     source: `
       window.__pageErrors = [];
-      window.addEventListener('error', (e) => window.__pageErrors.push(String(e.message)));
+      // Capture phase: a resource-load failure (a 404'd script or asset) fires 'error' on
+      // the element itself and does not bubble, so a bubble-phase listener here would miss
+      // it and 'no uncaught page errors' would be checking less than its name promises.
+      window.addEventListener('error', (e) => window.__pageErrors.push(String(e.message)), true);
       window.addEventListener('unhandledrejection', (e) => window.__pageErrors.push('unhandled rejection: ' + String(e.reason)));
 
       window.__audios = [];
@@ -220,7 +247,7 @@ try {
   });
 
   const loaded = cdp.once('Page.loadEventFired');
-  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${PORT}/` });
+  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${port}/` });
   await loaded;
 
   const evalJs = async (expression) => {
@@ -231,15 +258,22 @@ try {
 
   const settle = () => evalJs('new Promise(r => setTimeout(r, 200))');
   const paused = () => evalJs(
-    `(() => { const m = window.__audios.find(a => a.src.includes('music_loop')); return m ? m.paused : 'KHONG TIM THAY THE NHAC'; })()`
+    `(() => { const m = window.__audios.find(a => a.src.includes('music_loop')); return m ? m.paused : 'MUSIC ELEMENT NOT FOUND'; })()`
   );
 
-  // main.js does a top-level `await fetch` for the level set, so the module is still
-  // running when load fires.
-  await settle();
-  await settle();
+  // main.js does a top-level `await fetch` for the level set, so the module may still be
+  // running when load fires. Poll for the audio it builds rather than guessing how long
+  // that takes: a fixed wait either flakes under load or pads every run that finishes early.
+  const waitUntil = async (predicateExpr, timeoutMs = 5000) => {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (await evalJs(predicateExpr)) return true;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return false;
+  };
 
-  check('the level set loaded and the game built its audio', await evalJs('window.__audios.length > 0'), true);
+  check('the level set loaded and the game built its audio', await waitUntil('window.__audios.length > 0'), true);
   check('the music loop was created with loop = true',
     await evalJs(`window.__audios.find(a => a.src.includes('music_loop'))?.loop`), true);
   check('music is idle before any interaction (autoplay rule)', await paused(), true);
@@ -256,6 +290,10 @@ try {
   check('CA 1 — window blur pauses the music', await paused(), true);
 
   const wasAt = await evalJs(`window.__audios.find(a => a.src.includes('music_loop')).currentTime`);
+  // Without this, the next check's `>= wasAt` is only non-vacuous by luck: if wasAt were
+  // 0 (e.g. playback never actually advanced), `0 >= 0` would pass regardless of whether
+  // resume() really continued from where it left off.
+  check('CA 2 — playback had advanced past zero before the blur', wasAt > 0, true);
   await evalJs(`window.dispatchEvent(new Event('focus'))`);
   await settle();
   check('CA 2 — window focus resumes the music', await paused(), false);
@@ -300,6 +338,14 @@ try {
   await settle();
   check('CA 5 — and blur still pauses it afterwards', await paused(), true);
 
+  // CA 5 left the service suspended (its last step was a blur). Starting a "doubled
+  // suspend" check from there would just be a third and fourth suspend on top of what
+  // CA 5 already proved, re-asserting nothing new — #suspended absorbing a doubled
+  // suspend only means something if it started from an unsuspended, playing state.
+  await evalJs(`window.dispatchEvent(new Event('focus'))`);
+  await settle();
+  check('CA 6 — focus first resets to a playing baseline', await paused(), false);
+
   // Minimising fires both events back to back; the #suspended flag must absorb that.
   await evalJs(`window.dispatchEvent(new Event('blur'))`);
   await setHidden(true);
@@ -308,18 +354,41 @@ try {
   await setHidden(false);
   await evalJs(`window.dispatchEvent(new Event('focus'))`);
   await settle();
-  check('CA 6 — and the doubled resume comes back exactly once', await paused(), false);
+  // Named for what this actually shows, not more: a doubled resume (visibilitychange +
+  // focus) still ends up unpaused. paused === false cannot distinguish one resume from
+  // two, so this does not claim to prove "exactly once" — only that it is not broken.
+  check('CA 6 — the doubled resume also ends up unpaused', await paused(), false);
+
+  // --- Case 7 (37fb8e5): the musicOn setter must defer to #suspended, not fight it ---
+  // Before #startMusic() consolidated all three start sites, flipping the switch while
+  // suspended could start playback anyway, out from under an away player. Neither unit
+  // test can reach the composition root's Settings button, so this is the only check
+  // that exercises the fix through the real UI.
+  await evalJs(`window.dispatchEvent(new Event('blur'))`);
+  await settle();
+  check('CA 7 — blur suspends before the setter regression check', await paused(), true);
+
+  await evalJs(`document.getElementById('btn-music').click(); document.getElementById('btn-music').click(); true`);
+  await settle();
+  check('CA 7 — toggling Music off then on while blurred still stays paused', await paused(), true);
+
+  await evalJs(`window.dispatchEvent(new Event('focus'))`);
+  await settle();
+  check('CA 7 — and focus afterwards actually starts it playing', await paused(), false);
 
   // The collector is installed before any page script runs, so an empty array is real
   // evidence rather than an undefined that happens to compare equal to zero.
   check('the error collector was actually installed', await evalJs(`Array.isArray(window.__pageErrors)`), true);
   check('no uncaught page errors', await evalJs(`window.__pageErrors`), []);
 } finally {
-  chrome?.kill();
+  // kill() only delivers the signal; Chrome still holds handles under the profile
+  // directory until it has actually exited, and rm would fail on Windows.
+  if (chrome) { chrome.kill(); await once(chrome, 'exit').catch(() => {}); }
   server.close();
-  if (profile) await rm(profile, { recursive: true, force: true }).catch(() => {});
+  if (profile) await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
+    .catch((e) => console.warn(`Could not remove ${profile}: ${e.message}`));
 }
 
 const failed = results.filter((r) => !r.ok);
-console.log(`\n${results.length - failed.length}/${results.length} kiem tra dat`);
+console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 process.exit(failed.length ? 1 : 0);

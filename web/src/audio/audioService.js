@@ -49,8 +49,11 @@ export class AudioService {
   set musicOn(value) {
     this.#progress.musicOn = value;
     if (value) {
-      // Nothing may play before the first interaction, so a switch flipped earlier than
-      // that just records the choice; unlock() starts the loop when the time comes.
+      // This only records the choice and lets #startMusic() decide whether anything
+      // starts right now. If either of its other two guards is still closed, it won't:
+      // before the first interaction, unlock() is what starts the loop once one happens;
+      // while the player is away (#suspended), resume() is what starts it once they
+      // return. Only when neither guard is holding it back does this call start it itself.
       this.#startMusic();
     } else {
       this.#music.pause();
