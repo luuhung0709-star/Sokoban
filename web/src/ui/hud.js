@@ -10,7 +10,6 @@ export class Hud {
   #pushes;
   #undo;
   #hint;
-  #restartBtn;
 
   #session = null;
   #hintBusy = false;
@@ -22,11 +21,11 @@ export class Hud {
     this.#pushes = rootEl.querySelector('#hud-pushes');
     this.#undo = rootEl.querySelector('#btn-undo');
     this.#hint = rootEl.querySelector('#btn-hint');
-    this.#restartBtn = rootEl.querySelector('#btn-restart');
 
+    // No Restart button here. Restarting is the R key, or the Restart row in the Settings
+    // sheet — one button per row of the toolbar is enough, and it was the least pressed.
     router.bindButton(this.#undo, Command.Undo);
     router.bindButton(this.#hint, Command.Hint);
-    router.bindButton(this.#restartBtn, Command.Restart);
     router.bindButton(rootEl.querySelector('#btn-exit'), Command.Exit);
   }
 
@@ -47,7 +46,6 @@ export class Hud {
       this.#moves.textContent = String(session.moves);
       this.#pushes.textContent = String(session.pushes);
       this.#undo.disabled = solved || !session.canUndo;
-      this.#restartBtn.disabled = solved;
       this.#refreshHint();
     };
 

@@ -7,10 +7,10 @@ import { Command } from '../src/input/inputRouter.js';
 import { makeLevel } from './helpers.mjs';
 import { makeElement, withId } from './fakeDom.mjs';
 
-/** The seven ids Hud looks up in its constructor. Missing one throws, which is the point. */
+/** The six ids Hud looks up in its constructor. Missing one throws, which is the point. */
 const HUD_IDS = [
   'hud-name', 'hud-moves', 'hud-pushes',
-  'btn-undo', 'btn-hint', 'btn-restart', 'btn-exit',
+  'btn-undo', 'btn-hint', 'btn-exit',
 ];
 
 function makeRoot() {
@@ -38,13 +38,14 @@ function setup() {
   return { root, router, hud, session, el: (id) => root.querySelector(`#${id}`) };
 }
 
-test('the constructor wires all four buttons to their commands', () => {
+test('the constructor wires all three buttons to their commands', () => {
   const { router } = setup();
 
+  // No Restart here: the toolbar button is gone, and restarting is now the R key or the
+  // Restart row in the Settings sheet.
   assert.deepEqual(router.bound, [
     { id: 'btn-undo', command: Command.Undo },
     { id: 'btn-hint', command: Command.Hint },
-    { id: 'btn-restart', command: Command.Restart },
     { id: 'btn-exit', command: Command.Exit },
   ]);
 });
@@ -89,7 +90,7 @@ test('undo is disabled exactly when the history is empty', () => {
   assert.equal(el('btn-undo').disabled, true);
 });
 
-test('solving the level greys out undo and restart together', () => {
+test('solving the level greys undo out', () => {
   const { hud, session, el } = setup();
   hud.bind(session);
 
@@ -100,17 +101,6 @@ test('solving the level greys out undo and restart together', () => {
   assert.equal(session.isSolved, true, 'guard: the level really is solved');
 
   assert.equal(el('btn-undo').disabled, true, 'undo must not work behind the win overlay');
-  assert.equal(el('btn-restart').disabled, true);
-});
-
-test('restart stays enabled while the level is unsolved', () => {
-  const { hud, session, el } = setup();
-  hud.bind(session);
-
-  assert.equal(el('btn-restart').disabled, false);
-
-  session.tryMove(Direction.Right);
-  assert.equal(el('btn-restart').disabled, false);
 });
 
 test('the function bind returns detaches the hud from that session', () => {
