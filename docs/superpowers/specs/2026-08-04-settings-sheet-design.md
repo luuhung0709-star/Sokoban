@@ -27,7 +27,7 @@ Chữ trên giao diện **giữ tiếng Anh**. Spec này viết tiếng Việt, 
 | Phạm vi so với ảnh mẫu | Dáng hình + Tutorial + Restart. **Bỏ Language và Country.** | Language cần i18n toàn game — rút mọi chuỗi tiếng Anh ra file dịch, thêm store cho ngôn ngữ đã chọn. Đó là dự án riêng, không phải một hàng trong Settings. Country trong game mẫu phục vụ bảng xếp hạng, ở đây không có gì để phục vụ. |
 | Restart khi mở từ menu | Ẩn hẳn hàng đó | Ở menu chính không có màn nào để chơi lại. Bày một nút chết ra rồi làm nó mờ đi là mời người dùng bấm vào chỗ không có gì. |
 | Ý nghĩa Restart | Chơi lại **màn hiện tại** | Trùng nghĩa với `⟳ Restart` trên thanh nút và phím `R` đang có. Đổi nó thành "xoá toàn bộ tiến trình" là đặt hai nghĩa khác nhau lên cùng một chữ trong cùng một game. |
-| Nút `⟳ Restart` trên thanh nút | Giữ nguyên | Sokoban chơi lại rất nhiều. Chôn thao tác đó sau hai lần bấm là bước lùi. Cả hai gọi cùng một đường. |
+| Nút `⟳ Restart` trên thanh nút | Giữ nguyên | Sokoban chơi lại rất nhiều. Chôn thao tác đó sau hai lần bấm là bước lùi. Hai đường khác nhau, không chung một đường: nút thanh gọi `Command.Restart` → `LevelPlayer.#restart()` (reset session tại chỗ), còn nút trong sheet gọi `flow.retryLevel()` → dựng lại cả màn qua `playLevel()`. Cùng kết quả nhìn thấy, nhưng lệch nhau lúc màn đã giải xong: `LevelPlayer.handle` trả về sớm khi session đã solved (và `Hud` cũng disable nút thanh), nên nút thanh chết sau overlay thắng, còn nút trong sheet vẫn chạy được. |
 | Cách vẽ trạng thái công tắc | Bật = sáng màu accent; tắt = mờ + vạch chéo | Ảnh mẫu dùng vòng tròn gạch chéo xanh lá, nghĩa hoàn toàn dựa vào màu — người mù màu đỏ-lục không đọc được, và vòng gạch chéo màu xanh lá vẫn dễ đọc nhầm thành "cấm". Vạch chéo = "không" là quy ước phổ thông, và còn đọc được cả khi đã mù màu. |
 | Dòng phím tắt ở menu chính | Rút ngắn thành một câu trỏ sang Tutorial | Bảng phím đầy đủ giờ nằm trong Tutorial. Để nguyên cả hai chỗ là hai bản sao sẽ lệch nhau khi đổi phím. Xoá hẳn thì người chơi lần đầu không còn manh mối nào. |
 | Nội dung Tutorial | Một trang chữ tĩnh | Không có trạng thái nào để quản, nên không có gì để hỏng. Nhiều trang lật hay màn tập tương tác đều đã cân nhắc và loại: cái đầu thêm state chỉ để chia nhỏ vài câu, cái sau phải đụng vào `LevelPlayer` và vòng đời màn chơi. |
@@ -103,9 +103,11 @@ Thay toàn bộ ruột của `#settings` trong `web/index.html` (hiện là `web
 Ba id cũ giữ nguyên tên: `#btn-music`, `#btn-sfx`, `#btn-settings-close`. Phần nối dây ở
 `web/src/main.js` cho hai công tắc do đó không phải đổi.
 
-Nhãn đổi từ `Sound effects` thành **Sounds** cho vừa nửa hàng. Trợ năng không mất gì: `refresh()`
-đặt `aria-label` đầy đủ (`Sound effects: on` / `off`) lên nút, nên trình đọc màn hình vẫn nghe
-nguyên chữ cũ.
+Nhãn đổi từ `Sound effects` thành **Sounds** cho vừa nửa hàng. Không gắn thêm `aria-label` lên
+nút: tên trợ năng lấy thẳng từ chữ nhìn thấy được (`Sounds` / `Music`), và `aria-pressed` mang
+trạng thái riêng. Một `aria-label` dài hơn kiểu `Sound effects: on` sẽ phạm WCAG 2.5.3 Label in
+Name — chữ "Sounds" người dùng nhìn thấy trên nút phải nằm trong tên trợ năng, mà nhãn đó thì
+không chứa nó.
 
 ### Chú giải ô trong Tutorial
 
@@ -141,7 +143,7 @@ new SettingsPanel(rootEl, {
 |---|---|
 | `show()` | Luôn mở ở khung list, kể cả lần trước đóng lúc đang xem Tutorial. Vẫn `refresh()` rồi bỏ `hidden`, vẫn chỉ gắn listener phím một lần. |
 | `hide()` | Như cũ. |
-| `refresh()` | Đặt `aria-pressed` và `aria-label` cho hai công tắc; ẩn/hiện `#row-restart` theo `playing`. Trạng thái nhìn thấy được vẽ từ `aria-pressed` bằng CSS, không phải bằng một class riêng — một nguồn sự thật. |
+| `refresh()` | Đặt `aria-pressed` cho hai công tắc (không có `aria-label`); ẩn/hiện `#row-restart` theo `playing`. Trạng thái nhìn thấy được vẽ từ `aria-pressed` bằng CSS, không phải bằng một class riêng — một nguồn sự thật. |
 | `onKeyDown(event)` | Vẫn nuốt mọi phím ở capture phase. `Escape`: đang ở Tutorial thì lùi về list, ở list thì đóng panel. |
 
 Hai method riêng `#showTutorial()` / `#showList()` lo phần đổi khung: bật/tắt `hidden` của hai

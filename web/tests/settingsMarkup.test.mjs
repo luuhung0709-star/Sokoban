@@ -8,18 +8,31 @@ import { fileURLToPath } from 'node:url';
  * nothing would notice an id renamed in the JS but not in index.html. The panel would
  * throw on the first line of its constructor, in a browser, and nowhere else. This is
  * the one test that reads the real markup.
+ *
+ * Every lookup inside SettingsPanel is `rootEl.querySelector(...)` where `rootEl` is
+ * `#settings` — an id that merely exists somewhere in the document is not enough, it has
+ * to be inside that subtree. `settingsHtml` slices the file from `id="settings"` onward
+ * so the checks below prove that. What this test does NOT prove: nesting depth, ordering,
+ * uniqueness, or that the id sits inside the *right* view within the sheet — only that it
+ * is somewhere inside `#settings`.
  */
 const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
+const settingsHtml = html.slice(html.indexOf('id="settings"'));
+
+test('index.html carries #settings', () => {
+  assert.ok(html.includes('id="settings"'), 'SettingsPanel is constructed with this element and cannot start without it');
+});
 
 const REQUIRED_IDS = [
-  'settings', 'settings-list', 'settings-tutorial', 'settings-title',
+  'settings-list', 'settings-tutorial', 'settings-title',
   'btn-music', 'btn-sfx', 'btn-tutorial',
   'btn-settings-back', 'btn-settings-close', 'btn-settings-restart', 'row-restart',
 ];
 
 for (const id of REQUIRED_IDS) {
-  test(`index.html carries #${id}`, () => {
-    assert.ok(html.includes(`id="${id}"`), 'SettingsPanel looks this id up and cannot start without it');
+  test(`index.html carries #${id} inside #settings`, () => {
+    assert.ok(settingsHtml.includes(`id="${id}"`),
+      'SettingsPanel looks this id up scoped to #settings and cannot start without it');
   });
 }
 

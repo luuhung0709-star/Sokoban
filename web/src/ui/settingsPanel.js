@@ -45,8 +45,10 @@ export class SettingsPanel {
     this.#backBtn.addEventListener('click', () => this.#setView(false));
     rootEl.querySelector('#btn-settings-close').addEventListener('click', () => this.hide());
     rootEl.querySelector('#btn-settings-restart').addEventListener('click', () => {
-      onRestart();
+      // hide() runs first: if onRestart() throws, the panel still closes rather than
+      // being left open with its capture-phase key listener still swallowing every key.
       this.hide();
+      onRestart();
     });
 
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -75,8 +77,8 @@ export class SettingsPanel {
 
   refresh() {
     const { musicOn, sfxOn, playing } = this.#getState();
-    setSwitch(this.#musicBtn, 'Music', musicOn);
-    setSwitch(this.#sfxBtn, 'Sound effects', sfxOn);
+    setSwitch(this.#musicBtn, musicOn);
+    setSwitch(this.#sfxBtn, sfxOn);
 
     // Nothing to restart from the menu. The row goes away rather than sitting there
     // greyed out: a dead button invites a click that does nothing.
@@ -117,10 +119,13 @@ export class SettingsPanel {
  * One source of truth: a separate class for the look could drift out of step with what a
  * screen reader announces.
  *
- * The visible label is static markup — it carries an icon, and it is shortened to fit
- * half a row — so the full name is spelled out here instead.
+ * No `aria-label` here on purpose: the visible text ("Sounds" / "Music") is already the
+ * button's accessible name, and WCAG 2.5.3 Label in Name requires the accessible name to
+ * contain the visible label — a longer label such as `Sound effects: on` would not, so a
+ * speech-control user saying "click Sounds" could not activate the button. `aria-pressed`
+ * alone is enough to carry state; a screen reader already appends "pressed" / "not
+ * pressed" from it, so a state-bearing `aria-label` would only announce it twice.
  */
-function setSwitch(button, name, on) {
+function setSwitch(button, on) {
   button.setAttribute('aria-pressed', String(on));
-  button.setAttribute('aria-label', `${name}: ${on ? 'on' : 'off'}`);
 }

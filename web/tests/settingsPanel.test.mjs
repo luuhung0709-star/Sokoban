@@ -37,6 +37,14 @@ function makeKeyTarget() {
  * The whole sheet in one go, including the parts Task 2 and Task 3 wire up. Ids the
  * constructor does not look up yet are inert, and building this once beats rewriting it
  * three times.
+ *
+ * Flat, not nested: in index.html the switches and Tutorial row live inside
+ * `#settings-list`, and the Restart button lives inside `#row-restart`, but here every
+ * id is a direct sibling of `root`. SettingsPanel only ever looks elements up by id, so
+ * this does not make any assertion below false — but it does mean, say, clicking Restart
+ * while `#row-restart` is hidden succeeds here even though a real `<div hidden>` would
+ * stop the click from reaching the button. Do not read a passing click test here as proof
+ * of anything the real nesting is responsible for.
  */
 function setup({ playing = true } = {}) {
   const root = makeElement('div');
@@ -86,15 +94,16 @@ test('the switches report the stored settings through aria-pressed', () => {
   assert.equal(el('btn-music').getAttribute('aria-pressed'), 'false');
 });
 
-test('the full name goes to screen readers, since the visible label is shortened', () => {
+test('the switches carry no aria-label, so the visible text is the accessible name', () => {
   const { panel, state, el } = setup();
   state.sfxOn = false;
 
   panel.show();
 
-  assert.equal(el('btn-sfx').getAttribute('aria-label'), 'Sound effects: off');
-  assert.equal(el('btn-music').getAttribute('aria-label'), 'Music: on',
-    'one switch must not follow the other');
+  assert.equal(el('btn-sfx').getAttribute('aria-label'), null,
+    'a stale aria-label would override the visible "Sounds" label and break WCAG 2.5.3 Label in Name');
+  assert.equal(el('btn-music').getAttribute('aria-label'), null,
+    'a stale aria-label would override the visible "Music" label and break WCAG 2.5.3 Label in Name');
 });
 
 test('the visible label is static markup, so refresh must leave it alone', () => {

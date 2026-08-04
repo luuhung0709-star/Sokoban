@@ -170,6 +170,13 @@ body[data-screen="play"] .screen[data-name="play"] { display: flex; }
  * Three fixed columns rather than flex with a spacer: the title stays centred on the
  * sheet whether or not the back button is showing. With flex it would slide sideways
  * every time the view changed.
+ *
+ * Columns are pinned explicitly below instead of left to auto-placement. The back button
+ * carries `hidden` in the list view — the default on every open — so it generates no box
+ * and is not a grid item there. Auto-placement would then drop the title into column 1
+ * (the fixed 40px track, too narrow, so the title overflows the edge) and the close
+ * button into column 2 (the `1fr` track, so it sits near the centre instead of the
+ * right) — the title jumping between views is exactly what this grid exists to prevent.
  */
 .sheet__head {
   display: grid;
@@ -179,7 +186,10 @@ body[data-screen="play"] .screen[data-name="play"] { display: flex; }
   border-bottom: 1px solid var(--panel-line);
 }
 
-.sheet__title { margin: 0; font-size: 18px; text-align: center; }
+.sheet__head > .sheet__nav:first-child { grid-column: 1; }
+.sheet__head > .sheet__nav:last-child  { grid-column: 3; }
+
+.sheet__title { grid-column: 2; margin: 0; font-size: 18px; text-align: center; }
 
 .sheet__nav {
   padding: 4px;
@@ -204,10 +214,16 @@ body[data-screen="play"] .screen[data-name="play"] { display: flex; }
 }
 
 /*
- * `hidden` only means `display: none` while nothing else sets `display`. Every rule here
- * that does is listed, so a view or a row toggled from JS really disappears.
+ * `hidden` only means `display: none` while nothing else sets `display`. Of the classes
+ * listed here, only `.row` actually sets one (`display: grid`) — `#row-restart`, the one
+ * element in this file whose `hidden` is toggled from JS, sits inside `.sheet__foot`
+ * today, but its id invites adding `class="row"` to it later, and the moment that
+ * happens `.row[hidden]` is what keeps it from staying visible on the main menu instead
+ * of the UA `[hidden]` rule losing to `.row`'s `display: grid`. The other selectors set
+ * no `display` of their own; they stay listed to document intent, not because they need
+ * the override today.
  */
-.sheet__view[hidden], .sheet__nav[hidden], .sheet__foot[hidden] { display: none; }
+.sheet__view[hidden], .sheet__nav[hidden], .sheet__foot[hidden], .row[hidden] { display: none; }
 
 .row {
   display: grid;
@@ -254,14 +270,30 @@ body[data-screen="play"] .screen[data-name="play"] { display: flex; }
 .switch + .switch { border-left: 1px solid var(--panel-line); }
 
 /*
+ * `.panel--sheet` clips overflow and `.row` / `.switch` / `.sheet__nav` run full-bleed to
+ * the sheet's edges, so a UA focus outline would be cut off on the left and right and a
+ * keyboard user would see only its top and bottom. An inset box-shadow sits inside the
+ * element's own border box, so the sheet's `overflow: hidden` can never clip it.
+ */
+.row:focus-visible, .switch:focus-visible, .sheet__nav:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/*
  * Off state, keyed off the same attribute a screen reader reads.
  *
  * `opacity` rather than `color` for the dimming: the icon is an emoji, and emoji glyphs
  * carry their own colours and ignore `color` entirely. Opacity is the one property that
  * fades both the emoji and the word beside it.
+ *
+ * 0.55, not lower: `--text` (#e6ebf2) at 0.55 over `--panel` (#1a212a) composites to
+ * roughly 4.9:1, just clearing the 4.5:1 AA minimum for normal text. These are active
+ * toggle buttons, not disabled controls, so the AA exemption for disabled UI does not
+ * apply — recheck the ratio before lowering this again.
  */
 .switch[aria-pressed="false"] {
-  opacity: 0.45;
+  opacity: 0.55;
   color: var(--text);
 }
 
