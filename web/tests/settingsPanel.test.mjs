@@ -172,3 +172,62 @@ test('the key listener goes on in the capture phase, ahead of the game router', 
   assert.deepEqual(keyTarget.captureFlags, [true],
     'InputRouter listens on window in the bubble phase, so only a capture listener runs first');
 });
+
+test('the panel opens on the list, not on the tutorial', () => {
+  const { panel, el } = setup();
+
+  panel.show();
+
+  assert.equal(el('settings-list').hidden, false);
+  assert.equal(el('settings-tutorial').hidden, true);
+  assert.equal(el('settings-title').textContent, 'Settings');
+  assert.equal(el('btn-settings-back').hidden, true, 'there is nothing to go back to');
+});
+
+test('the Tutorial row swaps in the tutorial view', () => {
+  const { panel, el } = setup();
+  panel.show();
+
+  el('btn-tutorial').dispatch('click');
+
+  assert.equal(el('settings-list').hidden, true);
+  assert.equal(el('settings-tutorial').hidden, false);
+  assert.equal(el('settings-title').textContent, 'How to play');
+  assert.equal(el('btn-settings-back').hidden, false);
+});
+
+test('back returns to the list without closing the panel', () => {
+  const { root, panel, el } = setup();
+  panel.show();
+  el('btn-tutorial').dispatch('click');
+
+  el('btn-settings-back').dispatch('click');
+
+  assert.equal(el('settings-list').hidden, false);
+  assert.equal(el('settings-tutorial').hidden, true);
+  assert.equal(root.hidden, false, 'back is one step, not a close');
+});
+
+test('Escape in the tutorial goes back a step instead of closing', () => {
+  const { root, panel, keyTarget, el } = setup();
+  panel.show();
+  el('btn-tutorial').dispatch('click');
+
+  const event = keyTarget.press('Escape');
+
+  assert.equal(el('settings-list').hidden, false);
+  assert.equal(root.hidden, false);
+  assert.equal(event.stopped, true, 'the router below must never see this Escape');
+});
+
+test('reopening after closing from the tutorial lands on the list', () => {
+  const { panel, el } = setup();
+  panel.show();
+  el('btn-tutorial').dispatch('click');
+  panel.hide();
+
+  panel.show();
+
+  assert.equal(el('settings-list').hidden, false,
+    'a stale view would strand the player in the tutorial');
+});

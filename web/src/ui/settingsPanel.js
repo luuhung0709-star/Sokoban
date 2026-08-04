@@ -11,14 +11,23 @@ export class SettingsPanel {
   #root;
   #musicBtn;
   #sfxBtn;
+  #listView;
+  #tutorialView;
+  #title;
+  #backBtn;
   #getState;
   #keyTarget;
   #open = false;
+  #onTutorial = false;
 
   constructor(rootEl, { onToggleMusic, onToggleSfx, getState, keyTarget = window }) {
     this.#root = rootEl;
     this.#musicBtn = rootEl.querySelector('#btn-music');
     this.#sfxBtn = rootEl.querySelector('#btn-sfx');
+    this.#listView = rootEl.querySelector('#settings-list');
+    this.#tutorialView = rootEl.querySelector('#settings-tutorial');
+    this.#title = rootEl.querySelector('#settings-title');
+    this.#backBtn = rootEl.querySelector('#btn-settings-back');
     this.#getState = getState;
     this.#keyTarget = keyTarget;
 
@@ -30,12 +39,17 @@ export class SettingsPanel {
       onToggleSfx();
       this.refresh();
     });
+    rootEl.querySelector('#btn-tutorial').addEventListener('click', () => this.#setView(true));
+    this.#backBtn.addEventListener('click', () => this.#setView(false));
     rootEl.querySelector('#btn-settings-close').addEventListener('click', () => this.hide());
 
     this.onKeyDown = this.onKeyDown.bind(this);
   }
 
   show() {
+    // Always open on the list. Closing the panel from the tutorial and opening it again
+    // must not drop the player back into the middle of it.
+    this.#setView(false);
     this.refresh();
     this.#root.hidden = false;
 
@@ -60,13 +74,31 @@ export class SettingsPanel {
   }
 
   /**
+   * Swaps the two views. Both live in the same overlay so the sheet keeps its frame,
+   * its key handling and its close button across the switch — a second overlay would
+   * have to duplicate all three.
+   */
+  #setView(onTutorial) {
+    this.#onTutorial = onTutorial;
+    this.#listView.hidden = onTutorial;
+    this.#tutorialView.hidden = !onTutorial;
+    this.#backBtn.hidden = !onTutorial;
+    this.#title.textContent = onTutorial ? 'How to play' : 'Settings';
+  }
+
+  /**
    * Registered on the CAPTURE phase, so it runs before InputRouter's listener on the same
    * window and can stop it. Without this the arrow keys would walk the player about
    * behind the overlay, and Escape would leave the level rather than close the panel.
    */
   onKeyDown(event) {
     event.stopPropagation();
-    if (event.code === 'Escape') this.hide();
+    if (event.code !== 'Escape') return;
+
+    // Escape means "back one step", not "close": from the tutorial it returns to the
+    // list, and only from the list does it put the panel away.
+    if (this.#onTutorial) this.#setView(false);
+    else this.hide();
   }
 }
 
