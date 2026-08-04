@@ -174,3 +174,23 @@ test('suspend does not touch the saved music setting', () => {
 
   assert.equal(progress.musicOn, true, 'the Settings switch must still read as on');
 });
+
+test('switching the music on while suspended does not start it', () => {
+  const { audio, music } = setup();
+  audio.unlock();
+  audio.suspend();
+
+  audio.musicOn = false;
+  audio.musicOn = true;
+
+  assert.equal(music.plays, 1, 'only the play from unlock; the player is away, so the switch must not start it');
+});
+
+test('unlock while suspended does not start the music', () => {
+  const { audio, music } = setup();
+  audio.suspend();
+
+  audio.unlock();
+
+  assert.equal(music.plays, 0, 'the tab was already hidden when unlock arrived, so nothing should start');
+});

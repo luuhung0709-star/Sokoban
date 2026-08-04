@@ -34,6 +34,16 @@ export class AudioService {
     this.#music.volume = 0.35;
   }
 
+  /**
+   * The single gate on starting the loop: the player must want it (`musicOn`), the
+   * page must have been interacted with (`#unlocked`), and the system must not have
+   * paused it for an away player (`#suspended`). Every call site funnels through here
+   * so that invariant cannot be forgotten by a future one.
+   */
+  #startMusic() {
+    if (this.musicOn && this.#unlocked && !this.#suspended) void this.#music.play().catch(() => {});
+  }
+
   get musicOn() { return this.#progress.musicOn; }
 
   set musicOn(value) {
@@ -41,7 +51,7 @@ export class AudioService {
     if (value) {
       // Nothing may play before the first interaction, so a switch flipped earlier than
       // that just records the choice; unlock() starts the loop when the time comes.
-      if (this.#unlocked) void this.#music.play().catch(() => {});
+      this.#startMusic();
     } else {
       this.#music.pause();
     }
@@ -56,7 +66,7 @@ export class AudioService {
   unlock() {
     if (this.#unlocked) return;
     this.#unlocked = true;
-    if (this.musicOn) void this.#music.play().catch(() => {});
+    this.#startMusic();
   }
 
   /**
@@ -71,14 +81,13 @@ export class AudioService {
   }
 
   /**
-   * All three conditions earn their place. `#suspended` stops a stray focus event
-   * starting music that nobody paused; `musicOn` stops it overriding the player's own
-   * switch; `#unlocked` keeps the autoplay rule above intact.
+   * `#suspended` must be cleared before `#startMusic()` is called, or its guard would
+   * block the very resume this method exists to allow.
    */
   resume() {
     if (!this.#suspended) return;
     this.#suspended = false;
-    if (this.musicOn && this.#unlocked) void this.#music.play().catch(() => {});
+    this.#startMusic();
   }
 
   play(name) {
