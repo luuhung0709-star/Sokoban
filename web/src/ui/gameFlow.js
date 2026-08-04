@@ -69,6 +69,7 @@ export class GameFlow {
       hintService: this.#hintService,
       hooks: {
         onExit: () => this.showLevelSelect(),
+        onRetry: () => this.retryLevel(),
         onSolved: () => this.#onSolved(),
         onSound: (name) => this.#audio.play(name),
         onHintStart: () => this.#hud.setHintBusy(true),

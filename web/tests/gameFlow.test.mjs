@@ -320,6 +320,29 @@ test('a restart while the search is still running also throws the answer away', 
   assert.equal(renderer.hints.length, 0);
 });
 
+test('Restart behind the win overlay plays the level again', async () => {
+  // Every other play command is dead once the level is solved, because the overlay
+  // covers the board. Restart is the one a player still wants from there — and since
+  // the toolbar button is gone, the R key is the only way to reach it by keyboard.
+  const { flow, router, panels } = setup();
+  flow.playLevel(0);
+
+  router.send(Command.Right);   // one push solves level one
+  await tick();
+  assert.equal(panels.levelComplete.shown.length, 1, 'guard: the level really is solved');
+  const hiddenBefore = panels.levelComplete.hidden;
+
+  router.send(Command.Restart);
+  await tick();
+
+  assert.ok(panels.levelComplete.hidden > hiddenBefore, 'the win overlay must come down');
+
+  router.send(Command.Right);   // the board is live again, so this solves it a second time
+  await tick();
+  assert.equal(panels.levelComplete.shown.length, 2,
+    'a restarted level must be playable, not just repainted behind a hidden overlay');
+});
+
 test('leaving a level mid-search stops the old player from later touching the hud a new level owns', async () => {
   // The hud is a singleton GameFlow rebinds on every playLevel — it is not per-player.
   // A search started on level A that resolves after the player has moved on to level B

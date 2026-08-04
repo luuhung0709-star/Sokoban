@@ -73,7 +73,16 @@ export class LevelPlayer {
     // Once solved, block every play command: the overlay covers the board, so
     // changing the board behind it is pointless. Retrying or switching levels goes
     // through the overlay's buttons — those run via GameFlow, which rebuilds properly.
-    if (this.#session.isSolved) return;
+    //
+    // Restart is the exception, and it takes that same route rather than the play loop:
+    // `#restart()` resets the session in place, which would leave the win overlay sitting
+    // over a board that has quietly gone back to the start. GameFlow tears the overlay
+    // down and rebuilds. Without this the R key is dead here, and since the toolbar has
+    // no Restart button any more, that would leave no keyboard way to replay a level.
+    if (this.#session.isSolved) {
+      if (command === Command.Restart) this.#hooks.onRetry?.();
+      return;
+    }
 
     // This must also block while the loop waits out the key-repeat delay: the
     // animation has finished by then so `isBusy` is off, and relying on it alone lets
