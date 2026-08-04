@@ -21,7 +21,7 @@ Chữ trên giao diện không đổi. Spec viết tiếng Việt, theo lệ c�
 | Quyết định | Chốt | Lý do |
 |---|---|---|
 | Mốc dừng | `visibilitychange` **và** `blur`/`focus` của window | Chỉ nghe `visibilitychange` thì không cứu được đúng ca đã gây khó chịu: khi alt-tab từ Chrome sang VS Code, tab game vẫn là tab đang mở của cửa sổ nên `document.hidden` vẫn `false` và sự kiện không bắn. Phải có `blur` mới bắt được. |
-| Giá phải trả của `blur` | Chấp nhận | Ai để game ở màn hình phụ rồi gõ phím bên màn hình chính sẽ bị cắt nhạc. Đổi lại là im lặng khi rời đi — thứ người dùng vừa yêu cầu. Ghi lại ở đây để sau này ai thấy lạ thì biết là cố ý, không phải lỗi. |
+| Giá phải trả của `blur` | Chấp nhận | Ai để game ở màn hình phụ rồi gõ phím bên màn hình chính sẽ bị cắt nhạc. Blur cũng bắn khi mở DevTools ở cửa sổ riêng, bấm omnibox (Ctrl+L), hoặc popup extension — tất cả đều tắt nhạc. Nhưng `pause()`/`play()` giữ `currentTime`, nên người chơi chỉ nghe khoảng trống, không phải track bắt đầu lại từ đầu. Đổi lại là im lặng khi rời đi — thứ người dùng vừa yêu cầu. Ghi lại ở đây để sau này ai thấy lạ thì biết là cố ý, không phải lỗi. |
 | Ai giữ listener | `main.js` gắn, `AudioService` chỉ thêm hai method | Đúng khuôn đang có: `main.js` đã tự gắn `pointerdown`/`keydown` để unlock (`main.js:43-44`) và `resize` (`main.js:89`). `AudioService` nhờ đó vẫn không biết gì về DOM ngoài `Audio`, nên test gọi thẳng method, không phải dựng `document` giả. |
 | Đã loại: `AudioService` tự đăng ký trong constructor | | Kiểu tiêm `keyTarget` của `SettingsPanel` (`settingsPanel.js:24`) có cái hay là không ai quên nối dây, nhưng ở đây phải tiêm **hai** target (`window` cho blur, `document` cho visibility) và constructor sinh side effect. Đắt hơn giá trị mang lại. |
 | Đã loại: handler tự đọc `audio.musicOn` rồi gọi `play`/`pause` | | Đẩy luật của audio ra `main.js`, và phải chép lại điều kiện `#unlocked` mà `AudioService` đang giữ riêng — hai bản sao sẽ lệch nhau. |
@@ -34,7 +34,7 @@ Thêm một cờ riêng `#suspended` và hai method. Không đổi gì ở phầ
 
 | Method | Hành vi |
 |---|---|
-| `suspend()` | `#suspended = true`, gọi `#music.pause()`. Không đụng `#progress`. |
+| `suspend()` | `#suspended`? return : `#suspended = true`, gọi `#music.pause()`. Không đụng `#progress`. |
 | `resume()` | Chỉ phát khi hội đủ **ba** điều: đang `#suspended`, `musicOn` còn bật, và đã `#unlocked`. Xong thì xoá cờ. |
 
 Ba điều kiện của `resume()` lần lượt chặn ba ca hỏng:

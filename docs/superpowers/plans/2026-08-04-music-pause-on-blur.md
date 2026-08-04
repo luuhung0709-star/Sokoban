@@ -19,7 +19,7 @@ Spec: [2026-08-04-music-pause-on-blur-design.md](../specs/2026-08-04-music-pause
 - Test chạy bằng `cd web && npm test`. Chạy một file: `cd web && node --test tests/audioService.test.mjs`.
 - Không dùng jsdom. Test của `AudioService` dùng `FakeAudio` đã có sẵn trong chính file test của nó.
 - Commit sau mỗi task, message tiếng Việt, một dòng tiêu đề dưới 72 ký tự.
-- Nhánh làm việc: `hint-settings`. Thư mục gốc: `d:/Hung/Sokoban`.
+- Nhánh làm việc: `music-pause` (branched từ `main` ở commit `d943fca`). `hint-settings` đã merge vào main nên tạo nhánh mới — điều này tránh được đúng hazard mà cảnh báo bên dưới nêu ra. Thư mục gốc: `d:/Hung/Sokoban`.
 - **Có thể có session khác làm việc song song trên cùng nhánh này.** Lúc viết plan, 3 file sửa dở (`gameFlow.js`, `levelPlayer.js`, `gameFlow.test.mjs`) đã bị một tiến trình khác commit mất giữa chừng (`8c07edd`). Vì vậy mọi lệnh `git add` trong plan đều liệt kê đường dẫn cụ thể — **không bao giờ** dùng `git add -A` hay `git commit -a`, kẻo nuốt phải việc của người khác. Chạy `git status` trước mỗi commit để biết mình đang đứng ở đâu.
 
 ---
