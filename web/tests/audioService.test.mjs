@@ -111,3 +111,66 @@ test('the switches are written straight through to progress', () => {
   assert.equal(progress.musicOn, false);
   assert.equal(progress.sfxOn, false);
 });
+
+test('suspend pauses the loop and resume starts it again', () => {
+  const { audio, music } = setup();
+  audio.unlock();
+
+  audio.suspend();
+  assert.equal(music.pauses, 1);
+
+  audio.resume();
+  assert.equal(music.plays, 2, 'one play from unlock, one from resume');
+});
+
+test('resume stays silent when the player has switched the music off', () => {
+  const { audio, music } = setup();
+  audio.unlock();
+  audio.musicOn = false;
+
+  audio.suspend();
+  audio.resume();
+
+  assert.equal(music.plays, 1, 'the only play is the one from unlock');
+});
+
+test('resume stays silent before the first interaction', () => {
+  const { audio, music } = setup();
+
+  audio.suspend();
+  audio.resume();
+
+  assert.equal(music.plays, 0, 'nothing may play before the page has been interacted with');
+});
+
+test('a stray resume with nothing suspended does not start the music', () => {
+  const { audio, music } = setup();
+  audio.unlock();
+
+  audio.resume();
+
+  assert.equal(music.plays, 1, 'still just the unlock play');
+});
+
+test('suspending twice then resuming twice counts as once', () => {
+  const { audio, music } = setup();
+  audio.unlock();
+
+  // Minimising the window fires blur AND visibilitychange, so both arrive back to back.
+  audio.suspend();
+  audio.suspend();
+  audio.resume();
+  audio.resume();
+
+  assert.equal(music.pauses, 1, 'the second suspend must be a no-op');
+  assert.equal(music.plays, 2, 'and the second resume too');
+});
+
+test('suspend does not touch the saved music setting', () => {
+  const { audio, progress } = setup();
+  audio.unlock();
+
+  audio.suspend();
+
+  assert.equal(progress.musicOn, true, 'the Settings switch must still read as on');
+});

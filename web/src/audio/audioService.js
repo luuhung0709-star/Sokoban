@@ -18,6 +18,7 @@ export class AudioService {
   #buffers = new Map();
   #music;
   #unlocked = false;
+  #suspended = false;
 
   constructor(progress) {
     this.#progress = progress;
@@ -56,6 +57,28 @@ export class AudioService {
     if (this.#unlocked) return;
     this.#unlocked = true;
     if (this.musicOn) void this.#music.play().catch(() => {});
+  }
+
+  /**
+   * Pauses the music while the player is away. This is the system's doing, not the
+   * player's, so it deliberately leaves `progress.musicOn` alone: writing to it would
+   * flip the Settings switch to off and turn one alt-tab into a permanent mute.
+   */
+  suspend() {
+    if (this.#suspended) return;
+    this.#suspended = true;
+    this.#music.pause();
+  }
+
+  /**
+   * All three conditions earn their place. `#suspended` stops a stray focus event
+   * starting music that nobody paused; `musicOn` stops it overriding the player's own
+   * switch; `#unlocked` keeps the autoplay rule above intact.
+   */
+  resume() {
+    if (!this.#suspended) return;
+    this.#suspended = false;
+    if (this.musicOn && this.#unlocked) void this.#music.play().catch(() => {});
   }
 
   play(name) {
