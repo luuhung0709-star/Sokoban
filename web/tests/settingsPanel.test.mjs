@@ -231,3 +231,49 @@ test('reopening after closing from the tutorial lands on the list', () => {
   assert.equal(el('settings-list').hidden, false,
     'a stale view would strand the player in the tutorial');
 });
+
+test('the Restart row is gone when no level is being played', () => {
+  const { panel, el } = setup({ playing: false });
+
+  panel.show();
+
+  assert.equal(el('row-restart').hidden, true,
+    'there is nothing to restart from the menu');
+});
+
+test('the Restart row is there while a level is up', () => {
+  const { panel, el } = setup({ playing: true });
+
+  panel.show();
+
+  assert.equal(el('row-restart').hidden, false);
+});
+
+test('the row follows a change of screen on the next refresh', () => {
+  const { panel, state, el } = setup({ playing: true });
+  panel.show();
+
+  state.playing = false;
+  panel.refresh();
+
+  assert.equal(el('row-restart').hidden, true);
+});
+
+test('Restart replays the level', () => {
+  const { panel, fired, el } = setup({ playing: true });
+  panel.show();
+
+  el('btn-settings-restart').dispatch('click');
+
+  assert.deepEqual(fired, ['restart']);
+});
+
+test('Restart also closes the panel', () => {
+  const { root, panel, el } = setup({ playing: true });
+  panel.show();
+
+  el('btn-settings-restart').dispatch('click');
+
+  assert.equal(root.hidden, true,
+    'leaving it open would show the reset board through an overlay');
+});

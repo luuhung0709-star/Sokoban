@@ -15,12 +15,13 @@ export class SettingsPanel {
   #tutorialView;
   #title;
   #backBtn;
+  #restartRow;
   #getState;
   #keyTarget;
   #open = false;
   #onTutorial = false;
 
-  constructor(rootEl, { onToggleMusic, onToggleSfx, getState, keyTarget = window }) {
+  constructor(rootEl, { onToggleMusic, onToggleSfx, onRestart, getState, keyTarget = window }) {
     this.#root = rootEl;
     this.#musicBtn = rootEl.querySelector('#btn-music');
     this.#sfxBtn = rootEl.querySelector('#btn-sfx');
@@ -28,6 +29,7 @@ export class SettingsPanel {
     this.#tutorialView = rootEl.querySelector('#settings-tutorial');
     this.#title = rootEl.querySelector('#settings-title');
     this.#backBtn = rootEl.querySelector('#btn-settings-back');
+    this.#restartRow = rootEl.querySelector('#row-restart');
     this.#getState = getState;
     this.#keyTarget = keyTarget;
 
@@ -42,6 +44,10 @@ export class SettingsPanel {
     rootEl.querySelector('#btn-tutorial').addEventListener('click', () => this.#setView(true));
     this.#backBtn.addEventListener('click', () => this.#setView(false));
     rootEl.querySelector('#btn-settings-close').addEventListener('click', () => this.hide());
+    rootEl.querySelector('#btn-settings-restart').addEventListener('click', () => {
+      onRestart();
+      this.hide();
+    });
 
     this.onKeyDown = this.onKeyDown.bind(this);
   }
@@ -68,9 +74,13 @@ export class SettingsPanel {
   }
 
   refresh() {
-    const { musicOn, sfxOn } = this.#getState();
+    const { musicOn, sfxOn, playing } = this.#getState();
     setSwitch(this.#musicBtn, 'Music', musicOn);
     setSwitch(this.#sfxBtn, 'Sound effects', sfxOn);
+
+    // Nothing to restart from the menu. The row goes away rather than sitting there
+    // greyed out: a dead button invites a click that does nothing.
+    this.#restartRow.hidden = !playing;
   }
 
   /**
