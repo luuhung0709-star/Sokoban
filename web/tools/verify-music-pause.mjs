@@ -247,6 +247,13 @@ try {
   });
 
   const loaded = cdp.once('Page.loadEventFired');
+  // Attached immediately, not after the `await` below: if `Page.navigate` itself rejects
+  // (its own timeout, a CDP error, or the socket closing because Chrome died), `await
+  // loaded` on the next line is never reached and `loaded` would otherwise be an orphan
+  // promise with no handler — which ws.onclose then rejects, and Node reports as an
+  // unhandled rejection on top of the real, already-surfaced error. This no-op catch
+  // marks it handled without affecting what `await loaded` itself observes below.
+  loaded.catch(() => {});
   await cdp.send('Page.navigate', { url: `http://127.0.0.1:${port}/` });
   await loaded;
 
@@ -383,7 +390,10 @@ try {
 } finally {
   // kill() only delivers the signal; Chrome still holds handles under the profile
   // directory until it has actually exited, and rm would fail on Windows.
-  if (chrome) { chrome.kill(); await once(chrome, 'exit').catch(() => {}); }
+  if (chrome) {
+    chrome.kill();
+    await once(chrome, 'exit').catch((e) => console.warn(`Chrome reported an error while exiting: ${e.message}`));
+  }
   server.close();
   if (profile) await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
     .catch((e) => console.warn(`Could not remove ${profile}: ${e.message}`));
