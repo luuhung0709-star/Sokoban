@@ -27,7 +27,6 @@ function makePlayer(rows, router) {
     setPlayerPushing() {},
     fitCellSize() {}, refreshBoxLook() {},
     boxElAt: () => null, rekeyBox() {}, placeActor() {}, playerEl: {},
-    clearHint() {},
   };
   const player = new LevelPlayer({ session, renderer, animator: makeAnimator(), router });
   return { session, player };

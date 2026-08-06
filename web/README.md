@@ -52,8 +52,8 @@ Open `/editor/` through a local server. That page is not part of the deployed bu
 
 `src/main.js` is the composition root, and it is the one file the unit tests cannot
 reach: it does a top-level `await fetch` for the level set and touches `document`,
-`window`, `localStorage` and `Worker`, so importing it under `node --test` would need a
-fake browser — jsdom, which this project deliberately does not depend on.
+`window` and `localStorage`, so importing it under `node --test` would need a fake
+browser — jsdom, which this project deliberately does not depend on.
 
 `tools/verify-music-pause.mjs` covers the gap that leaves: it drives the real game in
 headless Chrome over the DevTools Protocol and asserts on real state (does blur really

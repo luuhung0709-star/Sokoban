@@ -9,7 +9,6 @@ import { LevelComplete } from './ui/levelComplete.js';
 import { GameFlow } from './ui/gameFlow.js';
 import { SettingsPanel } from './ui/settingsPanel.js';
 import { AudioService } from './audio/audioService.js';
-import { HintService } from './core/hintService.js';
 
 let collection;
 try {
@@ -33,10 +32,6 @@ const progress = new ProgressStore();
 const hud = new Hud(document.body, router);
 
 const audio = new AudioService(progress);
-
-// One worker for the whole session — spinning a new one up per level would pay the
-// startup cost 155 times over.
-const hintService = new HintService();
 
 // Browsers only allow sound to start from inside a real user interaction.
 const unlockAudio = () => audio.unlock();
@@ -90,7 +85,7 @@ const panels = {
 document.getElementById('btn-settings').addEventListener('click', () => panels.settings.show());
 
 const flow = new GameFlow({
-  collection, progress, router, renderer, animator, hud, panels, audio, hintService,
+  collection, progress, router, renderer, animator, hud, panels, audio,
 });
 flow.start();
 

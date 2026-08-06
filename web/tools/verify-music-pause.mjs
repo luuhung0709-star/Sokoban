@@ -1,8 +1,8 @@
 /**
  * Drives the real game in headless Chrome to check the music-pause wiring in
  * `src/main.js` — the one file unit tests cannot reach, because it does a top-level
- * `await fetch` for the level set and touches `document`, `window`, `localStorage` and
- * `Worker`. Faking all of that would mean pulling in jsdom, which this project
+ * `await fetch` for the level set and touches `document`, `window` and `localStorage`.
+ * Faking all of that would mean pulling in jsdom, which this project
  * deliberately refuses (see `tests/fakeDom.mjs`). So instead of faking the browser,
  * this script uses a real one via the DevTools Protocol (CDP) and asserts on real state.
  *

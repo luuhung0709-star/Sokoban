@@ -7,10 +7,10 @@ import { Command } from '../src/input/inputRouter.js';
 import { makeLevel } from './helpers.mjs';
 import { makeElement, withId } from './fakeDom.mjs';
 
-/** The six ids Hud looks up in its constructor. Missing one throws, which is the point. */
+/** The five ids Hud looks up in its constructor. Missing one throws, which is the point. */
 const HUD_IDS = [
   'hud-name', 'hud-moves', 'hud-pushes',
-  'btn-undo', 'btn-hint', 'btn-exit',
+  'btn-undo', 'btn-exit',
 ];
 
 function makeRoot() {
@@ -38,14 +38,13 @@ function setup() {
   return { root, router, hud, session, el: (id) => root.querySelector(`#${id}`) };
 }
 
-test('the constructor wires all three buttons to their commands', () => {
+test('the constructor wires both buttons to their commands', () => {
   const { router } = setup();
 
   // No Restart here: the toolbar button is gone, and restarting is now the R key or the
   // Restart row in the Settings sheet.
   assert.deepEqual(router.bound, [
     { id: 'btn-undo', command: Command.Undo },
-    { id: 'btn-hint', command: Command.Hint },
     { id: 'btn-exit', command: Command.Exit },
   ]);
 });
@@ -126,92 +125,18 @@ test('binding a second session leaves the first one no longer driving the hud', 
   assert.equal(el('hud-moves').textContent, '1');
 });
 
-test('the hint button is live while the level is unsolved', () => {
+test('unbinding the old session late does not stop the new one driving the hud', () => {
   const { hud, session, el } = setup();
-  hud.bind(session);
+  const unbindOld = hud.bind(session);
 
-  assert.equal(el('btn-hint').disabled, false);
-  assert.equal(el('btn-hint').textContent, '💡 Hint');
-});
+  // Bind the next level BEFORE releasing the previous one — the order GameFlow can
+  // produce. The hud keeps no session of its own, so the late unbind must drop only the
+  // old listener.
+  const next = new GameSession(level());
+  hud.bind(next);
+  unbindOld();
 
-test('solving the level greys the hint button out with the rest', () => {
-  const { hud, session, el } = setup();
-  hud.bind(session);
+  next.tryMove(Direction.Right);
 
-  session.tryMove(Direction.Right);
-  session.tryMove(Direction.Right);
-  session.tryMove(Direction.Right);
-
-  assert.equal(el('btn-hint').disabled, true, 'there is nothing left to hint at');
-});
-
-test('while the solver runs the button says so and cannot be pressed again', () => {
-  const { hud, session, el } = setup();
-  hud.bind(session);
-
-  hud.setHintBusy(true);
-  assert.equal(el('btn-hint').textContent, '💡 Thinking…');
-  assert.equal(el('btn-hint').disabled, true);
-
-  hud.setHintBusy(false);
-  assert.equal(el('btn-hint').textContent, '💡 Hint');
-  assert.equal(el('btn-hint').disabled, false);
-});
-
-test('a search that found nothing says so on the button itself', () => {
-  const { hud, session, el } = setup();
-  hud.bind(session);
-
-  hud.flashNoHint();
-  assert.equal(el('btn-hint').textContent, '💡 No hint');
-
-  // Also cancels the pending timer, so node --test does not sit waiting for it.
-  hud.setHintBusy(true);
-  assert.equal(el('btn-hint').textContent, '💡 Thinking…',
-    'a new search must win over the message left from the last one');
-});
-
-test('an unbound hud keeps the hint button disabled', () => {
-  const { hud, session, el } = setup();
-  const unbind = hud.bind(session);
-
-  unbind();
-  hud.setHintBusy(false);
-
-  assert.equal(el('btn-hint').disabled, true, 'no session means nothing to solve');
-});
-
-test('a new search cancels the message left by the last one', (t) => {
-  // Mock timers so a leftover 2-second delay cannot leave a real OS timer pending —
-  // that would just make node --test sit for 2 seconds rather than fail outright.
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const { hud, session, el } = setup();
-  hud.bind(session);
-
-  hud.flashNoHint();          // first search: found nothing, its timer is now running
-  hud.setHintBusy(true);      // a second search starts before that timer expires
-  hud.setHintBusy(false);     // ...and finds something, well before the old timer fires
-
-  // If the old timer was left running, #noHintTimer is still non-null here, which
-  // blocks setHintBusy(false) from ever writing "Hint" back — the button would be
-  // stuck reading "Thinking…" despite no longer being busy.
-  assert.equal(el('btn-hint').textContent, '💡 Hint',
-    'an uncancelled timer from the first search must not block the second one from reporting done');
-
-  // The leftover timer eventually fires regardless; it must find nothing left to undo.
-  t.mock.timers.tick(2000);
-  assert.equal(el('btn-hint').textContent, '💡 Hint');
-});
-
-test('the "No hint" message reverts to the invite on its own after two seconds', (t) => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const { hud, session, el } = setup();
-  hud.bind(session);
-
-  hud.flashNoHint();
-  assert.equal(el('btn-hint').textContent, '💡 No hint');
-
-  t.mock.timers.tick(2000);
-  assert.equal(el('btn-hint').textContent, '💡 Hint',
-    'the timer set by flashNoHint must put the invite back up, unprompted');
+  assert.equal(el('hud-moves').textContent, '1', 'the live session must still be followed');
 });

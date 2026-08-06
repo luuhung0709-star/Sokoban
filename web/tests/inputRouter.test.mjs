@@ -20,12 +20,12 @@ function setup() {
   return { target, commands };
 }
 
-test('KeyH emits Command.Hint', () => {
+test('KeyH emits nothing — the hint feature was removed', () => {
   const { target, commands } = setup();
 
   target.dispatch('keydown', keydown('KeyH'));
 
-  assert.deepEqual(commands, [Command.Hint]);
+  assert.deepEqual(commands, []);
 });
 
 test('KeyU emits Command.Undo', () => {

@@ -54,10 +54,6 @@ function setup() {
     rekeyBox() {},
     placeActor() {},
     playerEl: {},
-    hints: [],
-    cleared: 0,
-    showHint(box, dir) { this.hints.push({ box, dir }); },
-    clearHint() { this.cleared++; },
   };
 
   const animator = { isBusy: false, async play() {}, snap(_b, after) { after?.(); } };
@@ -65,11 +61,7 @@ function setup() {
   let bound = 0;
   const hud = {
     label: null,
-    hintBusy: [],
-    noHintFlashes: 0,
     setLevelLabel(text) { this.label = text; },
-    setHintBusy(on) { this.hintBusy.push(on); },
-    flashNoHint() { this.noHintFlashes++; },
     bind() { bound++; return () => { bound--; }; },
     get boundCount() { return bound; },
   };
@@ -84,18 +76,12 @@ function setup() {
   const progress = makeProgress();
   const coll = collection();
 
-  const hintService = {
-    asked: 0,
-    hint: null,
-    requestHint() { this.asked++; return Promise.resolve(this.hint); },
-  };
-
   const flow = new GameFlow({
-    collection: coll, progress, router, renderer, animator, hud, panels, audio, hintService,
+    collection: coll, progress, router, renderer, animator, hud, panels, audio,
   });
 
   return {
-    flow, router, hud, panels, audio, progress, coll, hintService, renderer,
+    flow, router, hud, panels, audio, progress, coll, renderer,
     screen: () => document.body.dataset.screen,
   };
 }
@@ -243,83 +229,6 @@ test('handleResize is a no-op when no level is loaded', () => {
   assert.doesNotThrow(() => flow.handleResize());
 });
 
-test('the hint button drives the hud through its thinking state', async () => {
-  const { flow, router, hud, hintService } = setup();
-  hintService.hint = { box: { x: 2, y: 1 }, dir: Direction.Right };
-  flow.playLevel(0);
-
-  router.send(Command.Hint);
-  await tick();
-
-  assert.equal(hintService.asked, 1);
-  assert.deepEqual(hud.hintBusy, [true, false], 'busy must be switched off again');
-  assert.equal(hud.noHintFlashes, 0);
-});
-
-test('a search that found nothing flashes the message', async () => {
-  const { flow, router, hud, hintService } = setup();
-  hintService.hint = null;
-  flow.playLevel(0);
-
-  router.send(Command.Hint);
-  await tick();
-
-  assert.equal(hud.noHintFlashes, 1);
-});
-
-test('a found hint is drawn using the exact box and direction the solver returned', async () => {
-  const { flow, router, renderer, hintService } = setup();
-  hintService.hint = { box: { x: 2, y: 1 }, dir: Direction.Right };
-  flow.playLevel(0);
-
-  router.send(Command.Hint);
-  await tick();
-
-  assert.deepEqual(renderer.hints, [{ box: { x: 2, y: 1 }, dir: Direction.Right }],
-    'a deleted showHint call or swapped arguments must fail this');
-});
-
-test('a move made while the search is still running throws the answer away', async () => {
-  const { flow, router, renderer, hud, hintService } = setup();
-  let resolveHint;
-  hintService.requestHint = () => new Promise((resolve) => { resolveHint = resolve; });
-  flow.playLevel(0);
-  renderer.cleared = 0;   // start() clears too; zero it so the count below is the move's alone
-
-  router.send(Command.Hint);
-  router.send(Command.Right);   // the board the search was asked about no longer exists
-  await tick();
-  resolveHint({ box: { x: 2, y: 1 }, dir: Direction.Right });
-  await tick();
-
-  assert.equal(renderer.hints.length, 0, 'a hint for an outdated board must not be drawn');
-  assert.equal(hud.noHintFlashes, 0, 'stale is not the same as "the solver found nothing"');
-  assert.ok(renderer.cleared > 0,
-    'the move must clear the stale arrow, or it would keep pointing the pre-move direction');
-  assert.deepEqual(hud.hintBusy, [true, false],
-    'the button must leave its thinking state even though the answer was thrown away');
-});
-
-test('a restart while the search is still running also throws the answer away', async () => {
-  const { flow, router, renderer, hud, hintService } = setup();
-  let resolveHint;
-  hintService.requestHint = () => new Promise((resolve) => { resolveHint = resolve; });
-  flow.playLevel(0);
-
-  router.send(Command.Hint);
-  router.send(Command.Restart);
-  await tick();
-  resolveHint({ box: { x: 2, y: 1 }, dir: Direction.Right });
-  await tick();
-
-  assert.deepEqual(hud.hintBusy, [true, false],
-    'the button must leave its thinking state even though the answer was thrown away');
-
-  // Restart puts `moves` back to 0 — the same value it started at — so a guard keyed
-  // on the move count alone sees no change here and would draw the stale hint anyway.
-  assert.equal(renderer.hints.length, 0);
-});
-
 test('Restart behind the win overlay plays the level again', async () => {
   // Every other play command is dead once the level is solved, because the overlay
   // covers the board. Restart is the one a player still wants from there — and since
@@ -341,26 +250,4 @@ test('Restart behind the win overlay plays the level again', async () => {
   await tick();
   assert.equal(panels.levelComplete.shown.length, 2,
     'a restarted level must be playable, not just repainted behind a hidden overlay');
-});
-
-test('leaving a level mid-search stops the old player from later touching the hud a new level owns', async () => {
-  // The hud is a singleton GameFlow rebinds on every playLevel — it is not per-player.
-  // A search started on level A that resolves after the player has moved on to level B
-  // must not reach into that shared hud and report news about a board nobody is
-  // looking at any more.
-  const { flow, router, hud, hintService } = setup();
-  let resolveHint;
-  hintService.requestHint = () => new Promise((resolve) => { resolveHint = resolve; });
-  flow.playLevel(0);
-
-  router.send(Command.Hint);
-  const busyBeforeSwitch = [...hud.hintBusy];
-
-  flow.playLevel(1);   // leaves level 0 while its search is still in flight
-
-  resolveHint({ box: { x: 2, y: 1 }, dir: Direction.Right });
-  await tick();
-
-  assert.deepEqual(hud.hintBusy, busyBeforeSwitch,
-    'the stopped player must not push to the hud once another level has taken it over');
 });
